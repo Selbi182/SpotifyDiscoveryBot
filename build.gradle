@@ -1,0 +1,33 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+jar {
+    baseName = 'SpotifyNewDiscovery'
+    version = '1.0'
+    
+    manifest {
+	    attributes(
+	      'Main-Class': 'spotify.Main'
+	    )
+	}
+}
+
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {    
+    compile 'com.github.thelinmichael:spotify-web-api-java:master-SNAPSHOT'
+    compile group:'org.xerial', name:'sqlite-jdbc', version:'3.27.2.1'
+    compile group: 'org.ini4j', name: 'ini4j', version: '0.5.4'
+}

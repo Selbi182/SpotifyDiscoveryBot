@@ -75,7 +75,7 @@ public class SpotifyReleases {
 	private SpotifyApi api;
 	
 	// Logger
-	private final static Logger LOG = Logger.getLogger(SpotifyReleases.class.getName());
+	public final static Logger LOG = Logger.getLogger(SpotifyReleases.class.getName());
 	
 	// INI
 	private final static File INI_FILE = new File(INI_FILENAME);
@@ -153,19 +153,18 @@ public class SpotifyReleases {
 		}
 		
 		LOG.info("Successfully authenticated!");
-		
-		LOG.info("=== Entering Main Loop ===");
-		isRunning = true;
-		spotifyDiscoveryMainLoop();
 	}
 	
 	/**
 	 * Main loop that should never quit
 	 * @throws Exception
 	 */
-	private void spotifyDiscoveryMainLoop() throws Exception {
+	public void spotifyDiscoveryMainLoop() throws Exception {
+		LOG.info("=== Entering Main Loop ===");
+		isRunning = true;
+		
 		while (isRunning) {
-			LOG.info("Searching for new releases of the past " + lookbackDays + " days...");
+			LOG.info("Searching for any new releases within the past " + lookbackDays + " days...");
 			
 			// Fetch all followed artists of the user
 			List<Artist> followedArtists = getFollowedArtists();
@@ -188,11 +187,21 @@ public class SpotifyReleases {
 				// Get the Song IDs of the new albums
 				// Abort if there are none 
 				List<String> newSongs = getSongIdsByAlbums(newAlbums);
-				
-				// Finally, add the new songs to the playlist
-				addSongsToPlaylist(newSongs);
-				LOG.info("> " + newSongs.size() + " new songs added to discovery playlist!");				
+				if (!newSongs.isEmpty()) {
+					// Finally, add the new songs to the playlist
+					addSongsToPlaylist(newSongs);
+					if (newSongs.size() == 1) {
+						LOG.info("> " + newSongs.size() + " new song added to discovery playlist!");				
+					} else {
+						LOG.info("> " + newSongs.size() + " new songs added to discovery playlist!");									
+					}
+				} else {
+					LOG.info("> No new releases found!");
+				}
 			}
+			
+			// Store the album IDs to the DB to prevent them from getting added a second time
+			storeAlbumIDsToDB(filteredAlbums);					
 			
 			// Edit the playlist's description to show when the last crawl took place
 			timestampPlaylist();
@@ -325,9 +334,6 @@ public class SpotifyReleases {
 			while (rs.next()) {
 				filteredAlbums.remove(rs.getString(DB_ROW_ALBUM_IDS));
 			}
-			for (String s : filteredAlbums) {
-				statement.executeUpdate(String.format("INSERT INTO %s(%s) VALUES('%s')", DB_TBL_ALBUMS, DB_ROW_ALBUM_IDS, s));
-			}
 		} catch (SQLException e) {
 			LOG.severe(e.getMessage());
 		} finally {
@@ -435,7 +441,7 @@ public class SpotifyReleases {
 	}
 
 	/**
-	 * Add the given list of song IDs to the playlist
+	 * Add the given list of song IDs to the playlist and store them in the DB
 	 * @param songs
 	 * @throws SpotifyWebApiException
 	 * @throws IOException
@@ -465,6 +471,26 @@ public class SpotifyReleases {
 					Thread.sleep(timeout * SECOND_IN_MILLIS);
 				}
 			} while (retry);
+		}
+	}
+	
+	private void storeAlbumIDsToDB(List<String> albumIDs) {
+		Connection connection = null;
+		try {
+			connection = DriverManager.getConnection("jdbc:sqlite:" + DB_FILE_NAME);
+			Statement statement = connection.createStatement();
+			for (String s : albumIDs) {
+				statement.executeUpdate(String.format("INSERT INTO %s(%s) VALUES('%s')", DB_TBL_ALBUMS, DB_ROW_ALBUM_IDS, s));
+			}
+		} catch (SQLException e) {
+			LOG.severe(e.getMessage());
+		} finally {
+			try {
+				if (connection != null)
+					connection.close();
+			} catch (SQLException e) {
+				LOG.severe(e.getMessage());
+			}
 		}
 	}
 }

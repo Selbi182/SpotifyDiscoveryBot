@@ -19,6 +19,7 @@ import static spotify.Constants.KEY_SCOPES;
 import static spotify.Constants.KEY_SEVERAL_ALBUMS_LIMIT;
 import static spotify.Constants.KEY_SLEEP_MINUTES;
 import static spotify.Constants.KEY_TRACK_PREFIX;
+import static spotify.Constants.RELEASE_COMPARATOR;
 import static spotify.Constants.SECOND_IN_MILLIS;
 import static spotify.Constants.SECTION_CLIENT;
 import static spotify.Constants.SECTION_SEARCH;
@@ -39,7 +40,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -186,7 +186,7 @@ public class SpotifyReleases {
 				
 				// Get the Song IDs of the new albums
 				// Abort if there are none 
-				List<String> newSongs = getSongIdsByAlbums(newAlbums);
+				List<List<String>> newSongs = getSongIdsByAlbums(newAlbums);
 				if (!newSongs.isEmpty()) {
 					// Finally, add the new songs to the playlist
 					addSongsToPlaylist(newSongs);
@@ -378,10 +378,9 @@ public class SpotifyReleases {
 					Thread.sleep(timeout * SECOND_IN_MILLIS);
 				}
 			} while (retry);
-			for (Album a : fullAlbums) {
-				albums.add(a);
-			}
+			albums.addAll(Arrays.asList(fullAlbums));
 		}
+		Collections.sort(albums, (a1, a2) -> RELEASE_COMPARATOR.reversed().compare(a1, a2));
 		return albums;
 	}
 
@@ -406,7 +405,6 @@ public class SpotifyReleases {
 				}
 			}
 		}
-		Collections.sort(filteredAlbums, Comparator.comparing(Album::getReleaseDate));
 		return filteredAlbums;
 	}
 
@@ -418,9 +416,10 @@ public class SpotifyReleases {
 	 * @throws SpotifyWebApiException
 	 * @throws IOException
 	 */
-	private List<String> getSongIdsByAlbums(List<Album> albums) throws InterruptedException, SpotifyWebApiException, IOException {
-		List<String> tracks = new ArrayList<>();
+	private List<List<String>> getSongIdsByAlbums(List<Album> albums) throws InterruptedException, SpotifyWebApiException, IOException {
+		List<List<String>> tracksByAlbums = new ArrayList<>();
 		for (Album a : albums) {
+			List<String> currentList = new ArrayList<>();
 			boolean retry = false;
 			Paging<TrackSimplified> albumTracks = null;
 			do {
@@ -434,46 +433,54 @@ public class SpotifyReleases {
 				}
 			} while (retry);
 			for (TrackSimplified t : albumTracks.getItems()) {
-				tracks.add(t.getId());
+				currentList.add(t.getId());
 			}
+			tracksByAlbums.add(currentList);
 		}
-		return tracks;
+		return tracksByAlbums;
 	}
 
 	/**
-	 * Add the given list of song IDs to the playlist and store them in the DB
+	 * Add the given list of song IDs to the playlist (a delay of a second per release is used to retain order).
 	 * @param songs
 	 * @throws SpotifyWebApiException
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	private void addSongsToPlaylist(List<String> songs) throws SpotifyWebApiException, IOException, InterruptedException {
-		int spliceCount = songs.size() / playlistAddLimit + 1;
-		for (int i = 0; i < spliceCount; i++) {
-			List<String> idSubList;
-			if (i == spliceCount - 1) {
-				idSubList = songs.subList(i * playlistAddLimit, i * playlistAddLimit + (songs.size() % playlistAddLimit));
-			} else {
-				idSubList = songs.subList(i * playlistAddLimit, i * playlistAddLimit + playlistAddLimit);
-			}
-			JsonArray json = new JsonArray();
-			for (String s : idSubList) {
-				json.add(trackPrefix + s);
-			}
-			boolean retry = false;
-			do {
-				retry = false;
-				try {
-					api.addTracksToPlaylist(playlistId, json).build().execute();
-				} catch (TooManyRequestsException e) {
-					retry = true;
-					int timeout = e.getRetryAfter() + 1;
-					Thread.sleep(timeout * SECOND_IN_MILLIS);
+	private void addSongsToPlaylist(List<List<String>> songsByAlbums) throws SpotifyWebApiException, IOException, InterruptedException {
+		for (List<String> songsInAlbum : songsByAlbums) {
+			int spliceCount = songsInAlbum.size() / playlistAddLimit + 1;
+			for (int i = 0; i < spliceCount; i++) {
+				List<String> idSubList;
+				if (i == spliceCount - 1) {
+					idSubList = songsInAlbum.subList(i * playlistAddLimit, i * playlistAddLimit + (songsInAlbum.size() % playlistAddLimit));
+				} else {
+					idSubList = songsInAlbum.subList(i * playlistAddLimit, i * playlistAddLimit + playlistAddLimit);
 				}
-			} while (retry);
+				JsonArray json = new JsonArray();
+				for (String s : idSubList) {
+					json.add(trackPrefix + s);
+				}
+				boolean retry = false;
+				do {
+					retry = false;
+					try {
+						api.addTracksToPlaylist(playlistId, json).build().execute();
+					} catch (TooManyRequestsException e) {
+						retry = true;
+						int timeout = e.getRetryAfter() + 1;
+						Thread.sleep(timeout * SECOND_IN_MILLIS);
+					}
+				} while (retry);
+			}
+			Thread.sleep(SECOND_IN_MILLIS);
 		}
 	}
 	
+	/**
+	 * Store the list of album IDs in the database to prevent them from getting added again
+	 * @param albumIDs
+	 */
 	private void storeAlbumIDsToDB(List<String> albumIDs) {
 		Connection connection = null;
 		try {

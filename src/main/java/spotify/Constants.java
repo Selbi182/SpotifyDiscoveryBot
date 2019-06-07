@@ -1,5 +1,9 @@
 package spotify;
 
+import java.util.Comparator;
+
+import com.wrapper.spotify.model_objects.specification.Album;
+
 public final class Constants {
 	// Generic
 	public final static int SECOND_IN_MILLIS = 1000;
@@ -36,6 +40,18 @@ public final class Constants {
 	public final static String SECTION_SEARCH = "Search";
 	public final static String KEY_LOOKBACK_DAYS = "lookbackDays";
 	public final static String KEY_SLEEP_MINUTES = "sleepMinutes";
+	
+	
+	// Comparators
+    private final static Comparator<Album> COMPARATOR_ALBUM_TYPE = Comparator.comparing(Album::getAlbumType);
+    private final static Comparator<Album> COMPARATOR_RELEASE_DATE = Comparator.comparing(Album::getReleaseDate);
+    private final static Comparator<Album> COMPARATOR_FIRST_ARTIST_NAME = (a1, a2) -> a1.getArtists()[0].getName().compareTo(a2.getArtists()[0].getName());
+    private final static Comparator<Album> COMPARATOR_ALBUM_NAME = Comparator.comparing(Album::getName);
+    
+    public final static Comparator<Album> RELEASE_COMPARATOR =	COMPARATOR_ALBUM_TYPE
+																.thenComparing(COMPARATOR_RELEASE_DATE)
+																.thenComparing(COMPARATOR_FIRST_ARTIST_NAME)
+																.thenComparing(COMPARATOR_ALBUM_NAME);	
 	
 	/**
 	 * Private constructor

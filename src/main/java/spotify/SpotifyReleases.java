@@ -1,31 +1,6 @@
 package spotify;
 
-import static spotify.Constants.DB_FILE_NAME;
-import static spotify.Constants.DB_ROW_ALBUM_IDS;
-import static spotify.Constants.DB_TBL_ALBUMS;
-import static spotify.Constants.INI_FILENAME;
-import static spotify.Constants.KEY_ACCESS_TOKEN;
-import static spotify.Constants.KEY_ALBUM_TYPES;
-import static spotify.Constants.KEY_CALLBACK_URI;
-import static spotify.Constants.KEY_CLIENT_ID;
-import static spotify.Constants.KEY_CLIENT_SECRET;
-import static spotify.Constants.KEY_DEFAULT_LIMIT;
-import static spotify.Constants.KEY_LOOKBACK_DAYS;
-import static spotify.Constants.KEY_MARKET;
-import static spotify.Constants.KEY_PLAYLIST_ADD_LIMIT;
-import static spotify.Constants.KEY_PLAYLIST_ID;
-import static spotify.Constants.KEY_REFRESH_TOKEN;
-import static spotify.Constants.KEY_SCOPES;
-import static spotify.Constants.KEY_SEVERAL_ALBUMS_LIMIT;
-import static spotify.Constants.KEY_SLEEP_MINUTES;
-import static spotify.Constants.KEY_TRACK_PREFIX;
-import static spotify.Constants.RELEASE_COMPARATOR;
-import static spotify.Constants.SECOND_IN_MILLIS;
-import static spotify.Constants.SECTION_CLIENT;
-import static spotify.Constants.SECTION_SEARCH;
-import static spotify.Constants.SECTION_SPOTIFY;
-import static spotify.Constants.SECTION_TOKENS;
-import static spotify.Constants.SECTION_USER;
+import static spotify.Constants.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -53,6 +28,7 @@ import com.google.gson.JsonArray;
 import com.neovisionaries.i18n.CountryCode;
 import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.SpotifyHttpManager;
+import com.wrapper.spotify.enums.AlbumType;
 import com.wrapper.spotify.enums.ModelObjectType;
 import com.wrapper.spotify.enums.ReleaseDatePrecision;
 import com.wrapper.spotify.exceptions.SpotifyWebApiException;
@@ -63,6 +39,7 @@ import com.wrapper.spotify.model_objects.credentials.AuthorizationCodeCredential
 import com.wrapper.spotify.model_objects.specification.Album;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.Artist;
+import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
 import com.wrapper.spotify.model_objects.specification.Paging;
 import com.wrapper.spotify.model_objects.specification.PagingCursorbased;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
@@ -91,6 +68,7 @@ public class SpotifyReleases {
 	private String playlistId;
 	private CountryCode market = CountryCode.DE;
 	private String albumTypes = "album,single,compilation";
+	private boolean intelligentAppearsOnSearch = true;
 	
 	// App
 	private boolean isRunning = false;
@@ -132,6 +110,7 @@ public class SpotifyReleases {
 		playlistId = iniFile.get(SECTION_USER, KEY_PLAYLIST_ID);
 		market = CountryCode.valueOf(iniFile.get(SECTION_USER, KEY_MARKET));
 		albumTypes = iniFile.get(SECTION_USER, KEY_ALBUM_TYPES);
+		intelligentAppearsOnSearch = Boolean.valueOf(iniFile.get(SECTION_USER, KEY_INTELLIGENT_APPEARS_ON_SEARCH));
 		
 		// Set static Spotify settings
 		scopes = iniFile.get(SECTION_SPOTIFY, KEY_SCOPES);
@@ -170,7 +149,7 @@ public class SpotifyReleases {
 			List<Artist> followedArtists = getFollowedArtists();
 			
 			// Fetch all album IDs (raw) of those artists
-			List<String> albumIds = getAlbumsIdsByArtists(followedArtists);
+			List<String> albumIds = getAlbumsIdsByArtists(followedArtists, albumTypes);
 			
 			// Filter out all albums that were already stored in the DB
 			// Abort crawling process if no albums were found
@@ -183,10 +162,18 @@ public class SpotifyReleases {
 				
 				// Filter out all albums not released in the lookbackDays range
 				List<Album> newAlbums = filterNewAlbumsOnly(fullAlbums);
+				Collections.sort(newAlbums, (a1, a2) -> RELEASE_COMPARATOR.reversed().compare(a1, a2));
 				
-				// Get the Song IDs of the new albums
+				// Get the songs of the new albums
 				// Abort if there are none 
-				List<List<String>> newSongs = getSongIdsByAlbums(newAlbums);
+				List<List<TrackSimplified>> newSongs = getSongIdsByAlbums(newAlbums);
+				
+				// If intelligent appears_on search is enabled, add any followed artists' songs in foreign compilations 
+				if (intelligentAppearsOnSearch) {
+					List<List<TrackSimplified>> extraSongs = getFollowedArtistsSongsOnAppearsOnReleases(followedArtists);
+					newSongs.addAll(extraSongs);
+				}
+				
 				if (!newSongs.isEmpty()) {
 					// Finally, add the new songs to the playlist
 					addSongsToPlaylist(newSongs);
@@ -297,7 +284,7 @@ public class SpotifyReleases {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	private List<String> getAlbumsIdsByArtists(List<Artist> artists) throws SpotifyWebApiException, IOException, InterruptedException {
+	private List<String> getAlbumsIdsByArtists(List<Artist> artists, String albumTypes) throws SpotifyWebApiException, IOException, InterruptedException {
 		List<String> ids = new ArrayList<>();
 		for (Artist a : artists) {
 			boolean retry = false;
@@ -380,7 +367,6 @@ public class SpotifyReleases {
 			} while (retry);
 			albums.addAll(Arrays.asList(fullAlbums));
 		}
-		Collections.sort(albums, (a1, a2) -> RELEASE_COMPARATOR.reversed().compare(a1, a2));
 		return albums;
 	}
 
@@ -416,10 +402,10 @@ public class SpotifyReleases {
 	 * @throws SpotifyWebApiException
 	 * @throws IOException
 	 */
-	private List<List<String>> getSongIdsByAlbums(List<Album> albums) throws InterruptedException, SpotifyWebApiException, IOException {
-		List<List<String>> tracksByAlbums = new ArrayList<>();
+	private List<List<TrackSimplified>> getSongIdsByAlbums(List<Album> albums) throws InterruptedException, SpotifyWebApiException, IOException {
+		List<List<TrackSimplified>> tracksByAlbums = new ArrayList<>();
 		for (Album a : albums) {
-			List<String> currentList = new ArrayList<>();
+			List<TrackSimplified> currentList = new ArrayList<>();
 			boolean retry = false;
 			Paging<TrackSimplified> albumTracks = null;
 			do {
@@ -432,12 +418,67 @@ public class SpotifyReleases {
 					Thread.sleep(timeout * SECOND_IN_MILLIS);
 				}
 			} while (retry);
-			for (TrackSimplified t : albumTracks.getItems()) {
-				currentList.add(t.getId());
-			}
+			currentList.addAll(Arrays.asList(albumTracks.getItems()));
 			tracksByAlbums.add(currentList);
 		}
 		return tracksByAlbums;
+	}
+	
+	/**
+	 * Find all releases marked as "appears_on" by the given list of artists, but
+	 * filter the result such that only songs of artists you follow are preserved.
+	 * Also filter out any compilation appearances.
+	 * 
+	 * @param followedArtists
+	 * @return
+	 * @throws SpotifyWebApiException
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	private List<List<TrackSimplified>> getFollowedArtistsSongsOnAppearsOnReleases(List<Artist> followedArtists) throws SpotifyWebApiException, IOException, InterruptedException {
+		Set<String> followedArtistsIds = new HashSet<>();
+		for (Artist a : followedArtists) {
+			followedArtistsIds.add(a.getId());
+		}
+		List<List<TrackSimplified>> extraSongs = new ArrayList<>();
+		List<String> albumIds = getAlbumsIdsByArtists(followedArtists, AlbumType.APPEARS_ON.getType());
+		List<String> filteredAlbums = filterNonCachedAlbumsOnly(albumIds);
+		if (!filteredAlbums.isEmpty()) {
+			List<Album> fullAlbums = convertAlbumIdsToFullAlbums(filteredAlbums);
+			List<Album> newAlbums = filterNewAlbumsOnly(fullAlbums);
+			List<Album> newAlbumsWithoutCompilations = new ArrayList<>();
+			for (Album a : newAlbums) {
+				// Filter out compilations (including falsely labeled ones)
+				if (!a.getAlbumType().equals(AlbumType.COMPILATION)) {
+					boolean okayToAdd = true;
+					for (ArtistSimplified as : a.getArtists()) {
+						if (as.getName().equals(VARIOUS_ARTISTS)) {
+							okayToAdd = false;
+							break;
+						}
+					}
+					if (okayToAdd) {
+						newAlbumsWithoutCompilations.add(a);						
+					}
+				}
+			}
+			List<List<TrackSimplified>> newSongs = getSongIdsByAlbums(newAlbumsWithoutCompilations);
+			for (List<TrackSimplified> songsInAlbum : newSongs) {
+				List<TrackSimplified> selectedSongs = new ArrayList<>();
+				for (TrackSimplified ts : songsInAlbum) {
+					for (ArtistSimplified as : ts.getArtists()) {
+						if (followedArtistsIds.contains(as.getId())) {
+							selectedSongs.add(ts);
+							break;
+						}
+					}
+				}
+				if (!selectedSongs.isEmpty()) {
+					extraSongs.add(selectedSongs);
+				}
+			}
+		}
+		return extraSongs;
 	}
 
 	/**
@@ -447,19 +488,19 @@ public class SpotifyReleases {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	private void addSongsToPlaylist(List<List<String>> songsByAlbums) throws SpotifyWebApiException, IOException, InterruptedException {
-		for (List<String> songsInAlbum : songsByAlbums) {
+	private void addSongsToPlaylist(List<List<TrackSimplified>> newSongs) throws SpotifyWebApiException, IOException, InterruptedException {
+		for (List<TrackSimplified> songsInAlbum : newSongs) {
 			int spliceCount = songsInAlbum.size() / playlistAddLimit + 1;
 			for (int i = 0; i < spliceCount; i++) {
-				List<String> idSubList;
+				List<TrackSimplified> idSubList;
 				if (i == spliceCount - 1) {
 					idSubList = songsInAlbum.subList(i * playlistAddLimit, i * playlistAddLimit + (songsInAlbum.size() % playlistAddLimit));
 				} else {
 					idSubList = songsInAlbum.subList(i * playlistAddLimit, i * playlistAddLimit + playlistAddLimit);
 				}
 				JsonArray json = new JsonArray();
-				for (String s : idSubList) {
-					json.add(trackPrefix + s);
+				for (TrackSimplified s : idSubList) {
+					json.add(trackPrefix + s.getId());
 				}
 				boolean retry = false;
 				do {

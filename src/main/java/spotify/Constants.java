@@ -7,6 +7,7 @@ import com.wrapper.spotify.model_objects.specification.Album;
 public final class Constants {
 	// Generic
 	public final static int SECOND_IN_MILLIS = 1000;
+	public final static String VARIOUS_ARTISTS = "Various Artists";
 	
 	// Database
 	public final static String DB_FILE_NAME = "database.db";
@@ -29,6 +30,7 @@ public final class Constants {
 	public final static String KEY_PLAYLIST_ID = "playlistId";
 	public final static String KEY_MARKET = "market";
 	public final static String KEY_ALBUM_TYPES = "albumTypes";
+	public final static String KEY_INTELLIGENT_APPEARS_ON_SEARCH = "intelligentAppearsOnSearch";
 	
 	public final static String SECTION_SPOTIFY = "Spotify";
 	public final static String KEY_SCOPES = "scopes";

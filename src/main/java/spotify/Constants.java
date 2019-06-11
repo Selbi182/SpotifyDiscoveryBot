@@ -39,9 +39,10 @@ public final class Constants {
 	public final static String KEY_SEVERAL_ALBUMS_LIMIT = "severalAlbumsLimit";
 	public final static String KEY_PLAYLIST_ADD_LIMIT = "playlistAddLimit";
 	
-	public final static String SECTION_SEARCH = "Search";
+	public final static String SECTION_CONFIG = "Config";
 	public final static String KEY_LOOKBACK_DAYS = "lookbackDays";
 	public final static String KEY_SLEEP_MINUTES = "sleepMinutes";
+	public final static String KEY_LOGLEVEL = "logLevel";
 	
 	
 	// Comparators

@@ -1,6 +1,34 @@
 package spotify;
 
-import static spotify.Constants.*;
+import static spotify.Constants.DB_FILE_NAME;
+import static spotify.Constants.DB_ROW_ALBUM_IDS;
+import static spotify.Constants.DB_TBL_ALBUMS;
+import static spotify.Constants.INI_FILENAME;
+import static spotify.Constants.KEY_ACCESS_TOKEN;
+import static spotify.Constants.KEY_ALBUM_TYPES;
+import static spotify.Constants.KEY_CALLBACK_URI;
+import static spotify.Constants.KEY_CLIENT_ID;
+import static spotify.Constants.KEY_CLIENT_SECRET;
+import static spotify.Constants.KEY_DEFAULT_LIMIT;
+import static spotify.Constants.KEY_INTELLIGENT_APPEARS_ON_SEARCH;
+import static spotify.Constants.KEY_LOGLEVEL;
+import static spotify.Constants.KEY_LOOKBACK_DAYS;
+import static spotify.Constants.KEY_MARKET;
+import static spotify.Constants.KEY_PLAYLIST_ADD_LIMIT;
+import static spotify.Constants.KEY_PLAYLIST_ID;
+import static spotify.Constants.KEY_REFRESH_TOKEN;
+import static spotify.Constants.KEY_SCOPES;
+import static spotify.Constants.KEY_SEVERAL_ALBUMS_LIMIT;
+import static spotify.Constants.KEY_SLEEP_MINUTES;
+import static spotify.Constants.KEY_TRACK_PREFIX;
+import static spotify.Constants.RELEASE_COMPARATOR;
+import static spotify.Constants.SECOND_IN_MILLIS;
+import static spotify.Constants.SECTION_CLIENT;
+import static spotify.Constants.SECTION_CONFIG;
+import static spotify.Constants.SECTION_SPOTIFY;
+import static spotify.Constants.SECTION_TOKENS;
+import static spotify.Constants.SECTION_USER;
+import static spotify.Constants.VARIOUS_ARTISTS;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,8 +48,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.ini4j.InvalidFileFormatException;
 import org.ini4j.Wini;
 
 import com.google.gson.JsonArray;
@@ -52,11 +83,15 @@ public class SpotifyReleases {
 	private SpotifyApi api;
 	
 	// Logger
-	public final static Logger LOG = Logger.getLogger(SpotifyReleases.class.getName());
+	public final static Logger LOG = Logger.getGlobal();
 	
 	// INI
-	private final static File INI_FILE = new File(INI_FILENAME);
+	private static File iniFilePath;
 	private Wini iniFile;
+	
+	// DB
+	private static String dbUrl;
+	private final static String DB_URL_TEMPLATE = "jdbc:sqlite:%s" + File.separator + DB_FILE_NAME;
 	
 	private int defaultLimit = 50;
 	private int severalAlbumsLimit = 20;
@@ -75,18 +110,33 @@ public class SpotifyReleases {
 
 	/**
 	 * Initialize the app
+	 * @throws IOException 
+	 * @throws InvalidFileFormatException 
+	 * @throws SpotifyWebApiException 
 	 * @throws Exception
 	 */
-	public SpotifyReleases() throws Exception {
+	public SpotifyReleases() throws IOException, SpotifyWebApiException {
+		// Configure Logger
 		LOG.info("=== Spotify Discovery Bot ===");
 		
+		// Set file paths
+		File thisJarLocation = new File(ClassLoader.getSystemClassLoader().getResource(".").getPath()).getAbsoluteFile();
+		iniFilePath = new File(thisJarLocation, INI_FILENAME);
+		dbUrl = String.format(DB_URL_TEMPLATE, thisJarLocation.toString());
+		
 		// Read INI FILE
-		LOG.info("Initializing...");
-		if (!INI_FILE.canRead()) {
-			LOG.severe("Cannot read ini file!");
-			return;
+		if (!iniFilePath.canRead()) {
+			throw new IOException("Cannot read ini file!");
 		}
-		iniFile = new Wini(INI_FILE);
+		iniFile = new Wini(iniFilePath);
+		
+		// Configure Logger
+		Level l = Level.parse(iniFile.get(SECTION_CONFIG, KEY_LOGLEVEL));
+		LOG.setLevel(l);
+		for (Handler h : LOG.getHandlers()) {
+			h.setLevel(l);
+		}
+		LOG.info("Initializing...");
 		
 		// Set general client data given via the Spotify dashboard
 		String clientId = iniFile.get(SECTION_CLIENT, KEY_CLIENT_ID);
@@ -120,8 +170,8 @@ public class SpotifyReleases {
 		playlistAddLimit = iniFile.get(SECTION_SPOTIFY, KEY_PLAYLIST_ADD_LIMIT, int.class);
 		
 		// Set search settings
-		lookbackDays = iniFile.get(SECTION_SEARCH, KEY_LOOKBACK_DAYS, int.class);
-		sleepMinutes = iniFile.get(SECTION_SEARCH, KEY_SLEEP_MINUTES, int.class);
+		lookbackDays = iniFile.get(SECTION_CONFIG, KEY_LOOKBACK_DAYS, int.class);
+		sleepMinutes = iniFile.get(SECTION_CONFIG, KEY_SLEEP_MINUTES, int.class);
 		
 		// Try to login with the stored access tokens or re-authenticate
 		try {
@@ -267,12 +317,26 @@ public class SpotifyReleases {
 	 */
 	private List<Artist> getFollowedArtists() throws Exception {
 		List<Artist> followedArtists = new ArrayList<>();
-		PagingCursorbased<Artist> artists = api.getUsersFollowedArtists(ModelObjectType.ARTIST).limit(defaultLimit).build().execute();
-		followedArtists.addAll(Arrays.asList(artists.getItems()));
-		while (artists.getNext() != null) {
-			artists = api.getUsersFollowedArtists(ModelObjectType.ARTIST).limit(defaultLimit).after(artists.getCursors()[0].getAfter()).build().execute();
-			followedArtists.addAll(Arrays.asList(artists.getItems()));
-		}
+		boolean retry = false;
+		PagingCursorbased<Artist> artists = null;
+		do {
+			retry = false;
+			try {
+				do {
+					if (artists != null && artists.getNext() != null) {
+						String after = artists.getCursors()[0].getAfter();
+						artists = api.getUsersFollowedArtists(ModelObjectType.ARTIST).limit(defaultLimit).after(after).build().execute();
+					} else {
+						artists = api.getUsersFollowedArtists(ModelObjectType.ARTIST).limit(defaultLimit).build().execute();
+					}
+					followedArtists.addAll(Arrays.asList(artists.getItems()));
+				} while (artists.getNext() != null);
+			} catch (TooManyRequestsException e) {
+				retry = true;
+				int timeout = e.getRetryAfter() + 1;
+				Thread.sleep(timeout * SECOND_IN_MILLIS);
+			}
+		} while (retry);
 		return followedArtists;
 	}
 
@@ -315,7 +379,7 @@ public class SpotifyReleases {
 		Set<String> filteredAlbums = new HashSet<>(allAlbums);
 		Connection connection = null;
 		try {
-			connection = DriverManager.getConnection("jdbc:sqlite:" + DB_FILE_NAME);
+			connection = DriverManager.getConnection(dbUrl);
 			Statement statement = connection.createStatement();
 			ResultSet rs = statement.executeQuery(String.format("SELECT %s FROM %s", DB_ROW_ALBUM_IDS, DB_TBL_ALBUMS));
 			while (rs.next()) {
@@ -525,7 +589,7 @@ public class SpotifyReleases {
 	private void storeAlbumIDsToDB(List<String> albumIDs) {
 		Connection connection = null;
 		try {
-			connection = DriverManager.getConnection("jdbc:sqlite:" + DB_FILE_NAME);
+			connection = DriverManager.getConnection(dbUrl);
 			Statement statement = connection.createStatement();
 			for (String s : albumIDs) {
 				statement.executeUpdate(String.format("INSERT INTO %s(%s) VALUES('%s')", DB_TBL_ALBUMS, DB_ROW_ALBUM_IDS, s));

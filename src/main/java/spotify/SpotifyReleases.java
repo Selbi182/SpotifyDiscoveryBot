@@ -12,6 +12,7 @@ import static spotify.Constants.KEY_CLIENT_SECRET;
 import static spotify.Constants.KEY_DEFAULT_LIMIT;
 import static spotify.Constants.KEY_INTELLIGENT_APPEARS_ON_SEARCH;
 import static spotify.Constants.KEY_LOGLEVEL;
+import static spotify.Constants.KEY_LOG_TO_FILE;
 import static spotify.Constants.KEY_LOOKBACK_DAYS;
 import static spotify.Constants.KEY_MARKET;
 import static spotify.Constants.KEY_PLAYLIST_ADD_LIMIT;
@@ -49,9 +50,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 import org.ini4j.InvalidFileFormatException;
 import org.ini4j.Wini;
@@ -84,7 +87,7 @@ public class SpotifyReleases {
 	private SpotifyApi api;
 	
 	// Logger
-	public final static Logger LOG = Logger.getGlobal();
+	public final static Logger LOG = Logger.getLogger(SpotifyReleases.class.getName());
 	
 	// INI
 	private static File iniFilePath;
@@ -120,12 +123,9 @@ public class SpotifyReleases {
 	 * @throws Exception
 	 */
 	public SpotifyReleases() throws IOException, SpotifyWebApiException {
-		// Configure Logger
-		LOG.info("=== Spotify Discovery Bot ===");
-		
 		// Set file paths
-		File thisJarLocation = new File(ClassLoader.getSystemClassLoader().getResource(".").getPath()).getAbsoluteFile();
-		iniFilePath = new File(thisJarLocation, INI_FILENAME);
+		File ownLocation = new File(ClassLoader.getSystemClassLoader().getResource(".").getPath()).getAbsoluteFile();
+		iniFilePath = new File(ownLocation, INI_FILENAME);
 		
 		// Parse INI File
 		if (!iniFilePath.canRead()) {
@@ -134,7 +134,7 @@ public class SpotifyReleases {
 		iniFile = new Wini(iniFilePath);
 		
 		// Ensure readability of the database file
-		dbFilePath = new File(thisJarLocation, DB_FILE_NAME); 
+		dbFilePath = new File(ownLocation, DB_FILE_NAME); 
 		if (!dbFilePath.canRead()) {
 			throw new IOException("Cannot read .db file!");
 		}
@@ -142,11 +142,23 @@ public class SpotifyReleases {
 		
 		// Configure Logger
 		Level l = Level.parse(iniFile.get(SECTION_CONFIG, KEY_LOGLEVEL));
+		String logToFile = iniFile.get(SECTION_CONFIG, KEY_LOG_TO_FILE);
+		if (logToFile != null && !logToFile.isEmpty()) {
+			File logFilePath = new File(ownLocation, logToFile);
+			if (!logFilePath.canRead()) {
+				logFilePath.createNewFile();
+			}
+			Handler h = new FileHandler(logFilePath.getAbsolutePath(), true);
+	        h.setFormatter(new SimpleFormatter());
+			LOG.addHandler(h);
+		}
 		LOG.setLevel(l);
 		for (Handler h : LOG.getHandlers()) {
 			h.setLevel(l);
 		}
-		LOG.info("Initializing...");
+		
+		// Show welcome message
+		LOG.info("=== Spotify Discovery Bot ===");
 		
 		// Set general client data given via the Spotify dashboard
 		String clientId = iniFile.get(SECTION_CLIENT, KEY_CLIENT_ID);
@@ -252,7 +264,7 @@ public class SpotifyReleases {
 			// Add any new songs to the playlist!
 			if (!newSongs.isEmpty()) {
 				addSongsToPlaylist(newSongs);
-				LOG.info("> " + newSongs.size() + " new song" + (newSongs.size() == 1 ? "s" : "") + " added to discovery playlist!");
+				LOG.info("> " + newSongs.size() + " new song" + (newSongs.size() > 1 ? "s" : "") + " added to discovery playlist!");
 			} else {
 				LOG.info("> No new releases found!");				
 			}

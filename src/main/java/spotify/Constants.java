@@ -44,6 +44,7 @@ public final class Constants {
 	public final static String KEY_LOOKBACK_DAYS = "lookbackDays";
 	public final static String KEY_SLEEP_MINUTES = "sleepMinutes";
 	public final static String KEY_LOGLEVEL = "logLevel";
+	public final static String KEY_LOG_TO_FILE = "logToFile";
 	
 	
 	// Comparators

@@ -1,8 +1,7 @@
 package spotify;
 
 import java.io.IOException;
-
-import com.wrapper.spotify.exceptions.SpotifyWebApiException;
+import java.util.logging.Handler;
 
 public class Main {
 
@@ -13,20 +12,20 @@ public class Main {
 			try {
 				botInstance = new SpotifyReleases();
 				botInstance.spotifyDiscoveryMainLoop();
-			} catch (SpotifyWebApiException e) {
-				e.printStackTrace();
-				SpotifyReleases.LOG.severe("SpotifyWebApiException occured!");
 			} catch (IOException e) {
 				e.printStackTrace();
-				SpotifyReleases.LOG.severe("IO-exception, probably some file not found. Terminating the bot, cause you gotta deal with that...");
 				isRunning = false;
 			} catch (Exception e) {
 				e.printStackTrace();
-				SpotifyReleases.LOG.severe("Unknown exception occured!");
-			}
-			if (isRunning && botInstance != null) {
-				SpotifyReleases.LOG.warning("Restarting the bot after " + botInstance.sleepMinutes + " minutes...");
-				Thread.sleep(botInstance.sleepMillis);
+				if (botInstance != null) {
+					SpotifyReleases.LOG.warning("Restarting the bot after " + botInstance.sleepMinutes + " minutes...");
+					Thread.sleep(botInstance.sleepMillis);
+				}
+				isRunning = true;
+			} finally {
+				for (Handler h : SpotifyReleases.LOG.getHandlers()) {
+					h.close();
+				}
 			}
 		}
 	}

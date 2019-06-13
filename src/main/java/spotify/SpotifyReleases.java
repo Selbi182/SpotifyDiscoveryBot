@@ -194,7 +194,7 @@ public class SpotifyReleases {
 		// Set search settings
 		lookbackDays = iniFile.get(SECTION_CONFIG, KEY_LOOKBACK_DAYS, int.class);
 		sleepMinutes = iniFile.get(SECTION_CONFIG, KEY_SLEEP_MINUTES, int.class);
-		sleepMillis = sleepMillis * SECOND_IN_MILLIS * MINUTE_IN_SECONDS;
+		sleepMillis = sleepMinutes * SECOND_IN_MILLIS * MINUTE_IN_SECONDS;
 		
 		// Try to login with the stored access tokens or re-authenticate
 		try {

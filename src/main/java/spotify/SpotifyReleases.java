@@ -245,6 +245,10 @@ public class SpotifyReleases {
 				albumIds.addAll(extraAlbumIds);
 			}
 			
+			// Store the album IDs to the DB to prevent them from getting added a second time
+			// This happens even if no new songs are added, because it will significantly speed up the future search processes
+			storeAlbumIDsToDB(albumIds);						
+			
 			// Add any new songs to the playlist!
 			if (!newSongs.isEmpty()) {
 				addSongsToPlaylist(newSongs);
@@ -252,9 +256,6 @@ public class SpotifyReleases {
 			} else {
 				LOG.info("> No new releases found!");				
 			}
-			
-			// Store the album IDs to the DB to prevent them from getting added a second time
-			storeAlbumIDsToDB(albumIds);						
 			
 			// Edit the playlist's description to show when the last crawl took place
 			timestampPlaylist();
@@ -379,8 +380,10 @@ public class SpotifyReleases {
 					Thread.sleep(timeout * SECOND_IN_MILLIS);
 				}
 			} while (retry);
-			for (AlbumSimplified as : albums.getItems()) {
-				ids.add(as.getId());
+			if (albums != null) {
+				for (AlbumSimplified as : albums.getItems()) {
+					ids.add(as.getId());
+				}
 			}
 		}
 		return ids;

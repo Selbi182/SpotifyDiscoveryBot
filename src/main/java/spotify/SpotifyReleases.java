@@ -21,6 +21,7 @@ import static spotify.Constants.KEY_SCOPES;
 import static spotify.Constants.KEY_SEVERAL_ALBUMS_LIMIT;
 import static spotify.Constants.KEY_SLEEP_MINUTES;
 import static spotify.Constants.KEY_TRACK_PREFIX;
+import static spotify.Constants.MINUTE_IN_SECONDS;
 import static spotify.Constants.RELEASE_COMPARATOR;
 import static spotify.Constants.SECOND_IN_MILLIS;
 import static spotify.Constants.SECTION_CLIENT;
@@ -90,16 +91,19 @@ public class SpotifyReleases {
 	private Wini iniFile;
 	
 	// DB
+	private static File dbFilePath;
 	private static String dbUrl;
-	private final static String DB_URL_TEMPLATE = "jdbc:sqlite:%s" + File.separator + DB_FILE_NAME;
+	private final static String DB_URL_PREFIX = "jdbc:sqlite:";
 	
+	// Config
 	private int defaultLimit = 50;
 	private int severalAlbumsLimit = 20;
 	private int playlistAddLimit = 100;
 	private String trackPrefix = "spotify:track:";
 	private String scopes = "user-follow-read playlist-modify-private";
 	private int lookbackDays = 3;
-	private int sleepMinutes = 45;
+	public int sleepMinutes = 45;
+	public long sleepMillis = SECOND_IN_MILLIS * 60 * sleepMinutes;
 	private String playlistId;
 	private CountryCode market = CountryCode.DE;
 	private String albumTypes = "album,single,compilation";
@@ -122,13 +126,19 @@ public class SpotifyReleases {
 		// Set file paths
 		File thisJarLocation = new File(ClassLoader.getSystemClassLoader().getResource(".").getPath()).getAbsoluteFile();
 		iniFilePath = new File(thisJarLocation, INI_FILENAME);
-		dbUrl = String.format(DB_URL_TEMPLATE, thisJarLocation.toString());
 		
-		// Read INI FILE
+		// Parse INI File
 		if (!iniFilePath.canRead()) {
-			throw new IOException("Cannot read ini file!");
+			throw new IOException("Cannot read .ini file!");
 		}
 		iniFile = new Wini(iniFilePath);
+		
+		// Ensure readability of the database file
+		dbFilePath = new File(thisJarLocation, DB_FILE_NAME); 
+		if (!dbFilePath.canRead()) {
+			throw new IOException("Cannot read .db file!");
+		}
+		dbUrl = DB_URL_PREFIX + dbFilePath.getAbsolutePath();
 		
 		// Configure Logger
 		Level l = Level.parse(iniFile.get(SECTION_CONFIG, KEY_LOGLEVEL));
@@ -172,6 +182,7 @@ public class SpotifyReleases {
 		// Set search settings
 		lookbackDays = iniFile.get(SECTION_CONFIG, KEY_LOOKBACK_DAYS, int.class);
 		sleepMinutes = iniFile.get(SECTION_CONFIG, KEY_SLEEP_MINUTES, int.class);
+		sleepMillis = sleepMillis * SECOND_IN_MILLIS * MINUTE_IN_SECONDS;
 		
 		// Try to login with the stored access tokens or re-authenticate
 		try {
@@ -195,57 +206,62 @@ public class SpotifyReleases {
 		while (isRunning) {
 			LOG.info("Searching for any new releases within the past " + lookbackDays + " days...");
 			
-			// Fetch all followed artists of the user
+			// The process for new album searching is always the same chain of tasks:
+			// 1. Fetch all followed artists of the user
+			// 2. Fetch all raw album IDs of those artists
+			// 3. Filter out all albums that were already stored in the DB
+			// 4. Any remaining songs are potential adding candidates that now need to be filtered by new-songs-only
+			//    a. Convert the album IDs into fully detailed album DTOs (to gain access to the release date)
+			//    b. Filter out all albums not released in the lookbackDays range (default: 3 days)
+			// 5. Get the songs IDs of the remaining (new) albums
 			List<Artist> followedArtists = getFollowedArtists();
-			
-			// Fetch all album IDs (raw) of those artists
 			List<String> albumIds = getAlbumsIdsByArtists(followedArtists, albumTypes);
-			
-			// Filter out all albums that were already stored in the DB
-			// Abort crawling process if no albums were found
-			List<String> filteredAlbums = filterNonCachedAlbumsOnly(albumIds);
-			if (filteredAlbums.isEmpty()) {
-				LOG.info("> No new releases found!");
-			} else {
-				// If new albums were found, convert into fully detailed albums (to get access to the release date)
-				List<Album> fullAlbums = convertAlbumIdsToFullAlbums(filteredAlbums);
-				
-				// Filter out all albums not released in the lookbackDays range
+			albumIds = filterNonCachedAlbumsOnly(albumIds);
+			List<List<TrackSimplified>> newSongs = new ArrayList<>();
+			if (!albumIds.isEmpty()) {
+				List<Album> fullAlbums = convertAlbumIdsToFullAlbums(albumIds);
 				List<Album> newAlbums = filterNewAlbumsOnly(fullAlbums);
-				Collections.sort(newAlbums, (a1, a2) -> RELEASE_COMPARATOR.reversed().compare(a1, a2));
-				
-				// Get the songs of the new albums
-				// Abort if there are none 
-				List<List<TrackSimplified>> newSongs = getSongIdsByAlbums(newAlbums);
-				
-				// If intelligent appears_on search is enabled, add any followed artists' songs in foreign compilations 
-				if (intelligentAppearsOnSearch) {
-					List<List<TrackSimplified>> extraSongs = getFollowedArtistsSongsOnAppearsOnReleases(followedArtists);
+				sortAlbums(newAlbums);
+				newSongs = getSongIdsByAlbums(newAlbums);
+			}
+
+			// If intelligentAppearsOnSearch is enabled, also add any songs found in releases via the
+			// "appears_on" album type that have at least one followed artist as contributor.
+			// The process is very similar to the one above:
+			// 1. Taking the followed artists from above, fetch all album IDs of releases that have the "appears_on" tag
+			// 2. These albums are are filtered as normal (step 3+4 above)
+			// 3. Then, filter only the songs of the remaining releases that have at least one followed artist as contributor
+			// 4. Add the remaining songs to the adding queue
+			if (intelligentAppearsOnSearch) {
+				List<String> extraAlbumIds = getAlbumsIdsByArtists(followedArtists, AlbumType.APPEARS_ON.toString());
+				extraAlbumIds = filterNonCachedAlbumsOnly(extraAlbumIds);
+				if (!extraAlbumIds.isEmpty()) {
+					List<Album> fullAlbumsExtra = convertAlbumIdsToFullAlbums(extraAlbumIds);
+					List<Album> newAlbumsExtra = filterNewAlbumsOnly(fullAlbumsExtra);
+					sortAlbums(newAlbumsExtra);
+					List<List<TrackSimplified>> extraSongs = findFollowedArtistsSongsOnAlbums(newAlbumsExtra, followedArtists);
 					newSongs.addAll(extraSongs);
 				}
-				
-				if (!newSongs.isEmpty()) {
-					// Finally, add the new songs to the playlist
-					addSongsToPlaylist(newSongs);
-					if (newSongs.size() == 1) {
-						LOG.info("> " + newSongs.size() + " new song added to discovery playlist!");				
-					} else {
-						LOG.info("> " + newSongs.size() + " new songs added to discovery playlist!");									
-					}
-				} else {
-					LOG.info("> No new releases found!");
-				}
+				albumIds.addAll(extraAlbumIds);
+			}
+			
+			// Add any new songs to the playlist!
+			if (!newSongs.isEmpty()) {
+				addSongsToPlaylist(newSongs);
+				LOG.info("> " + newSongs.size() + " new song" + (newSongs.size() == 1 ? "s" : "") + " added to discovery playlist!");
+			} else {
+				LOG.info("> No new releases found!");				
 			}
 			
 			// Store the album IDs to the DB to prevent them from getting added a second time
-			storeAlbumIDsToDB(filteredAlbums);					
+			storeAlbumIDsToDB(albumIds);						
 			
 			// Edit the playlist's description to show when the last crawl took place
 			timestampPlaylist();
 			
 			// Sleep thread for the specified amount of minutes
 			LOG.info("Sleeping. Next check in " + sleepMinutes + " minutes...");
-			Thread.sleep(SECOND_IN_MILLIS * 60 * sleepMinutes);
+			Thread.sleep(sleepMillis);
 			
 			// Refresh the access token before it expires
 			refreshAccessToken();
@@ -493,56 +509,48 @@ public class SpotifyReleases {
 	 * filter the result such that only songs of artists you follow are preserved.
 	 * Also filter out any compilation appearances.
 	 * 
-	 * @param followedArtists
+	 * @param extraAlbumIdsFiltered
+	 * @param followedArtists 
 	 * @return
 	 * @throws SpotifyWebApiException
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	private List<List<TrackSimplified>> getFollowedArtistsSongsOnAppearsOnReleases(List<Artist> followedArtists) throws SpotifyWebApiException, IOException, InterruptedException {
+	private List<List<TrackSimplified>> findFollowedArtistsSongsOnAlbums(List<Album> newAlbums, List<Artist> followedArtists) throws SpotifyWebApiException, IOException, InterruptedException {
+		List<List<TrackSimplified>> selectedSongsByAlbum = new ArrayList<>();
+		List<Album> newAlbumsWithoutCompilations = new ArrayList<>();
+		for (Album a : newAlbums) {
+			if (!a.getAlbumType().equals(AlbumType.COMPILATION)) {
+				boolean okayToAdd = true;
+				for (ArtistSimplified as : a.getArtists()) {
+					if (as.getName().equals(VARIOUS_ARTISTS)) {
+						okayToAdd = false;
+						break;
+					}
+				}
+				if (okayToAdd) {
+					newAlbumsWithoutCompilations.add(a);						
+				}
+			}
+		}
 		Set<String> followedArtistsIds = new HashSet<>();
 		for (Artist a : followedArtists) {
 			followedArtistsIds.add(a.getId());
 		}
-		List<List<TrackSimplified>> extraSongs = new ArrayList<>();
-		List<String> albumIds = getAlbumsIdsByArtists(followedArtists, AlbumType.APPEARS_ON.getType());
-		List<String> filteredAlbums = filterNonCachedAlbumsOnly(albumIds);
-		if (!filteredAlbums.isEmpty()) {
-			List<Album> fullAlbums = convertAlbumIdsToFullAlbums(filteredAlbums);
-			List<Album> newAlbums = filterNewAlbumsOnly(fullAlbums);
-			List<Album> newAlbumsWithoutCompilations = new ArrayList<>();
-			for (Album a : newAlbums) {
-				// Filter out compilations (including falsely labeled ones)
-				if (!a.getAlbumType().equals(AlbumType.COMPILATION)) {
-					boolean okayToAdd = true;
-					for (ArtistSimplified as : a.getArtists()) {
-						if (as.getName().equals(VARIOUS_ARTISTS)) {
-							okayToAdd = false;
-							break;
-						}
-					}
-					if (okayToAdd) {
-						newAlbumsWithoutCompilations.add(a);						
+		List<List<TrackSimplified>> newSongs = getSongIdsByAlbums(newAlbumsWithoutCompilations);
+		for (List<TrackSimplified> songsInAlbum : newSongs) {
+			List<TrackSimplified> selectedSongs = new ArrayList<>();
+			for (TrackSimplified ts : songsInAlbum) {
+				for (ArtistSimplified as : ts.getArtists()) {
+					if (followedArtistsIds.contains(as.getId())) {
+						selectedSongs.add(ts);
+						break;
 					}
 				}
 			}
-			List<List<TrackSimplified>> newSongs = getSongIdsByAlbums(newAlbumsWithoutCompilations);
-			for (List<TrackSimplified> songsInAlbum : newSongs) {
-				List<TrackSimplified> selectedSongs = new ArrayList<>();
-				for (TrackSimplified ts : songsInAlbum) {
-					for (ArtistSimplified as : ts.getArtists()) {
-						if (followedArtistsIds.contains(as.getId())) {
-							selectedSongs.add(ts);
-							break;
-						}
-					}
-				}
-				if (!selectedSongs.isEmpty()) {
-					extraSongs.add(selectedSongs);
-				}
-			}
+			selectedSongsByAlbum.add(selectedSongs);
 		}
-		return extraSongs;
+		return selectedSongsByAlbum;
 	}
 
 	/**
@@ -587,22 +595,32 @@ public class SpotifyReleases {
 	 * @param albumIDs
 	 */
 	private void storeAlbumIDsToDB(List<String> albumIDs) {
-		Connection connection = null;
-		try {
-			connection = DriverManager.getConnection(dbUrl);
-			Statement statement = connection.createStatement();
-			for (String s : albumIDs) {
-				statement.executeUpdate(String.format("INSERT INTO %s(%s) VALUES('%s')", DB_TBL_ALBUMS, DB_ROW_ALBUM_IDS, s));
-			}
-		} catch (SQLException e) {
-			LOG.severe(e.getMessage());
-		} finally {
+		if (!albumIDs.isEmpty()) {
+			Connection connection = null;
 			try {
-				if (connection != null)
-					connection.close();
+				connection = DriverManager.getConnection(dbUrl);
+				Statement statement = connection.createStatement();
+				for (String s : albumIDs) {
+					statement.executeUpdate(String.format("INSERT INTO %s(%s) VALUES('%s')", DB_TBL_ALBUMS, DB_ROW_ALBUM_IDS, s));
+				}
 			} catch (SQLException e) {
 				LOG.severe(e.getMessage());
-			}
+			} finally {
+				try {
+					if (connection != null)
+						connection.close();
+				} catch (SQLException e) {
+					LOG.severe(e.getMessage());
+				}
+			}			
 		}
+	}
+	
+	/**
+	 * Sort the album list with the default comparator
+	 * @param albums
+	 */
+	private void sortAlbums(List<Album> albums) {
+		Collections.sort(albums, (a1, a2) -> RELEASE_COMPARATOR.reversed().compare(a1, a2));
 	}
 }

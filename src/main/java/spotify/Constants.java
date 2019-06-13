@@ -7,6 +7,7 @@ import com.wrapper.spotify.model_objects.specification.Album;
 public final class Constants {
 	// Generic
 	public final static int SECOND_IN_MILLIS = 1000;
+	public final static int MINUTE_IN_SECONDS = 60;
 	public final static String VARIOUS_ARTISTS = "Various Artists";
 	
 	// Database

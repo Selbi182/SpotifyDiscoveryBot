@@ -1,38 +1,5 @@
-package spotify;
+package spotify.bot;
 
-import static spotify.Constants.DB_FILE_NAME;
-import static spotify.Constants.DB_ROW_ALBUM_IDS;
-import static spotify.Constants.DB_TBL_ALBUMS;
-import static spotify.Constants.INI_FILENAME;
-import static spotify.Constants.KEY_ACCESS_TOKEN;
-import static spotify.Constants.KEY_ALBUM_TYPES;
-import static spotify.Constants.KEY_CALLBACK_URI;
-import static spotify.Constants.KEY_CLIENT_ID;
-import static spotify.Constants.KEY_CLIENT_SECRET;
-import static spotify.Constants.KEY_DEFAULT_LIMIT;
-import static spotify.Constants.KEY_INTELLIGENT_APPEARS_ON_SEARCH;
-import static spotify.Constants.KEY_LOGLEVEL;
-import static spotify.Constants.KEY_LOG_TO_FILE;
-import static spotify.Constants.KEY_LOOKBACK_DAYS;
-import static spotify.Constants.KEY_MARKET;
-import static spotify.Constants.KEY_PLAYLIST_ADD_LIMIT;
-import static spotify.Constants.KEY_PLAYLIST_ID;
-import static spotify.Constants.KEY_REFRESH_TOKEN;
-import static spotify.Constants.KEY_SCOPES;
-import static spotify.Constants.KEY_SEVERAL_ALBUMS_LIMIT;
-import static spotify.Constants.KEY_SLEEP_MINUTES;
-import static spotify.Constants.KEY_TRACK_PREFIX;
-import static spotify.Constants.MINUTE_IN_SECONDS;
-import static spotify.Constants.RELEASE_COMPARATOR;
-import static spotify.Constants.SECOND_IN_MILLIS;
-import static spotify.Constants.SECTION_CLIENT;
-import static spotify.Constants.SECTION_CONFIG;
-import static spotify.Constants.SECTION_SPOTIFY;
-import static spotify.Constants.SECTION_TOKENS;
-import static spotify.Constants.SECTION_USER;
-import static spotify.Constants.VARIOUS_ARTISTS;
-
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.sql.Connection;
@@ -50,19 +17,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.logging.FileHandler;
-import java.util.logging.Handler;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
 
 import org.ini4j.InvalidFileFormatException;
-import org.ini4j.Wini;
 
 import com.google.gson.JsonArray;
-import com.neovisionaries.i18n.CountryCode;
 import com.wrapper.spotify.SpotifyApi;
-import com.wrapper.spotify.SpotifyHttpManager;
 import com.wrapper.spotify.enums.AlbumType;
 import com.wrapper.spotify.enums.ModelObjectType;
 import com.wrapper.spotify.enums.ReleaseDatePrecision;
@@ -81,39 +41,14 @@ import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 import com.wrapper.spotify.requests.authorization.authorization_code.AuthorizationCodeRequest;
 import com.wrapper.spotify.requests.authorization.authorization_code.AuthorizationCodeUriRequest;
 
-public class SpotifyReleases {
+import spotify.util.Constants;
 
-	// API
+public class SpotifyDiscoveryBot implements Runnable {
+
+	// Local variables
 	private SpotifyApi api;
-	
-	// Logger
-	public final static Logger LOG = Logger.getLogger(SpotifyReleases.class.getName());
-	
-	// INI
-	private static File iniFilePath;
-	private Wini iniFile;
-	
-	// DB
-	private static File dbFilePath;
-	private static String dbUrl;
-	private final static String DB_URL_PREFIX = "jdbc:sqlite:";
-	
-	// Config
-	private int defaultLimit = 50;
-	private int severalAlbumsLimit = 20;
-	private int playlistAddLimit = 100;
-	private String trackPrefix = "spotify:track:";
-	private String scopes = "user-follow-read playlist-modify-private";
-	private int lookbackDays = 3;
-	public int sleepMinutes = 45;
-	public long sleepMillis = SECOND_IN_MILLIS * 60 * sleepMinutes;
-	private String playlistId;
-	private CountryCode market = CountryCode.DE;
-	private String albumTypes = "album,single,compilation";
-	private boolean intelligentAppearsOnSearch = true;
-	
-	// App
-	private boolean isRunning = false;
+	private Config conf;
+	private Logger log;
 
 	/**
 	 * Initialize the app
@@ -122,101 +57,32 @@ public class SpotifyReleases {
 	 * @throws SpotifyWebApiException 
 	 * @throws Exception
 	 */
-	public SpotifyReleases() throws IOException, SpotifyWebApiException {
-		// Set file paths
-		File ownLocation = new File(ClassLoader.getSystemClassLoader().getResource(".").getPath()).getAbsoluteFile();
-		iniFilePath = new File(ownLocation, INI_FILENAME);
-		
-		// Parse INI File
-		if (!iniFilePath.canRead()) {
-			throw new IOException("Cannot read .ini file!");
-		}
-		iniFile = new Wini(iniFilePath);
-		
-		// Ensure readability of the database file
-		dbFilePath = new File(ownLocation, DB_FILE_NAME); 
-		if (!dbFilePath.canRead()) {
-			throw new IOException("Cannot read .db file!");
-		}
-		dbUrl = DB_URL_PREFIX + dbFilePath.getAbsolutePath();
-		
-		// Configure Logger
-		Level l = Level.parse(iniFile.get(SECTION_CONFIG, KEY_LOGLEVEL));
-		String logToFile = iniFile.get(SECTION_CONFIG, KEY_LOG_TO_FILE);
-		if (logToFile != null && !logToFile.isEmpty()) {
-			File logFilePath = new File(ownLocation, logToFile);
-			if (!logFilePath.canRead()) {
-				logFilePath.createNewFile();
-			}
-			Handler h = new FileHandler(logFilePath.getAbsolutePath(), true);
-	        h.setFormatter(new SimpleFormatter());
-			LOG.addHandler(h);
-		}
-		LOG.setLevel(l);
-		for (Handler h : LOG.getHandlers()) {
-			h.setLevel(l);
-		}
-		
-		// Show welcome message
-		LOG.info("=== Spotify Discovery Bot ===");
-		
-		// Set general client data given via the Spotify dashboard
-		String clientId = iniFile.get(SECTION_CLIENT, KEY_CLIENT_ID);
-		String clientSecret = iniFile.get(SECTION_CLIENT, KEY_CLIENT_SECRET);
-		String callbackUri = iniFile.get(SECTION_CLIENT, KEY_CALLBACK_URI);
-		
-		// Build the API
-		api = new SpotifyApi.Builder()
-			.setClientId(clientId)
-			.setClientSecret(clientSecret)
-			.setRedirectUri(SpotifyHttpManager.makeUri(callbackUri))
-			.build();
+	public SpotifyDiscoveryBot(Config conf) throws IOException, SpotifyWebApiException {
+		// Set local variables
+		this.conf = conf;
+		this.log = conf.getLog();
+		this.api = conf.getSpotifyApi();
 		
 		// Set tokens, if preexisting
-		String accessToken = iniFile.get(SECTION_TOKENS, KEY_ACCESS_TOKEN);
-		String refreshToken = iniFile.get(SECTION_TOKENS, KEY_REFRESH_TOKEN);
-		api.setAccessToken(accessToken);
-		api.setRefreshToken(refreshToken);
-
-		// Set search settings
-		playlistId = iniFile.get(SECTION_USER, KEY_PLAYLIST_ID);
-		market = CountryCode.valueOf(iniFile.get(SECTION_USER, KEY_MARKET));
-		albumTypes = iniFile.get(SECTION_USER, KEY_ALBUM_TYPES);
-		intelligentAppearsOnSearch = Boolean.valueOf(iniFile.get(SECTION_USER, KEY_INTELLIGENT_APPEARS_ON_SEARCH));
-		
-		// Set static Spotify settings
-		scopes = iniFile.get(SECTION_SPOTIFY, KEY_SCOPES);
-		trackPrefix = iniFile.get(SECTION_SPOTIFY, KEY_TRACK_PREFIX);
-		defaultLimit = iniFile.get(SECTION_SPOTIFY, KEY_DEFAULT_LIMIT, int.class);
-		severalAlbumsLimit = iniFile.get(SECTION_SPOTIFY, KEY_SEVERAL_ALBUMS_LIMIT, int.class);
-		playlistAddLimit = iniFile.get(SECTION_SPOTIFY, KEY_PLAYLIST_ADD_LIMIT, int.class);
-		
-		// Set search settings
-		lookbackDays = iniFile.get(SECTION_CONFIG, KEY_LOOKBACK_DAYS, int.class);
-		sleepMinutes = iniFile.get(SECTION_CONFIG, KEY_SLEEP_MINUTES, int.class);
-		sleepMillis = sleepMinutes * SECOND_IN_MILLIS * MINUTE_IN_SECONDS;
+		api.setAccessToken(conf.getAccessToken());
+		api.setRefreshToken(conf.getRefreshToken());
 		
 		// Try to login with the stored access tokens or re-authenticate
 		try {
 			refreshAccessToken();
 		} catch (UnauthorizedException | BadRequestException e) {
-			LOG.warning("Access token expired or is invalid, please sign in again under this URL:");
+			log.warning("Access token expired or is invalid, please sign in again under this URL:");
 			authenticate();
 		}
-		
-		LOG.info("Successfully authenticated!");
 	}
 	
 	/**
 	 * Main loop that should never quit
-	 * @throws Exception
 	 */
-	public void spotifyDiscoveryMainLoop() throws Exception {
-		LOG.info("=== Entering Main Loop ===");
-		isRunning = true;
-		
-		while (isRunning) {
-			LOG.info("Searching for any new releases within the past " + lookbackDays + " days...");
+	@Override
+	public void run() {
+		try {
+			log.info("Searching...");
 			
 			// The process for new album searching is always the same chain of tasks:
 			// 1. Fetch all followed artists of the user
@@ -227,16 +93,16 @@ public class SpotifyReleases {
 			//    b. Filter out all albums not released in the lookbackDays range (default: 3 days)
 			// 5. Get the songs IDs of the remaining (new) albums
 			List<Artist> followedArtists = getFollowedArtists();
-			List<String> albumIds = getAlbumsIdsByArtists(followedArtists, albumTypes);
+			List<String> albumIds = getAlbumsIdsByArtists(followedArtists, conf.getAlbumTypes());
 			albumIds = filterNonCachedAlbumsOnly(albumIds);
 			List<List<TrackSimplified>> newSongs = new ArrayList<>();
 			if (!albumIds.isEmpty()) {
-				List<Album> fullAlbums = convertAlbumIdsToFullAlbums(albumIds);
-				List<Album> newAlbums = filterNewAlbumsOnly(fullAlbums);
-				sortAlbums(newAlbums);
-				newSongs = getSongIdsByAlbums(newAlbums);
+				List<Album> albums = convertAlbumIdsToFullAlbums(albumIds);
+				albums = filterNewAlbumsOnly(albums);
+				sortAlbums(albums);
+				newSongs = getSongIdsByAlbums(albums);
 			}
-
+			
 			// If intelligentAppearsOnSearch is enabled, also add any songs found in releases via the
 			// "appears_on" album type that have at least one followed artist as contributor.
 			// The process is very similar to the one above:
@@ -244,41 +110,40 @@ public class SpotifyReleases {
 			// 2. These albums are are filtered as normal (step 3+4 above)
 			// 3. Then, filter only the songs of the remaining releases that have at least one followed artist as contributor
 			// 4. Add the remaining songs to the adding queue
-			if (intelligentAppearsOnSearch) {
+			if (conf.isIntelligentAppearsOnSearch()) {
 				List<String> extraAlbumIds = getAlbumsIdsByArtists(followedArtists, AlbumType.APPEARS_ON.toString());
 				extraAlbumIds = filterNonCachedAlbumsOnly(extraAlbumIds);
 				if (!extraAlbumIds.isEmpty()) {
-					List<Album> fullAlbumsExtra = convertAlbumIdsToFullAlbums(extraAlbumIds);
-					List<Album> newAlbumsExtra = filterNewAlbumsOnly(fullAlbumsExtra);
-					sortAlbums(newAlbumsExtra);
-					List<List<TrackSimplified>> extraSongs = findFollowedArtistsSongsOnAlbums(newAlbumsExtra, followedArtists);
+					List<Album> extraAlbums = convertAlbumIdsToFullAlbums(extraAlbumIds);
+					extraAlbums = filterNewAlbumsOnly(extraAlbums);
+					sortAlbums(extraAlbums);
+					List<List<TrackSimplified>> extraSongs = findFollowedArtistsSongsOnAlbums(extraAlbums, followedArtists);
 					newSongs.addAll(extraSongs);
 				}
 				albumIds.addAll(extraAlbumIds);
+			}
+			
+			// Add any new songs to the playlist!
+			if (!newSongs.isEmpty()) {
+				int songsAdded = addSongsToPlaylist(newSongs);
+				log.info("> " + songsAdded + " new song" + (songsAdded > 1 ? "s" : "") + " added to discovery playlist!");
+			} else {
+				log.info("> No new releases found!");				
 			}
 			
 			// Store the album IDs to the DB to prevent them from getting added a second time
 			// This happens even if no new songs are added, because it will significantly speed up the future search processes
 			storeAlbumIDsToDB(albumIds);						
 			
-			// Add any new songs to the playlist!
-			if (!newSongs.isEmpty()) {
-				addSongsToPlaylist(newSongs);
-				LOG.info("> " + newSongs.size() + " new song" + (newSongs.size() > 1 ? "s" : "") + " added to discovery playlist!");
-			} else {
-				LOG.info("> No new releases found!");				
-			}
-			
 			// Edit the playlist's description to show when the last crawl took place
 			timestampPlaylist();
-			
-			// Sleep thread for the specified amount of minutes
-			LOG.info("Sleeping. Next check in " + sleepMinutes + " minutes...");
-			Thread.sleep(sleepMillis);
-			
-			// Refresh the access token before it expires
-			refreshAccessToken();
-			LOG.info("-------");
+
+			log.info("Sleeping. Next check in " + conf.getSleepMinutes() + " minutes...");
+		} catch (InterruptedException e) {
+			// Error message is handled outside, so this is just a fast way-out
+			return;
+		} catch (SpotifyWebApiException | IOException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -288,9 +153,9 @@ public class SpotifyReleases {
 	 * @throws IOException
 	 */
 	private void authenticate() throws SpotifyWebApiException, IOException {
-		AuthorizationCodeUriRequest authorizationCodeRequest = api.authorizationCodeUri().scope(scopes).build();
+		AuthorizationCodeUriRequest authorizationCodeRequest = api.authorizationCodeUri().scope(Constants.SCOPES).build();
 		URI uri = authorizationCodeRequest.execute();
-		LOG.info(uri.toString());
+		log.info(uri.toString());
 
 		Scanner scanner = new Scanner(System.in);
 		String code = scanner.nextLine().replace(api.getRedirectURI().toString() + "?code=", "").trim();
@@ -320,9 +185,7 @@ public class SpotifyReleases {
 	 * @throws IOException 
 	 */
 	private void updateTokens() throws IOException {
-		iniFile.put(SECTION_TOKENS, KEY_ACCESS_TOKEN, api.getAccessToken());
-		iniFile.put(SECTION_TOKENS, KEY_REFRESH_TOKEN, api.getRefreshToken());
-		iniFile.store();
+		conf.updateTokens(api.getAccessToken(), api.getRefreshToken());
 	}
 	
 	//////////////////////////////////////////////
@@ -336,15 +199,18 @@ public class SpotifyReleases {
 		Calendar cal = Calendar.getInstance();
 		SimpleDateFormat format = new SimpleDateFormat("MMMMM d, yyyy \u2014 HH:mm", Locale.ENGLISH);
 		String newDescription = String.format("Last Search: %s", format.format(cal.getTime()));
-		api.changePlaylistsDetails(playlistId).description(newDescription).build().execute();
+		api.changePlaylistsDetails(conf.getPlaylistId()).description(newDescription).build().execute();
 	}
 
 	/**
 	 * Get all the user's followed artists
 	 * @return
+	 * @throws IOException 
+	 * @throws SpotifyWebApiException 
+	 * @throws InterruptedException 
 	 * @throws Exception
 	 */
-	private List<Artist> getFollowedArtists() throws Exception {
+	private List<Artist> getFollowedArtists() throws SpotifyWebApiException, IOException, InterruptedException {
 		List<Artist> followedArtists = new ArrayList<>();
 		boolean retry = false;
 		PagingCursorbased<Artist> artists = null;
@@ -354,18 +220,21 @@ public class SpotifyReleases {
 				do {
 					if (artists != null && artists.getNext() != null) {
 						String after = artists.getCursors()[0].getAfter();
-						artists = api.getUsersFollowedArtists(ModelObjectType.ARTIST).limit(defaultLimit).after(after).build().execute();
+						artists = api.getUsersFollowedArtists(ModelObjectType.ARTIST).limit(Constants.DEFAULT_LIMIT).after(after).build().execute();
 					} else {
-						artists = api.getUsersFollowedArtists(ModelObjectType.ARTIST).limit(defaultLimit).build().execute();
+						artists = api.getUsersFollowedArtists(ModelObjectType.ARTIST).limit(Constants.DEFAULT_LIMIT).build().execute();
 					}
 					followedArtists.addAll(Arrays.asList(artists.getItems()));
 				} while (artists.getNext() != null);
 			} catch (TooManyRequestsException e) {
 				retry = true;
 				int timeout = e.getRetryAfter() + 1;
-				Thread.sleep(timeout * SECOND_IN_MILLIS);
+				Thread.sleep(timeout * Constants.SECOND_IN_MILLIS);
 			}
 		} while (retry);
+		if (followedArtists.isEmpty()) {
+			log.warning("No followed artists found!");
+		}
 		return followedArtists;
 	}
 
@@ -385,11 +254,11 @@ public class SpotifyReleases {
 			do {
 				retry = false;
 				try {
-					albums = api.getArtistsAlbums(a.getId()).market(market).album_type(albumTypes).build().execute();
+					albums = api.getArtistsAlbums(a.getId()).market(conf.getMarket()).album_type(albumTypes).build().execute();
 				} catch (TooManyRequestsException e) {
 					retry = true;
 					int timeout = e.getRetryAfter() + 1;
-					Thread.sleep(timeout * SECOND_IN_MILLIS);
+					Thread.sleep(timeout * Constants.SECOND_IN_MILLIS);
 				}
 			} while (retry);
 			if (albums != null) {
@@ -397,6 +266,9 @@ public class SpotifyReleases {
 					ids.add(as.getId());
 				}
 			}
+		}
+		if (ids.isEmpty()) {
+			log.warning("No album IDs found!");
 		}
 		return ids;
 	}
@@ -410,20 +282,20 @@ public class SpotifyReleases {
 		Set<String> filteredAlbums = new HashSet<>(allAlbums);
 		Connection connection = null;
 		try {
-			connection = DriverManager.getConnection(dbUrl);
+			connection = DriverManager.getConnection(conf.getDbUrl());
 			Statement statement = connection.createStatement();
-			ResultSet rs = statement.executeQuery(String.format("SELECT %s FROM %s", DB_ROW_ALBUM_IDS, DB_TBL_ALBUMS));
+			ResultSet rs = statement.executeQuery(String.format("SELECT %s FROM %s", Constants.DB_ROW_ALBUM_IDS, Constants.DB_TBL_ALBUMS));
 			while (rs.next()) {
-				filteredAlbums.remove(rs.getString(DB_ROW_ALBUM_IDS));
+				filteredAlbums.remove(rs.getString(Constants.DB_ROW_ALBUM_IDS));
 			}
 		} catch (SQLException e) {
-			LOG.severe(e.getMessage());
+			log.severe(e.getMessage());
 		} finally {
 			try {
 				if (connection != null)
 					connection.close();
 			} catch (SQLException e) {
-				LOG.severe(e.getMessage());
+				log.severe(e.getMessage());
 			}
 		}
 		return new ArrayList<>(filteredAlbums);
@@ -439,13 +311,13 @@ public class SpotifyReleases {
 	 */
 	private List<Album> convertAlbumIdsToFullAlbums(List<String> ids) throws SpotifyWebApiException, IOException, InterruptedException {
 		List<Album> albums = new ArrayList<>();
-		int spliceCount = ids.size() / severalAlbumsLimit + 1;
+		int spliceCount = ids.size() / Constants.SEVERAL_ALBUMS_LIMIT + 1;
 		for (int i = 0; i < spliceCount; i++) {
 			List<String> idSubList;
 			if (i == spliceCount - 1) {
-				idSubList = ids.subList(i * severalAlbumsLimit, i * severalAlbumsLimit + (ids.size() % severalAlbumsLimit));
+				idSubList = ids.subList(i * Constants.SEVERAL_ALBUMS_LIMIT, i * Constants.SEVERAL_ALBUMS_LIMIT + (ids.size() % Constants.SEVERAL_ALBUMS_LIMIT));
 			} else {
-				idSubList = ids.subList(i * severalAlbumsLimit, i * severalAlbumsLimit + severalAlbumsLimit);
+				idSubList = ids.subList(i * Constants.SEVERAL_ALBUMS_LIMIT, i * Constants.SEVERAL_ALBUMS_LIMIT + Constants.SEVERAL_ALBUMS_LIMIT);
 			}
 			String[] idSubListPrimitive = idSubList.toArray(new String[idSubList.size()]);
 			boolean retry = false;
@@ -453,11 +325,11 @@ public class SpotifyReleases {
 			do {
 				retry = false;
 				try {
-					fullAlbums = api.getSeveralAlbums(idSubListPrimitive).market(market).build().execute();
+					fullAlbums = api.getSeveralAlbums(idSubListPrimitive).market(conf.getMarket()).build().execute();
 				} catch (TooManyRequestsException e) {
 					retry = true;
 					int timeout = e.getRetryAfter() + 1;
-					Thread.sleep(timeout * SECOND_IN_MILLIS);
+					Thread.sleep(timeout * Constants.SECOND_IN_MILLIS);
 				}
 			} while (retry);
 			albums.addAll(Arrays.asList(fullAlbums));
@@ -475,7 +347,7 @@ public class SpotifyReleases {
 		Calendar cal = Calendar.getInstance();
 		SimpleDateFormat date = new SimpleDateFormat("yyyy-MM-dd");
 		Set<String> validDates = new HashSet<>();
-		for (int i = 0; i < lookbackDays; i++) {
+		for (int i = 0; i < conf.getLookbackDays(); i++) {
 			validDates.add(date.format(cal.getTime()));
 			cal.add(Calendar.DAY_OF_MONTH, -1);
 		}
@@ -506,11 +378,11 @@ public class SpotifyReleases {
 			do {
 				retry = false;
 				try {
-					albumTracks = api.getAlbumsTracks(a.getId()).limit(defaultLimit).build().execute();
+					albumTracks = api.getAlbumsTracks(a.getId()).limit(Constants.DEFAULT_LIMIT).build().execute();
 				} catch (TooManyRequestsException e) {
 					retry = true;
 					int timeout = e.getRetryAfter() + 1;
-					Thread.sleep(timeout * SECOND_IN_MILLIS);
+					Thread.sleep(timeout * Constants.SECOND_IN_MILLIS);
 				}
 			} while (retry);
 			currentList.addAll(Arrays.asList(albumTracks.getItems()));
@@ -538,7 +410,7 @@ public class SpotifyReleases {
 			if (!a.getAlbumType().equals(AlbumType.COMPILATION)) {
 				boolean okayToAdd = true;
 				for (ArtistSimplified as : a.getArtists()) {
-					if (as.getName().equals(VARIOUS_ARTISTS)) {
+					if (as.getName().equals(Constants.VARIOUS_ARTISTS)) {
 						okayToAdd = false;
 						break;
 					}
@@ -575,34 +447,37 @@ public class SpotifyReleases {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	private void addSongsToPlaylist(List<List<TrackSimplified>> newSongs) throws SpotifyWebApiException, IOException, InterruptedException {
+	private int addSongsToPlaylist(List<List<TrackSimplified>> newSongs) throws SpotifyWebApiException, IOException, InterruptedException {
+		int songsAdded = 0;
 		for (List<TrackSimplified> songsInAlbum : newSongs) {
-			int spliceCount = songsInAlbum.size() / playlistAddLimit + 1;
+			int spliceCount = songsInAlbum.size() / Constants.PLAYLIST_ADD_LIMIT + 1;
 			for (int i = 0; i < spliceCount; i++) {
 				List<TrackSimplified> idSubList;
 				if (i == spliceCount - 1) {
-					idSubList = songsInAlbum.subList(i * playlistAddLimit, i * playlistAddLimit + (songsInAlbum.size() % playlistAddLimit));
+					idSubList = songsInAlbum.subList(i * Constants.PLAYLIST_ADD_LIMIT, i * Constants.PLAYLIST_ADD_LIMIT + (songsInAlbum.size() % Constants.PLAYLIST_ADD_LIMIT));
 				} else {
-					idSubList = songsInAlbum.subList(i * playlistAddLimit, i * playlistAddLimit + playlistAddLimit);
+					idSubList = songsInAlbum.subList(i * Constants.PLAYLIST_ADD_LIMIT, i * Constants.PLAYLIST_ADD_LIMIT + Constants.PLAYLIST_ADD_LIMIT);
 				}
 				JsonArray json = new JsonArray();
 				for (TrackSimplified s : idSubList) {
-					json.add(trackPrefix + s.getId());
+					json.add(Constants.TRACK_PREFIX + s.getId());
+					songsAdded++;
 				}
 				boolean retry = false;
 				do {
 					retry = false;
 					try {
-						api.addTracksToPlaylist(playlistId, json).build().execute();
+						api.addTracksToPlaylist(conf.getPlaylistId(), json).build().execute();
 					} catch (TooManyRequestsException e) {
 						retry = true;
 						int timeout = e.getRetryAfter() + 1;
-						Thread.sleep(timeout * SECOND_IN_MILLIS);
+						Thread.sleep(timeout * Constants.SECOND_IN_MILLIS);
 					}
 				} while (retry);
 			}
-			Thread.sleep(SECOND_IN_MILLIS);
+			Thread.sleep(Constants.SECOND_IN_MILLIS);
 		}
+		return songsAdded;
 	}
 	
 	/**
@@ -613,19 +488,19 @@ public class SpotifyReleases {
 		if (!albumIDs.isEmpty()) {
 			Connection connection = null;
 			try {
-				connection = DriverManager.getConnection(dbUrl);
+				connection = DriverManager.getConnection(conf.getDbUrl());
 				Statement statement = connection.createStatement();
 				for (String s : albumIDs) {
-					statement.executeUpdate(String.format("INSERT INTO %s(%s) VALUES('%s')", DB_TBL_ALBUMS, DB_ROW_ALBUM_IDS, s));
+					statement.executeUpdate(String.format("INSERT INTO %s(%s) VALUES('%s')", Constants.DB_TBL_ALBUMS, Constants.DB_ROW_ALBUM_IDS, s));
 				}
 			} catch (SQLException e) {
-				LOG.severe(e.getMessage());
+				log.severe(e.getMessage());
 			} finally {
 				try {
 					if (connection != null)
 						connection.close();
 				} catch (SQLException e) {
-					LOG.severe(e.getMessage());
+					log.severe(e.getMessage());
 				}
 			}			
 		}
@@ -636,6 +511,6 @@ public class SpotifyReleases {
 	 * @param albums
 	 */
 	private void sortAlbums(List<Album> albums) {
-		Collections.sort(albums, (a1, a2) -> RELEASE_COMPARATOR.reversed().compare(a1, a2));
+		Collections.sort(albums, (a1, a2) -> Constants.RELEASE_COMPARATOR.reversed().compare(a1, a2));
 	}
 }

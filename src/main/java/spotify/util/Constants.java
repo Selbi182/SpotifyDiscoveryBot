@@ -46,6 +46,7 @@ public final class Constants {
 	public final static String KEY_SLEEP_MINUTES = "sleepMinutes";
 	public final static String KEY_LOGLEVEL = "logLevel";
 	public final static String KEY_LOG_TO_FILE = "logToFile";
+	public final static String KEY_RUN_ONLY_ONCE = "runOnlyOnce";
 
 	// Comparators
 	private final static Comparator<Album> COMPARATOR_ALBUM_TYPE = Comparator.comparing(Album::getAlbumType);

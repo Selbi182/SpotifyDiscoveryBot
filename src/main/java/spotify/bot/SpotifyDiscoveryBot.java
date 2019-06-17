@@ -137,8 +137,6 @@ public class SpotifyDiscoveryBot implements Runnable {
 			
 			// Edit the playlist's description to show when the last crawl took place
 			timestampPlaylist();
-
-			log.info("Sleeping. Next check in " + conf.getSleepMinutes() + " minutes...");
 		} catch (InterruptedException e) {
 			// Error message is handled outside, so this is just a fast way-out
 			return;
@@ -200,6 +198,7 @@ public class SpotifyDiscoveryBot implements Runnable {
 		SimpleDateFormat format = new SimpleDateFormat("MMMMM d, yyyy \u2014 HH:mm", Locale.ENGLISH);
 		String newDescription = String.format("Last Search: %s", format.format(cal.getTime()));
 		api.changePlaylistsDetails(conf.getPlaylistId()).description(newDescription).build().execute();
+		// TODO retry
 	}
 
 	/**

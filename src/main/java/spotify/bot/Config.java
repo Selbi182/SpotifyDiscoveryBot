@@ -1,26 +1,6 @@
 package spotify.bot;
 
-import static spotify.util.Constants.DB_FILE_NAME;
-import static spotify.util.Constants.INI_FILENAME;
-import static spotify.util.Constants.KEY_ACCESS_TOKEN;
-import static spotify.util.Constants.KEY_ALBUM_TYPES;
-import static spotify.util.Constants.KEY_CALLBACK_URI;
-import static spotify.util.Constants.KEY_CLIENT_ID;
-import static spotify.util.Constants.KEY_CLIENT_SECRET;
-import static spotify.util.Constants.KEY_INTELLIGENT_APPEARS_ON_SEARCH;
-import static spotify.util.Constants.KEY_LOGLEVEL;
-import static spotify.util.Constants.KEY_LOG_TO_FILE;
-import static spotify.util.Constants.KEY_LOOKBACK_DAYS;
-import static spotify.util.Constants.KEY_MARKET;
-import static spotify.util.Constants.KEY_PLAYLIST_ID;
-import static spotify.util.Constants.KEY_REFRESH_TOKEN;
-import static spotify.util.Constants.KEY_SLEEP_MINUTES;
-import static spotify.util.Constants.MINUTE_IN_SECONDS;
-import static spotify.util.Constants.SECOND_IN_MILLIS;
-import static spotify.util.Constants.SECTION_CLIENT;
-import static spotify.util.Constants.SECTION_CONFIG;
-import static spotify.util.Constants.SECTION_TOKENS;
-import static spotify.util.Constants.SECTION_USER;
+import static spotify.util.Constants.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -62,6 +42,7 @@ public class Config {
 	private final CountryCode market;
 	private final String albumTypes;
 	private final boolean intelligentAppearsOnSearch;
+	private final boolean runOnlyOnce;
 
 	// Spotify API
 	private final SpotifyApi spotifyApi;
@@ -128,6 +109,9 @@ public class Config {
 		this.sleepMinutes = iniFile.get(SECTION_CONFIG, KEY_SLEEP_MINUTES, int.class);
 		this.sleepMillis = sleepMinutes * SECOND_IN_MILLIS * MINUTE_IN_SECONDS;
 
+		// Set general bot settings
+		this.runOnlyOnce = iniFile.get(SECTION_CONFIG, KEY_RUN_ONLY_ONCE, boolean.class);
+		
 		// Writable tokens
 		updateTokens(iniFile.get(SECTION_TOKENS, KEY_ACCESS_TOKEN), iniFile.get(SECTION_TOKENS, KEY_REFRESH_TOKEN));
 	}
@@ -220,5 +204,9 @@ public class Config {
 	
 	public SpotifyApi getSpotifyApi() {
 		return spotifyApi;
+	}
+
+	public boolean isRunOnlyOnce() {
+		return runOnlyOnce;
 	}
 }

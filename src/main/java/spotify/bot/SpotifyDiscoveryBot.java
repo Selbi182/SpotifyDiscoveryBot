@@ -82,8 +82,6 @@ public class SpotifyDiscoveryBot implements Runnable {
 	@Override
 	public void run() {
 		try {
-			log.info("Searching...");
-			
 			// The process for new album searching is always the same chain of tasks:
 			// 1. Fetch all followed artists of the user
 			// 2. Fetch all raw album IDs of those artists
@@ -128,7 +126,7 @@ public class SpotifyDiscoveryBot implements Runnable {
 				int songsAdded = addSongsToPlaylist(newSongs);
 				log.info("> " + songsAdded + " new song" + (songsAdded > 1 ? "s" : "") + " added to discovery playlist!");
 			} else {
-				log.info("> No new releases found!");				
+				log.info("No new releases found!");				
 			}
 			
 			// Store the album IDs to the DB to prevent them from getting added a second time
@@ -192,13 +190,23 @@ public class SpotifyDiscoveryBot implements Runnable {
 	 * Timestamp the playlist's description with the last time the crawling process was initiated
 	 * @throws SpotifyWebApiException
 	 * @throws IOException
+	 * @throws InterruptedException 
 	 */
-	private void timestampPlaylist() throws SpotifyWebApiException, IOException {
+	private void timestampPlaylist() throws SpotifyWebApiException, IOException, InterruptedException {
 		Calendar cal = Calendar.getInstance();
 		SimpleDateFormat format = new SimpleDateFormat("MMMMM d, yyyy \u2014 HH:mm", Locale.ENGLISH);
-		String newDescription = String.format("Last Search: %s", format.format(cal.getTime()));
-		api.changePlaylistsDetails(conf.getPlaylistId()).description(newDescription).build().execute();
-		// TODO retry
+		String newDescription = String.format("Last Search: %s", format.format(cal.getTime()));		
+		boolean retry = false;
+		do {
+			retry = false;
+			try {
+				api.changePlaylistsDetails(conf.getPlaylistId()).description(newDescription).build().execute();
+			} catch (TooManyRequestsException e) {
+				retry = true;
+				int timeout = e.getRetryAfter() + 1;
+				Thread.sleep(timeout * Constants.SECOND_IN_MILLIS);
+			}
+		} while (retry);
 	}
 
 	/**
@@ -250,20 +258,26 @@ public class SpotifyDiscoveryBot implements Runnable {
 		for (Artist a : artists) {
 			boolean retry = false;
 			Paging<AlbumSimplified> albums = null;
+			List<AlbumSimplified> albumsOfCurrentArtist = new ArrayList<>();
 			do {
 				retry = false;
 				try {
-					albums = api.getArtistsAlbums(a.getId()).market(conf.getMarket()).album_type(albumTypes).build().execute();
+					do {
+						if (albums != null && albums.getNext() != null) {
+							albums = api.getArtistsAlbums(a.getId()).market(conf.getMarket()).limit(Constants.DEFAULT_LIMIT).album_type(albumTypes).offset(albums.getOffset() + Constants.DEFAULT_LIMIT).build().execute();
+						} else {
+							albums = api.getArtistsAlbums(a.getId()).market(conf.getMarket()).limit(Constants.DEFAULT_LIMIT).album_type(albumTypes).build().execute();
+						}
+						albumsOfCurrentArtist.addAll(Arrays.asList(albums.getItems()));
+					} while (albums.getNext() != null);
 				} catch (TooManyRequestsException e) {
 					retry = true;
 					int timeout = e.getRetryAfter() + 1;
 					Thread.sleep(timeout * Constants.SECOND_IN_MILLIS);
 				}
 			} while (retry);
-			if (albums != null) {
-				for (AlbumSimplified as : albums.getItems()) {
-					ids.add(as.getId());
-				}
+			for (AlbumSimplified as : albums.getItems()) {
+				ids.add(as.getId());
 			}
 		}
 		if (ids.isEmpty()) {

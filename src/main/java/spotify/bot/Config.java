@@ -29,25 +29,60 @@ public class Config {
 	// DB
 	private final String dbUrl;
 
-	// Client
+	// Spotify API
+	private final SpotifyApi spotifyApi;
+	
+	/////////////////
+	
+	// [Client]
 	private final String clientId;
 	private final String clientSecret;
 	private final String callbackUri;
 
-	// General config
-	private final int lookbackDays;
-	private final int sleepMinutes;
-	private final long sleepMillis;
-	private final String playlistId;
-	private final CountryCode market;
-	private final String albumTypes;
-	private final boolean intelligentAppearsOnSearch;
-	private final boolean runOnlyOnce;
-
-	// Spotify API
-	private final SpotifyApi spotifyApi;
+	// [Tokens]
 	private String accessToken;
 	private String refreshToken;
+	
+	// [Playlists]
+	private final String playlistAlbums;
+	private final String playlistSingles;
+	private final String playlistCompilations;
+	private final String playlistAppearsOn;
+	
+	// [UserConfig]
+	private final boolean intelligentAppearsOnSearch;
+	private final CountryCode market;
+	private final int lookbackDays;
+	
+	////////////////
+	
+	// INI
+	private final static String INI_FILENAME = "settings.ini";
+
+	private final static String SECTION_CLIENT = "Client";
+	private final static String KEY_CLIENT_ID = "clientId";
+	private final static String KEY_CLIENT_SECRET = "clientSecret";
+	private final static String KEY_CALLBACK_URI = "callbackUri";
+
+	private final static String SECTION_TOKENS = "Tokens";
+	private final static String KEY_ACCESS_TOKEN = "accessToken";
+	private final static String KEY_REFRESH_TOKEN = "refreshToken";
+
+	private final static String SECTION_PLAYLISTS = "Playlists";
+	private final static String KEY_PLAYLIST_ALBUMS = "playlistAlbums";
+	private final static String KEY_PLAYLIST_SINGLES = "playlistSingles";
+	private final static String KEY_PLAYLIST_COMPILATIONS = "playlistCompilations";
+	private final static String KEY_PLAYLIST_APPEARS_ON = "playlistAppearsOn";
+	
+	private final static String SECTION_USER_CONFIG = "UserConfig";
+	private final static String KEY_INTELLIGENT_APPEARS_ON_SEARCH = "intelligentAppearsOnSearch";
+	private final static String KEY_MARKET = "market";
+	private final static String KEY_LOOKBACK_DAYS = "lookbackDays";
+
+	private final static String SECTION_BOT_CONFIG = "BotConfig";
+	private final static String KEY_LOGLEVEL = "logLevel";
+	private final static String KEY_LOG_TO_FILE = "logToFile";
+
 
 
 	public Config() throws IOException {
@@ -70,8 +105,8 @@ public class Config {
 
 		// Configure Logger
 		this.log = Logger.getGlobal();
-		Level l = Level.parse(iniFile.get(SECTION_CONFIG, KEY_LOGLEVEL));
-		String logToFile = iniFile.get(SECTION_CONFIG, KEY_LOG_TO_FILE);
+		Level l = Level.parse(iniFile.get(SECTION_BOT_CONFIG, KEY_LOGLEVEL));
+		String logToFile = iniFile.get(SECTION_BOT_CONFIG, KEY_LOG_TO_FILE);
 		if (logToFile != null && !logToFile.isEmpty()) {
 			File logFilePath = new File(ownLocation, logToFile);
 			if (!logFilePath.canRead()) {
@@ -98,19 +133,16 @@ public class Config {
 			.setRedirectUri(SpotifyHttpManager.makeUri(getCallbackUri()))
 			.build();
 
-		// Set search settings
-		this.playlistId = iniFile.get(SECTION_USER, KEY_PLAYLIST_ID);
-		this.market = CountryCode.valueOf(iniFile.get(SECTION_USER, KEY_MARKET));
-		this.albumTypes = iniFile.get(SECTION_USER, KEY_ALBUM_TYPES);
-		this.intelligentAppearsOnSearch = Boolean.valueOf(iniFile.get(SECTION_USER, KEY_INTELLIGENT_APPEARS_ON_SEARCH));
-
-		// Set search settings
-		this.lookbackDays = iniFile.get(SECTION_CONFIG, KEY_LOOKBACK_DAYS, int.class);
-		this.sleepMinutes = iniFile.get(SECTION_CONFIG, KEY_SLEEP_MINUTES, int.class);
-		this.sleepMillis = sleepMinutes * SECOND_IN_MILLIS * MINUTE_IN_SECONDS;
-
-		// Set general bot settings
-		this.runOnlyOnce = iniFile.get(SECTION_CONFIG, KEY_RUN_ONLY_ONCE, boolean.class);
+		// Set playlist IDs
+		this.playlistAlbums = iniFile.get(SECTION_PLAYLISTS, KEY_PLAYLIST_ALBUMS);
+		this.playlistSingles = iniFile.get(SECTION_PLAYLISTS, KEY_PLAYLIST_SINGLES);
+		this.playlistCompilations = iniFile.get(SECTION_PLAYLISTS, KEY_PLAYLIST_COMPILATIONS);
+		this.playlistAppearsOn = iniFile.get(SECTION_PLAYLISTS, KEY_PLAYLIST_APPEARS_ON);
+		
+		// Sert user config
+		this.intelligentAppearsOnSearch = Boolean.valueOf(iniFile.get(SECTION_USER_CONFIG, KEY_INTELLIGENT_APPEARS_ON_SEARCH));
+		this.market = CountryCode.valueOf(iniFile.get(SECTION_USER_CONFIG, KEY_MARKET));
+		this.lookbackDays = iniFile.get(SECTION_USER_CONFIG, KEY_LOOKBACK_DAYS, int.class);
 		
 		// Writable tokens
 		updateTokens(iniFile.get(SECTION_TOKENS, KEY_ACCESS_TOKEN), iniFile.get(SECTION_TOKENS, KEY_REFRESH_TOKEN));
@@ -170,24 +202,8 @@ public class Config {
 		return lookbackDays;
 	}
 
-	public int getSleepMinutes() {
-		return sleepMinutes;
-	}
-
-	public long getSleepMillis() {
-		return sleepMillis;
-	}
-
-	public String getPlaylistId() {
-		return playlistId;
-	}
-
 	public CountryCode getMarket() {
 		return market;
-	}
-
-	public String getAlbumTypes() {
-		return albumTypes;
 	}
 
 	public boolean isIntelligentAppearsOnSearch() {
@@ -206,7 +222,19 @@ public class Config {
 		return spotifyApi;
 	}
 
-	public boolean isRunOnlyOnce() {
-		return runOnlyOnce;
+	public String getPlaylistAlbums() {
+		return playlistAlbums;
+	}
+
+	public String getPlaylistSingles() {
+		return playlistSingles;
+	}
+
+	public String getPlaylistCompilations() {
+		return playlistCompilations;
+	}
+
+	public String getPlaylistAppearsOn() {
+		return playlistAppearsOn;
 	}
 }

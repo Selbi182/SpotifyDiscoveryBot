@@ -10,10 +10,9 @@ import spotify.bot.SpotifyDiscoveryBot;
 
 public class Main {
 
-	public static void main(String[] args) {
-		
-		Config config = null;
+	public static void main(String[] args) {		
 		// Init
+		Config config = null;
 		try {
 			config = new Config();
 		} catch (IOException e) {
@@ -21,46 +20,7 @@ public class Main {
 			return;
 		}
 		
-		if (config.isRunOnlyOnce()) {
-			runBotOnce(config);
-		} else {
-			runBotInfinite(config);
-		}
-	}
-	
-	private static void runBotInfinite(Config config) {
-		try {
-			// Init
-			Logger log = config.getLog();
-			log.info("=== Spotify Discovery Bot ===");
-
-			// Main loop
-			boolean isRunning = true;
-			while (isRunning) {
-				log.info("-----");
-
-				// Start a fresh bot instance in a separate thread with the given config
-				Thread bot = new Thread(new SpotifyDiscoveryBot(config));
-				bot.start();
-
-				// Sleep thread for the specified amount of minutes
-				Thread.sleep(config.getSleepMillis());
-
-				// Fallback when the previous bot instance crashed
-				if (bot.isAlive()) {
-					bot.interrupt();
-					log.severe("Previous bot instance didn't finish in time and will forcibly killed!");
-				} else {
-					log.info("Sleeping. Next check in " + config.getSleepMinutes() + " minutes...");
-				}
-			}
-		} catch (IOException | SpotifyWebApiException | InterruptedException e) {
-			e.printStackTrace();
-		} finally {
-			if (config != null && config.getLog() != null) {
-				config.closeLogger();
-			}
-		}
+		runBotOnce(config);
 	}
 	
 	private static void runBotOnce(Config config) {
@@ -73,7 +33,7 @@ public class Main {
 			bot.start();
 
 			// Wait for the bot to do its thing
-			bot.join(config.getSleepMillis());
+			bot.join();
 			
 			// Fallback when the previous bot instance crashed
 			if (bot.isAlive()) {

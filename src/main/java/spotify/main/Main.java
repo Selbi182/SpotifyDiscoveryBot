@@ -4,6 +4,7 @@ import java.util.logging.Logger;
 
 import spotify.bot.Config;
 import spotify.bot.SpotifyDiscoveryBot;
+import spotify.util.Constants;
 
 public class Main {
 
@@ -18,17 +19,10 @@ public class Main {
 	
 	private static void runBotOnce(Config config) throws Exception {
 		try {
-			// Init
 			Logger log = config.getLog();
-			
-			// Start a fresh bot instance in a separate thread with the given config
-			Thread bot = new Thread(new SpotifyDiscoveryBot(config));
+			Thread bot = new Thread(new SpotifyDiscoveryBot(config), SpotifyDiscoveryBot.class.getSimpleName());
 			bot.start();
-
-			// Wait for the bot to do its thing
-			bot.join();
-			
-			// Fallback when the previous bot instance crashed
+			bot.join(Constants.BOT_TIMEOUT);
 			if (bot.isAlive()) {
 				bot.interrupt();
 				log.severe("Bot instance didn't finish in time and will forcibly killed!");

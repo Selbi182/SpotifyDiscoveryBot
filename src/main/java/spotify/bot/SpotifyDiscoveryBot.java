@@ -7,7 +7,6 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -17,6 +16,7 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.function.BiFunction;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -27,7 +27,6 @@ import com.google.gson.JsonArray;
 import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.enums.AlbumType;
 import com.wrapper.spotify.enums.ModelObjectType;
-import com.wrapper.spotify.enums.ReleaseDatePrecision;
 import com.wrapper.spotify.exceptions.detailed.BadRequestException;
 import com.wrapper.spotify.exceptions.detailed.InternalServerErrorException;
 import com.wrapper.spotify.exceptions.detailed.UnauthorizedException;
@@ -45,9 +44,9 @@ import com.wrapper.spotify.requests.data.albums.GetAlbumsTracksRequest;
 import com.wrapper.spotify.requests.data.artists.GetArtistsAlbumsRequest;
 import com.wrapper.spotify.requests.data.follow.GetUsersFollowedArtistsRequest;
 
-import spotify.util.ApiRequest;
 import spotify.util.BotUtils;
 import spotify.util.Constants;
+import spotify.util.SpotifyApiRequest;
 
 public class SpotifyDiscoveryBot implements Runnable {
 
@@ -91,31 +90,15 @@ public class SpotifyDiscoveryBot implements Runnable {
 			final List<Artist> followedArtists = getFollowedArtists();
 
 			// Set up the crawl threads
-			Thread tAlbum = new Thread(crawlThread(followedArtists, config.getPlaylistAlbums(), AlbumType.ALBUM), AlbumType.ALBUM.getType());
-			Thread tSingle = new Thread(crawlThread(followedArtists, config.getPlaylistSingles(), AlbumType.SINGLE), AlbumType.SINGLE.getType());
-			Thread tCompilation = new Thread(crawlThread(followedArtists, config.getPlaylistCompilations(), AlbumType.COMPILATION), AlbumType.COMPILATION.getType());
-			Thread tAppearsOn = new Thread(new Runnable() {
-				@Override
-				public void run() {
-					// Crawl for appears_on
-					if (BotUtils.isPlaylistSet(config.getPlaylistAppearsOn())) {
-						try {
-							// If intelligentAppearsOnSearch is enabled, only find those songs in
-							// "appears_on" releases that have at least one followed artist as contributor.
-							// Else, crawl the appears_on releases normally
-							List<List<TrackSimplified>> newAppearsOn = new ArrayList<>();
-							if (config.isIntelligentAppearsOnSearch()) {
-								newAppearsOn = intelligentAppearsOnSearch(followedArtists);
-							} else {
-								newAppearsOn = crawl(followedArtists, AlbumType.APPEARS_ON);
-							}
-							addSongsToPlaylist(newAppearsOn, config.getPlaylistAppearsOn(), AlbumType.APPEARS_ON);
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
-					}
-				}
-			}, AlbumType.APPEARS_ON.getType());
+			Thread tAlbum = crawlThread(followedArtists, AlbumType.ALBUM);
+			Thread tSingle = crawlThread(followedArtists, AlbumType.SINGLE);
+			Thread tCompilation = crawlThread(followedArtists, AlbumType.COMPILATION);
+			Thread tAppearsOn;
+			if (config.isIntelligentAppearsOnSearch()) {
+				tAppearsOn = crawlThread(followedArtists, AlbumType.APPEARS_ON, (fa, at) -> intelligentAppearsOnSearch(fa));
+			} else {
+				tAppearsOn = crawlThread(followedArtists, AlbumType.APPEARS_ON);
+			}
 			
 			// Start all crawlers
 			tAlbum.start();
@@ -132,28 +115,42 @@ public class SpotifyDiscoveryBot implements Runnable {
 			e.printStackTrace();
 		}
 	}
-
+	    
 	/**
-	 * Create a Runnable for the most common crawl operations
+	 * Create a Thread for the most common crawl operations
+	 * 
 	 * @param followedArtists
 	 * @param playlistId
 	 * @param albumType
 	 * @return
 	 */
-	private Runnable crawlThread(List<Artist> followedArtists, String playlistId, AlbumType albumType) {
-		return new Runnable() {
+	private Thread crawlThread(List<Artist> followedArtists, AlbumType albumType) {
+		return crawlThread(followedArtists, albumType, (fa, at) -> crawl(fa, at));
+	}
+	
+	/**
+	 * Creates a Thread with the specified crawler
+	 * 
+	 * @param followedArtists
+	 * @param albumType
+	 * @param crawler
+	 * @return
+	 */
+	private Thread crawlThread(List<Artist> followedArtists, AlbumType albumType, BiFunction<List<Artist>, AlbumType, List<List<TrackSimplified>>> crawler) {
+		return new Thread(new Runnable() {
 			@Override
 			public void run() {
+				String playlistId = BotUtils.getPlaylistIdByType(config, albumType);
 				if (BotUtils.isPlaylistSet(playlistId)) {
 					try {
-						List<List<TrackSimplified>> newTracks = crawl(followedArtists, albumType);
-						addSongsToPlaylist(newTracks, playlistId, albumType);
+						List<List<TrackSimplified>> newTracks = crawler.apply(followedArtists, albumType);
+						addSongsToPlaylist(newTracks, albumType);
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
 				}
 			}
-		};
+		}, albumType.toString());
 	}
 	
 	/**
@@ -164,54 +161,64 @@ public class SpotifyDiscoveryBot implements Runnable {
 	 * @param followedArtists
 	 * @throws Exception 
 	 */
-	private List<List<TrackSimplified>> crawl(List<Artist> followedArtists, AlbumType albumType) throws Exception {
-		// The process for new album searching is always the same chain of tasks:
-		// 1. Fetch all raw album IDs of those artists
-		// 2. Filter out all albums that were already stored in the DB
-		// 3. Any remaining songs are potential adding candidates that now need to be filtered by new-songs-only
-		//    a. Convert the album IDs into fully detailed album DTOs (to gain access to the release date)
-		//    b. Filter out all albums not released in the lookbackDays range (default: 3 days)
-		// 4. Get the songs IDs of the remaining (new) albums
-		List<String> albumIds = getAlbumsIdsByArtists(followedArtists, albumType);
-		albumIds = filterNonCachedAlbumsOnly(albumIds);
-		List<List<TrackSimplified>> newSongs = new ArrayList<>();
-		if (!albumIds.isEmpty()) {
-			List<Album> albums = convertAlbumIdsToFullAlbums(albumIds);
-			albums = filterNewAlbumsOnly(albums);
-			BotUtils.sortAlbums(albums);
-			newSongs = getSongIdsByAlbums(albums);
+	private List<List<TrackSimplified>> crawl(List<Artist> followedArtists, AlbumType albumType) {
+		try {
+			// The process for new album searching is always the same chain of tasks:
+			// 1. Fetch all raw album IDs of those artists
+			// 2. Filter out all albums that were already stored in the DB
+			// 3. Any remaining songs are potential adding candidates that now need to be filtered by new-songs-only
+			//    a. Convert the album IDs into fully detailed album DTOs (to gain access to the release date)
+			//    b. Filter out all albums not released in the lookbackDays range (default: 3 days)
+			// 4. Get the songs IDs of the remaining (new) albums
+			List<String> albumIds = getAlbumsIdsByArtists(followedArtists, albumType);
+			albumIds = filterNonCachedAlbumsOnly(albumIds);
+			List<List<TrackSimplified>> newSongs = new ArrayList<>();
+			if (!albumIds.isEmpty()) {
+				List<Album> albums = convertAlbumIdsToFullAlbums(albumIds);
+				albums = BotUtils.filterNewAlbumsOnly(albums, config.getLookbackDays());
+				BotUtils.sortAlbums(albums);
+				newSongs = getSongIdsByAlbums(albums);
+			}
+			
+			// Store the album IDs to the DB to prevent them from getting added a second time
+			// This happens even if no new songs are added, because it will significantly speed up the future search processes
+			storeAlbumIDsToDB(albumIds);
+			
+			// Return the found songs
+			return newSongs;			
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
 		}
-
-		// Store the album IDs to the DB to prevent them from getting added a second time
-		// This happens even if no new songs are added, because it will significantly speed up the future search processes
-		storeAlbumIDsToDB(albumIds);
-
-		// Return the found songs
-		return newSongs;
 	}
 
-	private List<List<TrackSimplified>> intelligentAppearsOnSearch(List<Artist> followedArtists) throws Exception {
-		// The process is very similar to the default crawler:
-		// 1. Taking the followed artists, fetch all album IDs of releases that have the "appears_on" tag
-		// 2. These albums are are filtered as normal (step 2+3 above)
-		// 3. Then, filter only the songs of the remaining releases that have at least one followed artist as contributor
-		// 4. Add the remaining songs to the adding queue
-		List<String> extraAlbumIds = getAlbumsIdsByArtists(followedArtists, AlbumType.APPEARS_ON);
-		extraAlbumIds = filterNonCachedAlbumsOnly(extraAlbumIds);
-		List<List<TrackSimplified>> newAppearsOn = new ArrayList<>();
-		if (!extraAlbumIds.isEmpty()) {
-			List<Album> extraAlbums = convertAlbumIdsToFullAlbums(extraAlbumIds);
-			extraAlbums = filterNewAlbumsOnly(extraAlbums);
-			BotUtils.sortAlbums(extraAlbums);
-			newAppearsOn = findFollowedArtistsSongsOnAlbums(extraAlbums, followedArtists);
+	private List<List<TrackSimplified>> intelligentAppearsOnSearch(List<Artist> followedArtists) {
+		try {
+			// The process is very similar to the default crawler:
+			// 1. Taking the followed artists, fetch all album IDs of releases that have the "appears_on" tag
+			// 2. These albums are are filtered as normal (step 2+3 above)
+			// 3. Then, filter only the songs of the remaining releases that have at least one followed artist as contributor
+			// 4. Add the remaining songs to the adding queue
+			List<String> extraAlbumIds = getAlbumsIdsByArtists(followedArtists, AlbumType.APPEARS_ON);
+			extraAlbumIds = filterNonCachedAlbumsOnly(extraAlbumIds);
+			List<List<TrackSimplified>> newAppearsOn = new ArrayList<>();
+			if (!extraAlbumIds.isEmpty()) {
+				List<Album> extraAlbums = convertAlbumIdsToFullAlbums(extraAlbumIds);
+				extraAlbums = BotUtils.filterNewAlbumsOnly(extraAlbums, config.getLookbackDays());
+				BotUtils.sortAlbums(extraAlbums);
+				newAppearsOn = findFollowedArtistsSongsOnAlbums(extraAlbums, followedArtists);
+			}
+	
+			// Store the album IDs to the DB to prevent them from getting added a second time
+			// This happens even if no new songs are added, because it will significantly speed up the future search processes
+			storeAlbumIDsToDB(extraAlbumIds);
+	
+			// Return the found songs
+			return newAppearsOn;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
 		}
-
-		// Store the album IDs to the DB to prevent them from getting added a second time
-		// This happens even if no new songs are added, because it will significantly speed up the future search processes
-		storeAlbumIDsToDB(extraAlbumIds);
-
-		// Return the found songs
-		return newAppearsOn;
 	}
 
 	/**
@@ -219,14 +226,14 @@ public class SpotifyDiscoveryBot implements Runnable {
 	 * @throws Exception 
 	 */
 	private void authenticate() throws Exception {
-		URI uri = ApiRequest.execute(spotify.authorizationCodeUri().scope(Constants.SCOPES).build());
+		URI uri = SpotifyApiRequest.execute(spotify.authorizationCodeUri().scope(Constants.SCOPES).build());
 		log.info(uri.toString());
 
 		Scanner scanner = new Scanner(System.in);
 		String code = scanner.nextLine().replace(spotify.getRedirectURI().toString() + "?code=", "").trim();
 		scanner.close();
 
-		AuthorizationCodeCredentials acc = ApiRequest.execute(spotify.authorizationCode(code).build());
+		AuthorizationCodeCredentials acc = SpotifyApiRequest.execute(spotify.authorizationCode(code).build());
 		spotify.setAccessToken(acc.getAccessToken());
 		spotify.setRefreshToken(acc.getRefreshToken());
 
@@ -238,7 +245,7 @@ public class SpotifyDiscoveryBot implements Runnable {
 	 * @throws Exception 
 	 */
 	private void refreshAccessToken() throws Exception {
-		AuthorizationCodeCredentials acc = ApiRequest.execute(spotify.authorizationCodeRefresh().build());
+		AuthorizationCodeCredentials acc = SpotifyApiRequest.execute(spotify.authorizationCodeRefresh().build());
 		spotify.setAccessToken(acc.getAccessToken());
 		updateTokens();
 	}
@@ -263,7 +270,7 @@ public class SpotifyDiscoveryBot implements Runnable {
 	private void timestampPlaylist(String playlistId) throws Exception {
 		Calendar cal = Calendar.getInstance();
 		
-		Playlist p = ApiRequest.execute(spotify.getPlaylist(playlistId).build());
+		Playlist p = SpotifyApiRequest.execute(spotify.getPlaylist(playlistId).build());
 		String playlistName = p.getName().replace(Constants.NEW_INDICATOR_TEXT, "").trim();
 		PlaylistTrack[] playlistTracks = p.getTracks().getItems();
 		if (playlistTracks.length > 0) {
@@ -278,7 +285,7 @@ public class SpotifyDiscoveryBot implements Runnable {
 		
 		String newDescription = String.format("Last Search: %s", Constants.DESCRIPTION_TIMESTAMP_FORMAT.format(cal.getTime()));
 		
-		ApiRequest.execute(spotify.changePlaylistsDetails(playlistId).name(playlistName).description(newDescription).build());			
+		SpotifyApiRequest.execute(spotify.changePlaylistsDetails(playlistId).name(playlistName).description(newDescription).build());			
 	}
 
 	/**
@@ -288,7 +295,7 @@ public class SpotifyDiscoveryBot implements Runnable {
 	 * @throws Exception
 	 */
 	private List<Artist> getFollowedArtists() throws Exception {
-		List<Artist> followedArtists = ApiRequest.execute(new Callable<List<Artist>>() {
+		List<Artist> followedArtists = SpotifyApiRequest.execute(new Callable<List<Artist>>() {
 			@Override
 			public List<Artist> call() throws Exception {
 				List<Artist> followedArtists = new ArrayList<>();
@@ -321,7 +328,7 @@ public class SpotifyDiscoveryBot implements Runnable {
 	private List<String> getAlbumsIdsByArtists(List<Artist> artists, AlbumType albumType) throws Exception {
 		List<String> ids = new ArrayList<>();
 		for (Artist a : artists) {
-			List<String> albumsIdsOfCurrentArtist = ApiRequest.execute(new Callable<List<String>>() {
+			List<String> albumsIdsOfCurrentArtist = SpotifyApiRequest.execute(new Callable<List<String>>() {
 				@Override
 				public List<String> call() throws Exception {
 					List<AlbumSimplified> albumsOfCurrentArtist = new ArrayList<>();
@@ -385,35 +392,10 @@ public class SpotifyDiscoveryBot implements Runnable {
 		List<Album> albums = new ArrayList<>();
 		for (List<String> partition : Lists.partition(ids, Constants.SEVERAL_ALBUMS_LIMIT)) {
 			String[] idSubListPrimitive = partition.toArray(new String[partition.size()]);
-			Album[] fullAlbums = ApiRequest.execute(spotify.getSeveralAlbums(idSubListPrimitive).market(config.getMarket()).build());
+			Album[] fullAlbums = SpotifyApiRequest.execute(spotify.getSeveralAlbums(idSubListPrimitive).market(config.getMarket()).build());
 			albums.addAll(Arrays.asList(fullAlbums));
 		}
 		return albums;
-	}
-	
-	/**
-	 * Filter out all albums not released within the lookbackDays range
-	 * 
-	 * @param albums
-	 * @return
-	 */
-	private List<Album> filterNewAlbumsOnly(List<Album> albums) {
-		List<Album> filteredAlbums = new ArrayList<>();
-		Calendar cal = Calendar.getInstance();
-		SimpleDateFormat date = new SimpleDateFormat("yyyy-MM-dd");
-		Set<String> validDates = new HashSet<>();
-		for (int i = 0; i < config.getLookbackDays(); i++) {
-			validDates.add(date.format(cal.getTime()));
-			cal.add(Calendar.DAY_OF_MONTH, -1);
-		}
-		for (Album a : albums) {
-			if (a.getReleaseDatePrecision().equals(ReleaseDatePrecision.DAY)) {
-				if (validDates.contains(a.getReleaseDate())) {
-					filteredAlbums.add(a);
-				}
-			}
-		}
-		return filteredAlbums;
 	}
 
 	/**
@@ -426,7 +408,7 @@ public class SpotifyDiscoveryBot implements Runnable {
 	private List<List<TrackSimplified>> getSongIdsByAlbums(List<Album> albums) throws Exception {
 		List<List<TrackSimplified>> tracksByAlbums = new ArrayList<>();
 		for (Album a : albums) {
-			List<TrackSimplified> currentList = ApiRequest.execute(new Callable<List<TrackSimplified>>() {
+			List<TrackSimplified> currentList = SpotifyApiRequest.execute(new Callable<List<TrackSimplified>>() {
 				@Override
 				public List<TrackSimplified> call() throws Exception {
 					List<TrackSimplified> currentList = new ArrayList<>();
@@ -495,12 +477,12 @@ public class SpotifyDiscoveryBot implements Runnable {
 	/**
 	 * Add the given list of song IDs to the playlist (a delay of a second per release is used to retain order).
 	 * 
-	 * @param playlistId
 	 * @param albumType
 	 * @param songs
 	 * @throws Exception 
 	 */
-	private void addSongsToPlaylist(List<List<TrackSimplified>> newSongs, String playlistId, AlbumType albumType) throws Exception {
+	private void addSongsToPlaylist(List<List<TrackSimplified>> newSongs, AlbumType albumType) throws Exception {
+		String playlistId = BotUtils.getPlaylistIdByType(config, albumType);
 		if (!newSongs.isEmpty()) {
 			int songsAdded = 0;
 			AddToPlaylistLoop:
@@ -511,9 +493,10 @@ public class SpotifyDiscoveryBot implements Runnable {
 						json.add(Constants.TRACK_PREFIX + s.getId());
 					}
 					try {
-						ApiRequest.execute(spotify.addTracksToPlaylist(playlistId, json).position(0).build());
+						SpotifyApiRequest.execute(spotify.addTracksToPlaylist(playlistId, json).position(0).build());
+						songsAdded += partition.size();
 					} catch (InternalServerErrorException e) {
-						Playlist p = ApiRequest.execute(spotify.getPlaylist(playlistId).build());
+						Playlist p = SpotifyApiRequest.execute(spotify.getPlaylist(playlistId).build());
 						int playlistSize = p.getTracks().getTotal();
 						if (playlistSize >= Constants.PLAYLIST_SIZE_LIMIT) {
 							log.severe(albumType.toString() + " playlist is full! Maximum capacity is " + Constants.PLAYLIST_SIZE_LIMIT + ".");
@@ -526,7 +509,6 @@ public class SpotifyDiscoveryBot implements Runnable {
 				log.info("> " + songsAdded + " new " + albumType.toString() + " song" + (songsAdded == 1 ? "" : "s") + " added!");
 			}
 		}
-
 		timestampPlaylist(playlistId);
 	}
 

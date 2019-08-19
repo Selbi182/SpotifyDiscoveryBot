@@ -7,9 +7,9 @@ import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.exceptions.detailed.TooManyRequestsException;
 import com.wrapper.spotify.requests.IRequest;
 
-public final class ApiRequest {
+public final class SpotifyApiRequest {
 
-	private ApiRequest() {
+	private SpotifyApiRequest() {
 	}
 
 	/**
@@ -51,7 +51,7 @@ public final class ApiRequest {
 				return t;
 			} catch (TooManyRequestsException e) {
 				int timeout = e.getRetryAfter() + 1;
-				Thread.sleep(timeout * 1000);
+				Thread.sleep(timeout * Constants.RETRY_TIMEOUT);
 			}
 		}
 	}

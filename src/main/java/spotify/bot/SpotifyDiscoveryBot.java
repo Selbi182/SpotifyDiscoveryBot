@@ -517,7 +517,7 @@ public class SpotifyDiscoveryBot implements Runnable {
 	 * 
 	 * @param albumIDs
 	 */
-	private void storeAlbumIDsToDB(List<String> albumIDs) {
+	private synchronized void storeAlbumIDsToDB(List<String> albumIDs) {
 		if (!albumIDs.isEmpty()) {
 			Connection connection = null;
 			try {

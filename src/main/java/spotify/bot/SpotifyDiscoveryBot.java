@@ -11,13 +11,14 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import org.ini4j.InvalidFileFormatException;
 
@@ -27,10 +28,8 @@ import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.enums.AlbumType;
 import com.wrapper.spotify.enums.ModelObjectType;
 import com.wrapper.spotify.enums.ReleaseDatePrecision;
-import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.exceptions.detailed.BadRequestException;
 import com.wrapper.spotify.exceptions.detailed.InternalServerErrorException;
-import com.wrapper.spotify.exceptions.detailed.TooManyRequestsException;
 import com.wrapper.spotify.exceptions.detailed.UnauthorizedException;
 import com.wrapper.spotify.model_objects.credentials.AuthorizationCodeCredentials;
 import com.wrapper.spotify.model_objects.specification.Album;
@@ -39,36 +38,39 @@ import com.wrapper.spotify.model_objects.specification.Artist;
 import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
 import com.wrapper.spotify.model_objects.specification.Paging;
 import com.wrapper.spotify.model_objects.specification.PagingCursorbased;
+import com.wrapper.spotify.model_objects.specification.Playlist;
+import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
-import com.wrapper.spotify.requests.authorization.authorization_code.AuthorizationCodeRequest;
-import com.wrapper.spotify.requests.authorization.authorization_code.AuthorizationCodeUriRequest;
+import com.wrapper.spotify.requests.data.albums.GetAlbumsTracksRequest;
+import com.wrapper.spotify.requests.data.artists.GetArtistsAlbumsRequest;
+import com.wrapper.spotify.requests.data.follow.GetUsersFollowedArtistsRequest;
 
+import spotify.util.ApiRequest;
+import spotify.util.BotUtils;
 import spotify.util.Constants;
 
 public class SpotifyDiscoveryBot implements Runnable {
 
 	// Local variables
-	private SpotifyApi api;
-	private Config conf;
+	private SpotifyApi spotify;
+	private Config config;
 	private Logger log;
 
 	/**
 	 * Initialize the app
 	 * 
-	 * @throws IOException
 	 * @throws InvalidFileFormatException
-	 * @throws SpotifyWebApiException
 	 * @throws Exception
 	 */
-	public SpotifyDiscoveryBot(Config conf) throws IOException, SpotifyWebApiException {
+	public SpotifyDiscoveryBot(Config config) throws Exception {
 		// Set local variables
-		this.conf = conf;
-		this.log = conf.getLog();
-		this.api = conf.getSpotifyApi();
+		this.config = config;
+		this.log = config.getLog();
+		this.spotify = config.getSpotifyApi();
 
 		// Set tokens, if preexisting
-		api.setAccessToken(conf.getAccessToken());
-		api.setRefreshToken(conf.getRefreshToken());
+		spotify.setAccessToken(config.getAccessToken());
+		spotify.setRefreshToken(config.getRefreshToken());
 
 		// Try to login with the stored access tokens or re-authenticate
 		try {
@@ -86,73 +88,97 @@ public class SpotifyDiscoveryBot implements Runnable {
 	public void run() {
 		try {
 			// Fetch all followed artists of the user
-			List<Artist> followedArtists = getFollowedArtists();
+			final List<Artist> followedArtists = getFollowedArtists();
 
-			// Crawl for albums
-			if (isPlaylistSet(conf.getPlaylistAlbums())) {
-				List<List<TrackSimplified>> newAlbums = crawl(followedArtists, AlbumType.ALBUM);
-				addSongsToPlaylist(newAlbums, conf.getPlaylistAlbums(), AlbumType.ALBUM);
-			}
-
-			// Crawl for singles
-			if (isPlaylistSet(conf.getPlaylistSingles())) {
-				List<List<TrackSimplified>> newSingles = crawl(followedArtists, AlbumType.SINGLE);
-				addSongsToPlaylist(newSingles, conf.getPlaylistSingles(), AlbumType.SINGLE);
-			}
-
-			// Crawl for compilations
-			if (isPlaylistSet(conf.getPlaylistCompilations())) {
-				List<List<TrackSimplified>> newCompilations = crawl(followedArtists, AlbumType.COMPILATION);
-				addSongsToPlaylist(newCompilations, conf.getPlaylistCompilations(), AlbumType.COMPILATION);
-			}
-
-			// Crawl for appears_on
-			if (isPlaylistSet(conf.getPlaylistAppearsOn())) {
-				// If intelligentAppearsOnSearch is enabled, only find those songs in
-				// "appears_on" releases that have at least one followed artist as contributor.
-				// Else, crawl the appears_on releases normally
-				List<List<TrackSimplified>> newAppearsOn = new ArrayList<>();
-				if (conf.isIntelligentAppearsOnSearch()) {
-					newAppearsOn = intelligentAppearsOnSearch(followedArtists);
-				} else {
-					newAppearsOn = crawl(followedArtists, AlbumType.APPEARS_ON);
+			// Set up the crawl threads
+			Thread tAlbum = new Thread(crawlThread(followedArtists, config.getPlaylistAlbums(), AlbumType.ALBUM), AlbumType.ALBUM.getType());
+			Thread tSingle = new Thread(crawlThread(followedArtists, config.getPlaylistSingles(), AlbumType.SINGLE), AlbumType.SINGLE.getType());
+			Thread tCompilation = new Thread(crawlThread(followedArtists, config.getPlaylistCompilations(), AlbumType.COMPILATION), AlbumType.COMPILATION.getType());
+			Thread tAppearsOn = new Thread(new Runnable() {
+				@Override
+				public void run() {
+					// Crawl for appears_on
+					if (BotUtils.isPlaylistSet(config.getPlaylistAppearsOn())) {
+						try {
+							// If intelligentAppearsOnSearch is enabled, only find those songs in
+							// "appears_on" releases that have at least one followed artist as contributor.
+							// Else, crawl the appears_on releases normally
+							List<List<TrackSimplified>> newAppearsOn = new ArrayList<>();
+							if (config.isIntelligentAppearsOnSearch()) {
+								newAppearsOn = intelligentAppearsOnSearch(followedArtists);
+							} else {
+								newAppearsOn = crawl(followedArtists, AlbumType.APPEARS_ON);
+							}
+							addSongsToPlaylist(newAppearsOn, config.getPlaylistAppearsOn(), AlbumType.APPEARS_ON);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
 				}
-				addSongsToPlaylist(newAppearsOn, conf.getPlaylistAppearsOn(), AlbumType.APPEARS_ON);
-			}
-		} catch (InterruptedException e) {
-			// Error message is handled outside, so this is just a fast way-out
-			return;
-		} catch (SpotifyWebApiException | IOException e) {
+			}, AlbumType.APPEARS_ON.getType());
+			
+			// Start all crawlers
+			tAlbum.start();
+			tSingle.start();
+			tCompilation.start();
+			tAppearsOn.start();
+			
+			// Wait for them all to finish
+			tAlbum.join();
+			tSingle.join();
+			tCompilation.join();
+			tAppearsOn.join();
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
+	/**
+	 * Create a Runnable for the most common crawl operations
+	 * @param followedArtists
+	 * @param playlistId
+	 * @param albumType
+	 * @return
+	 */
+	private Runnable crawlThread(List<Artist> followedArtists, String playlistId, AlbumType albumType) {
+		return new Runnable() {
+			@Override
+			public void run() {
+				if (BotUtils.isPlaylistSet(playlistId)) {
+					try {
+						List<List<TrackSimplified>> newTracks = crawl(followedArtists, albumType);
+						addSongsToPlaylist(newTracks, playlistId, albumType);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		};
+	}
+	
 	/**
 	 * Search for new releases of the given album type
 	 * 
 	 * @param appearsOn
 	 * @param string
 	 * @param followedArtists
-	 * 
-	 * @throws SpotifyWebApiException
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * @throws Exception 
 	 */
-	private List<List<TrackSimplified>> crawl(List<Artist> followedArtists, AlbumType albumType) throws SpotifyWebApiException, IOException, InterruptedException {
+	private List<List<TrackSimplified>> crawl(List<Artist> followedArtists, AlbumType albumType) throws Exception {
 		// The process for new album searching is always the same chain of tasks:
-		// 2. Fetch all raw album IDs of those artists
-		// 3. Filter out all albums that were already stored in the DB
-		// 4. Any remaining songs are potential adding candidates that now need to be filtered by new-songs-only
-		// a. Convert the album IDs into fully detailed album DTOs (to gain access to the release date)
-		// b. Filter out all albums not released in the lookbackDays range (default: 3 days)
-		// 5. Get the songs IDs of the remaining (new) albums
+		// 1. Fetch all raw album IDs of those artists
+		// 2. Filter out all albums that were already stored in the DB
+		// 3. Any remaining songs are potential adding candidates that now need to be filtered by new-songs-only
+		//    a. Convert the album IDs into fully detailed album DTOs (to gain access to the release date)
+		//    b. Filter out all albums not released in the lookbackDays range (default: 3 days)
+		// 4. Get the songs IDs of the remaining (new) albums
 		List<String> albumIds = getAlbumsIdsByArtists(followedArtists, albumType);
 		albumIds = filterNonCachedAlbumsOnly(albumIds);
 		List<List<TrackSimplified>> newSongs = new ArrayList<>();
 		if (!albumIds.isEmpty()) {
 			List<Album> albums = convertAlbumIdsToFullAlbums(albumIds);
 			albums = filterNewAlbumsOnly(albums);
-			sortAlbums(albums);
+			BotUtils.sortAlbums(albums);
 			newSongs = getSongIdsByAlbums(albums);
 		}
 
@@ -164,10 +190,10 @@ public class SpotifyDiscoveryBot implements Runnable {
 		return newSongs;
 	}
 
-	private List<List<TrackSimplified>> intelligentAppearsOnSearch(List<Artist> followedArtists) throws SpotifyWebApiException, IOException, InterruptedException {
+	private List<List<TrackSimplified>> intelligentAppearsOnSearch(List<Artist> followedArtists) throws Exception {
 		// The process is very similar to the default crawler:
-		// 1. Taking the followed artists from above, fetch all album IDs of releases that have the "appears_on" tag
-		// 2. These albums are are filtered as normal (step 3+4 above)
+		// 1. Taking the followed artists, fetch all album IDs of releases that have the "appears_on" tag
+		// 2. These albums are are filtered as normal (step 2+3 above)
 		// 3. Then, filter only the songs of the remaining releases that have at least one followed artist as contributor
 		// 4. Add the remaining songs to the adding queue
 		List<String> extraAlbumIds = getAlbumsIdsByArtists(followedArtists, AlbumType.APPEARS_ON);
@@ -176,7 +202,7 @@ public class SpotifyDiscoveryBot implements Runnable {
 		if (!extraAlbumIds.isEmpty()) {
 			List<Album> extraAlbums = convertAlbumIdsToFullAlbums(extraAlbumIds);
 			extraAlbums = filterNewAlbumsOnly(extraAlbums);
-			sortAlbums(extraAlbums);
+			BotUtils.sortAlbums(extraAlbums);
 			newAppearsOn = findFollowedArtistsSongsOnAlbums(extraAlbums, followedArtists);
 		}
 
@@ -190,36 +216,30 @@ public class SpotifyDiscoveryBot implements Runnable {
 
 	/**
 	 * Authentication process (WIP: user needs to manually copy-paste both the URI as well as the return code)
-	 * 
-	 * @throws SpotifyWebApiException
-	 * @throws IOException
+	 * @throws Exception 
 	 */
-	private void authenticate() throws SpotifyWebApiException, IOException {
-		AuthorizationCodeUriRequest authorizationCodeRequest = api.authorizationCodeUri().scope(Constants.SCOPES).build();
-		URI uri = authorizationCodeRequest.execute();
+	private void authenticate() throws Exception {
+		URI uri = ApiRequest.execute(spotify.authorizationCodeUri().scope(Constants.SCOPES).build());
 		log.info(uri.toString());
 
 		Scanner scanner = new Scanner(System.in);
-		String code = scanner.nextLine().replace(api.getRedirectURI().toString() + "?code=", "").trim();
+		String code = scanner.nextLine().replace(spotify.getRedirectURI().toString() + "?code=", "").trim();
 		scanner.close();
 
-		AuthorizationCodeRequest acr = api.authorizationCode(code).build();
-		AuthorizationCodeCredentials acc = acr.execute();
-		api.setAccessToken(acc.getAccessToken());
-		api.setRefreshToken(acc.getRefreshToken());
+		AuthorizationCodeCredentials acc = ApiRequest.execute(spotify.authorizationCode(code).build());
+		spotify.setAccessToken(acc.getAccessToken());
+		spotify.setRefreshToken(acc.getRefreshToken());
 
 		updateTokens();
 	}
 
 	/**
 	 * Refresh the access token
-	 * 
-	 * @throws SpotifyWebApiException
-	 * @throws IOException
+	 * @throws Exception 
 	 */
-	private void refreshAccessToken() throws SpotifyWebApiException, IOException {
-		AuthorizationCodeCredentials acc = api.authorizationCodeRefresh().build().execute();
-		api.setAccessToken(acc.getAccessToken());
+	private void refreshAccessToken() throws Exception {
+		AuthorizationCodeCredentials acc = ApiRequest.execute(spotify.authorizationCodeRefresh().build());
+		spotify.setAccessToken(acc.getAccessToken());
 		updateTokens();
 	}
 
@@ -229,7 +249,7 @@ public class SpotifyDiscoveryBot implements Runnable {
 	 * @throws IOException
 	 */
 	private void updateTokens() throws IOException {
-		conf.updateTokens(api.getAccessToken(), api.getRefreshToken());
+		config.updateTokens(spotify.getAccessToken(), spotify.getRefreshToken());
 	}
 
 	//////////////////////////////////////////////
@@ -238,111 +258,86 @@ public class SpotifyDiscoveryBot implements Runnable {
 	 * Timestamp the playlist's description (and, if set, the title) with the last time the crawling process was initiated.
 	 * 
 	 * @param playlistId
-	 * @param updateTitle
-	 * @throws SpotifyWebApiException
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * @throws Exception 
 	 */
-	private void timestampPlaylist(String playlistId, boolean updateTitle) throws SpotifyWebApiException, IOException, InterruptedException {
+	private void timestampPlaylist(String playlistId) throws Exception {
 		Calendar cal = Calendar.getInstance();
-		if (updateTitle) {
-			SimpleDateFormat formatTitle = new SimpleDateFormat("yyyy-dd-MM", Locale.ENGLISH);
-			String playlistName = api.getPlaylist(playlistId).build().execute().getName();
-			int timestampIndex = playlistName.indexOf('[');
-			if (timestampIndex > 0) {
-				playlistName = playlistName.substring(0, timestampIndex);
+		
+		Playlist p = ApiRequest.execute(spotify.getPlaylist(playlistId).build());
+		String playlistName = p.getName().replace(Constants.NEW_INDICATOR_TEXT, "").trim();
+		PlaylistTrack[] playlistTracks = p.getTracks().getItems();
+		if (playlistTracks.length > 0) {
+			Date mostRecentAdditionDate = playlistTracks[0].getAddedAt();
+			Calendar calOld = Calendar.getInstance();
+			calOld.setTime(mostRecentAdditionDate);
+			calOld.add(Calendar.HOUR_OF_DAY, config.getNewNotificationTimeout());
+			if (cal.before(calOld)) {
+				playlistName = String.format("%s %s", playlistName, Constants.NEW_INDICATOR_TEXT);
 			}
-			String playlistNameNew = String.format("%s [%s]", playlistName.trim(), formatTitle.format(cal.getTime()).trim());
-			api.changePlaylistsDetails(playlistId).name(playlistNameNew).build().execute();
 		}
 		
-		SimpleDateFormat formatDescription = new SimpleDateFormat("MMMMM d, yyyy \u2014 HH:mm", Locale.ENGLISH);
-		String newDescription = String.format("Last Search: %s", formatDescription.format(cal.getTime()));
-		boolean retry = false;
-		do {
-			retry = false;
-			try {
-				api.changePlaylistsDetails(playlistId).description(newDescription).build().execute();
-			} catch (TooManyRequestsException e) {
-				retry = true;
-				int timeout = e.getRetryAfter() + 1;
-				Thread.sleep(timeout * Constants.RETRY_TIMEOUT);
-			}
-		} while (retry);
+		String newDescription = String.format("Last Search: %s", Constants.DESCRIPTION_TIMESTAMP_FORMAT.format(cal.getTime()));
+		
+		ApiRequest.execute(spotify.changePlaylistsDetails(playlistId).name(playlistName).description(newDescription).build());			
 	}
 
 	/**
 	 * Get all the user's followed artists
 	 * 
 	 * @return
-	 * @throws IOException
-	 * @throws SpotifyWebApiException
-	 * @throws InterruptedException
 	 * @throws Exception
 	 */
-	private List<Artist> getFollowedArtists() throws SpotifyWebApiException, IOException, InterruptedException {
-		List<Artist> followedArtists = new ArrayList<>();
-		boolean retry = false;
-		PagingCursorbased<Artist> artists = null;
-		do {
-			retry = false;
-			try {
+	private List<Artist> getFollowedArtists() throws Exception {
+		List<Artist> followedArtists = ApiRequest.execute(new Callable<List<Artist>>() {
+			@Override
+			public List<Artist> call() throws Exception {
+				List<Artist> followedArtists = new ArrayList<>();
+				PagingCursorbased<Artist> artists = null;
 				do {
+					GetUsersFollowedArtistsRequest.Builder request = spotify.getUsersFollowedArtists(ModelObjectType.ARTIST).limit(Constants.DEFAULT_LIMIT);
 					if (artists != null && artists.getNext() != null) {
 						String after = artists.getCursors()[0].getAfter();
-						artists = api.getUsersFollowedArtists(ModelObjectType.ARTIST).limit(Constants.DEFAULT_LIMIT).after(after).build().execute();
-					} else {
-						artists = api.getUsersFollowedArtists(ModelObjectType.ARTIST).limit(Constants.DEFAULT_LIMIT).build().execute();
+						request = request.after(after);
 					}
+					artists = request.build().execute();
 					followedArtists.addAll(Arrays.asList(artists.getItems()));
 				} while (artists.getNext() != null);
-			} catch (TooManyRequestsException e) {
-				retry = true;
-				int timeout = e.getRetryAfter() + 1;
-				Thread.sleep(timeout * Constants.RETRY_TIMEOUT);
+				return followedArtists;
 			}
-		} while (retry);
+		});
 		if (followedArtists.isEmpty()) {
 			log.warning("No followed artists found!");
 		}
 		return followedArtists;
 	}
-
+	
 	/**
 	 * Get all album IDs of the given list of artists
 	 * 
 	 * @param artists
 	 * @return
-	 * @throws SpotifyWebApiException
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * @throws Exception 
 	 */
-	private List<String> getAlbumsIdsByArtists(List<Artist> artists, AlbumType albumType) throws SpotifyWebApiException, IOException, InterruptedException {
+	private List<String> getAlbumsIdsByArtists(List<Artist> artists, AlbumType albumType) throws Exception {
 		List<String> ids = new ArrayList<>();
 		for (Artist a : artists) {
-			boolean retry = false;
-			Paging<AlbumSimplified> albums = null;
-			List<AlbumSimplified> albumsOfCurrentArtist = new ArrayList<>();
-			do {
-				retry = false;
-				try {
+			List<String> albumsIdsOfCurrentArtist = ApiRequest.execute(new Callable<List<String>>() {
+				@Override
+				public List<String> call() throws Exception {
+					List<AlbumSimplified> albumsOfCurrentArtist = new ArrayList<>();
+					Paging<AlbumSimplified> albums = null;
 					do {
+						GetArtistsAlbumsRequest.Builder request = spotify.getArtistsAlbums(a.getId()).market(config.getMarket()).limit(Constants.DEFAULT_LIMIT).album_type(albumType.getType());
 						if (albums != null && albums.getNext() != null) {
-							albums = api.getArtistsAlbums(a.getId()).market(conf.getMarket()).limit(Constants.DEFAULT_LIMIT).album_type(albumType.getType()).offset(albums.getOffset() + Constants.DEFAULT_LIMIT).build().execute();
-						} else {
-							albums = api.getArtistsAlbums(a.getId()).market(conf.getMarket()).limit(Constants.DEFAULT_LIMIT).album_type(albumType.getType()).build().execute();
+							request = request.offset(albums.getOffset() + Constants.DEFAULT_LIMIT);
 						}
+						albums = request.build().execute();
 						albumsOfCurrentArtist.addAll(Arrays.asList(albums.getItems()));
 					} while (albums.getNext() != null);
-				} catch (TooManyRequestsException e) {
-					retry = true;
-					int timeout = e.getRetryAfter() + 1;
-					Thread.sleep(timeout * Constants.RETRY_TIMEOUT);
+					return albumsOfCurrentArtist.stream().map(AlbumSimplified::getId).collect(Collectors.toList());
 				}
-			} while (retry);
-			for (AlbumSimplified as : albums.getItems()) {
-				ids.add(as.getId());
-			}
+			});
+			ids.addAll(albumsIdsOfCurrentArtist);
 		}
 		if (ids.isEmpty()) {
 			log.warning("No album IDs found!");
@@ -360,7 +355,7 @@ public class SpotifyDiscoveryBot implements Runnable {
 		Set<String> filteredAlbums = new HashSet<>(allAlbums);
 		Connection connection = null;
 		try {
-			connection = DriverManager.getConnection(conf.getDbUrl());
+			connection = DriverManager.getConnection(config.getDbUrl());
 			Statement statement = connection.createStatement();
 			ResultSet rs = statement.executeQuery(String.format("SELECT %s FROM %s", Constants.DB_ROW_ALBUM_IDS, Constants.DB_TBL_ALBUMS));
 			while (rs.next()) {
@@ -384,31 +379,18 @@ public class SpotifyDiscoveryBot implements Runnable {
 	 * 
 	 * @param ids
 	 * @return
-	 * @throws SpotifyWebApiException
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * @throws Exception 
 	 */
-	private List<Album> convertAlbumIdsToFullAlbums(List<String> ids) throws SpotifyWebApiException, IOException, InterruptedException {
+	private List<Album> convertAlbumIdsToFullAlbums(List<String> ids) throws Exception {
 		List<Album> albums = new ArrayList<>();
 		for (List<String> partition : Lists.partition(ids, Constants.SEVERAL_ALBUMS_LIMIT)) {
 			String[] idSubListPrimitive = partition.toArray(new String[partition.size()]);
-			boolean retry = false;
-			Album[] fullAlbums = null;
-			do {
-				retry = false;
-				try {
-					fullAlbums = api.getSeveralAlbums(idSubListPrimitive).market(conf.getMarket()).build().execute();
-				} catch (TooManyRequestsException e) {
-					retry = true;
-					int timeout = e.getRetryAfter() + 1;
-					Thread.sleep(timeout * Constants.RETRY_TIMEOUT);
-				}
-			} while (retry);
+			Album[] fullAlbums = ApiRequest.execute(spotify.getSeveralAlbums(idSubListPrimitive).market(config.getMarket()).build());
 			albums.addAll(Arrays.asList(fullAlbums));
 		}
 		return albums;
 	}
-
+	
 	/**
 	 * Filter out all albums not released within the lookbackDays range
 	 * 
@@ -420,7 +402,7 @@ public class SpotifyDiscoveryBot implements Runnable {
 		Calendar cal = Calendar.getInstance();
 		SimpleDateFormat date = new SimpleDateFormat("yyyy-MM-dd");
 		Set<String> validDates = new HashSet<>();
-		for (int i = 0; i < conf.getLookbackDays(); i++) {
+		for (int i = 0; i < config.getLookbackDays(); i++) {
 			validDates.add(date.format(cal.getTime()));
 			cal.add(Calendar.DAY_OF_MONTH, -1);
 		}
@@ -439,33 +421,27 @@ public class SpotifyDiscoveryBot implements Runnable {
 	 * 
 	 * @param albums
 	 * @return
-	 * @throws InterruptedException
-	 * @throws SpotifyWebApiException
-	 * @throws IOException
+	 * @throws Exception 
 	 */
-	private List<List<TrackSimplified>> getSongIdsByAlbums(List<Album> albums) throws InterruptedException, SpotifyWebApiException, IOException {
+	private List<List<TrackSimplified>> getSongIdsByAlbums(List<Album> albums) throws Exception {
 		List<List<TrackSimplified>> tracksByAlbums = new ArrayList<>();
 		for (Album a : albums) {
-			List<TrackSimplified> currentList = new ArrayList<>();
-			boolean retry = false;
-			Paging<TrackSimplified> albumTracks = null;
-			do {
-				retry = false;
-				try {
+			List<TrackSimplified> currentList = ApiRequest.execute(new Callable<List<TrackSimplified>>() {
+				@Override
+				public List<TrackSimplified> call() throws Exception {
+					List<TrackSimplified> currentList = new ArrayList<>();
+					Paging<TrackSimplified> albumTracks = null;
 					do {
+						GetAlbumsTracksRequest.Builder request = spotify.getAlbumsTracks(a.getId()).limit(Constants.DEFAULT_LIMIT);
 						if (albumTracks != null && albumTracks.getNext() != null) {
-							albumTracks = api.getAlbumsTracks(a.getId()).limit(Constants.DEFAULT_LIMIT).offset(albumTracks.getOffset() + Constants.DEFAULT_LIMIT).build().execute();
-						} else {
-							albumTracks = api.getAlbumsTracks(a.getId()).limit(Constants.DEFAULT_LIMIT).build().execute();
+							request = request.offset(albumTracks.getOffset() + Constants.DEFAULT_LIMIT);
 						}
+						albumTracks = request.build().execute();
 						currentList.addAll(Arrays.asList(albumTracks.getItems()));
 					} while (albumTracks.getNext() != null);
-				} catch (TooManyRequestsException e) {
-					retry = true;
-					int timeout = e.getRetryAfter() + 1;
-					Thread.sleep(timeout * Constants.RETRY_TIMEOUT);
+					return currentList;
 				}
-			} while (retry);
+			});
 			tracksByAlbums.add(currentList);
 		}
 		return tracksByAlbums;
@@ -477,11 +453,9 @@ public class SpotifyDiscoveryBot implements Runnable {
 	 * @param extraAlbumIdsFiltered
 	 * @param followedArtists
 	 * @return
-	 * @throws SpotifyWebApiException
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * @throws Exception 
 	 */
-	private List<List<TrackSimplified>> findFollowedArtistsSongsOnAlbums(List<Album> newAlbums, List<Artist> followedArtists) throws SpotifyWebApiException, IOException, InterruptedException {
+	private List<List<TrackSimplified>> findFollowedArtistsSongsOnAlbums(List<Album> newAlbums, List<Artist> followedArtists) throws Exception {
 		List<List<TrackSimplified>> selectedSongsByAlbum = new ArrayList<>();
 		List<Album> newAlbumsWithoutCompilations = new ArrayList<>();
 		for (Album a : newAlbums) {
@@ -524,50 +498,36 @@ public class SpotifyDiscoveryBot implements Runnable {
 	 * @param playlistId
 	 * @param albumType
 	 * @param songs
-	 * @throws SpotifyWebApiException
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * @throws Exception 
 	 */
-	private void addSongsToPlaylist(List<List<TrackSimplified>> newSongs, String playlistId, AlbumType albumType) throws SpotifyWebApiException, IOException, InterruptedException {
+	private void addSongsToPlaylist(List<List<TrackSimplified>> newSongs, String playlistId, AlbumType albumType) throws Exception {
 		if (!newSongs.isEmpty()) {
 			int songsAdded = 0;
-			AddToPlaylistLoop: for (List<TrackSimplified> songsInAlbum : newSongs) {
+			AddToPlaylistLoop:
+			for (List<TrackSimplified> songsInAlbum : newSongs) {
 				for (List<TrackSimplified> partition : Lists.partition(songsInAlbum, Constants.PLAYLIST_ADD_LIMIT)) {
 					JsonArray json = new JsonArray();
 					for (TrackSimplified s : partition) {
 						json.add(Constants.TRACK_PREFIX + s.getId());
 					}
-					boolean retry = false;
-					do {
-						retry = false;
-						try {
-							api.addTracksToPlaylist(playlistId, json).position(0).build().execute();
-							songsAdded += json.size();
-						} catch (TooManyRequestsException e) {
-							retry = true;
-							int timeout = e.getRetryAfter() + 1;
-							Thread.sleep(timeout * Constants.RETRY_TIMEOUT);
-						} catch (BadRequestException e) {
-							e.printStackTrace();
-						} catch (InternalServerErrorException e) {
-							int playlistSize = api.getPlaylist(playlistId).build().execute().getTracks().getTotal();
-							if (playlistSize >= Constants.PLAYLIST_SIZE_LIMIT) {
-								log.severe(albumType.toString() + " playlist is full! Maximum capacity is " + Constants.PLAYLIST_SIZE_LIMIT + ".");
-								break AddToPlaylistLoop;
-							}
+					try {
+						ApiRequest.execute(spotify.addTracksToPlaylist(playlistId, json).position(0).build());
+					} catch (InternalServerErrorException e) {
+						Playlist p = ApiRequest.execute(spotify.getPlaylist(playlistId).build());
+						int playlistSize = p.getTracks().getTotal();
+						if (playlistSize >= Constants.PLAYLIST_SIZE_LIMIT) {
+							log.severe(albumType.toString() + " playlist is full! Maximum capacity is " + Constants.PLAYLIST_SIZE_LIMIT + ".");
+							break AddToPlaylistLoop;
 						}
-					} while (retry);
+					}
 				}
-				Thread.sleep(Constants.RETRY_TIMEOUT);
 			}
 			if (songsAdded > 0) {
 				log.info("> " + songsAdded + " new " + albumType.toString() + " song" + (songsAdded == 1 ? "" : "s") + " added!");
-				timestampPlaylist(playlistId, true);
-				return;
 			}
 		}
 
-		timestampPlaylist(playlistId, false);
+		timestampPlaylist(playlistId);
 	}
 
 	/**
@@ -579,7 +539,7 @@ public class SpotifyDiscoveryBot implements Runnable {
 		if (!albumIDs.isEmpty()) {
 			Connection connection = null;
 			try {
-				connection = DriverManager.getConnection(conf.getDbUrl());
+				connection = DriverManager.getConnection(config.getDbUrl());
 				Statement statement = connection.createStatement();
 				for (String s : albumIDs) {
 					statement.executeUpdate(String.format("INSERT INTO %s(%s) VALUES('%s')", Constants.DB_TBL_ALBUMS, Constants.DB_ROW_ALBUM_IDS, s));
@@ -595,21 +555,5 @@ public class SpotifyDiscoveryBot implements Runnable {
 				}
 			}
 		}
-	}
-
-	/**
-	 * Sort the album list with the default comparator
-	 * 
-	 * @param albums
-	 */
-	private void sortAlbums(List<Album> albums) {
-		Collections.sort(albums, (a1, a2) -> Constants.RELEASE_COMPARATOR.compare(a1, a2));
-	}
-
-	/**
-	 * Check if the given playlistId has been set
-	 */
-	private boolean isPlaylistSet(String playlistId) {
-		return playlistId != null && !playlistId.trim().isEmpty();
 	}
 }

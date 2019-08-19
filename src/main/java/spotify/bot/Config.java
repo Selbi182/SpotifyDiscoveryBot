@@ -1,6 +1,6 @@
 package spotify.bot;
 
-import static spotify.util.Constants.*;
+import static spotify.util.Constants.DB_FILE_NAME;
 
 import java.io.File;
 import java.io.IOException;
@@ -53,6 +53,7 @@ public class Config {
 	private final boolean intelligentAppearsOnSearch;
 	private final CountryCode market;
 	private final int lookbackDays;
+	private final int newNotificationTimeout;
 	
 	////////////////
 	
@@ -82,9 +83,13 @@ public class Config {
 	private final static String SECTION_BOT_CONFIG = "BotConfig";
 	private final static String KEY_LOGLEVEL = "logLevel";
 	private final static String KEY_LOG_TO_FILE = "logToFile";
+	private final static String KEY_NEW_NOTIFICATION_TIMEOUT = "newNotificationTimeout";
 
-
-
+	/**
+	 * Sets up the configuration for the Spotify bot based on the contents of the local INI-file
+	 * 
+	 * @throws IOException
+	 */
 	public Config() throws IOException {
 		// Set file paths
 		File ownLocation = new File(ClassLoader.getSystemClassLoader().getResource(".").getPath()).getAbsoluteFile();
@@ -143,6 +148,7 @@ public class Config {
 		this.intelligentAppearsOnSearch = Boolean.valueOf(iniFile.get(SECTION_USER_CONFIG, KEY_INTELLIGENT_APPEARS_ON_SEARCH));
 		this.market = CountryCode.valueOf(iniFile.get(SECTION_USER_CONFIG, KEY_MARKET));
 		this.lookbackDays = iniFile.get(SECTION_USER_CONFIG, KEY_LOOKBACK_DAYS, int.class);
+		this.newNotificationTimeout = iniFile.get(SECTION_USER_CONFIG, KEY_NEW_NOTIFICATION_TIMEOUT, int.class);
 		
 		// Writable tokens
 		updateTokens(iniFile.get(SECTION_TOKENS, KEY_ACCESS_TOKEN), iniFile.get(SECTION_TOKENS, KEY_REFRESH_TOKEN));
@@ -236,5 +242,9 @@ public class Config {
 
 	public String getPlaylistAppearsOn() {
 		return playlistAppearsOn;
+	}
+
+	public int getNewNotificationTimeout() {
+		return newNotificationTimeout;
 	}
 }

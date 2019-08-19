@@ -1,6 +1,8 @@
 package spotify.util;
 
+import java.text.SimpleDateFormat;
 import java.util.Comparator;
+import java.util.Locale;
 
 import com.wrapper.spotify.model_objects.specification.Album;
 
@@ -22,6 +24,10 @@ public final class Constants {
 	public final static int SEVERAL_ALBUMS_LIMIT = 20;
 	public final static int PLAYLIST_ADD_LIMIT = 100;
 	public final static int PLAYLIST_SIZE_LIMIT = 10000;
+	
+	// Playlist Timestamps
+	public final static String NEW_INDICATOR_TEXT = "\uD83C\uDD7D\uD83C\uDD74\uD83C\uDD86";
+	public final static SimpleDateFormat DESCRIPTION_TIMESTAMP_FORMAT = new SimpleDateFormat("MMMMM d, yyyy \u2014 HH:mm", Locale.ENGLISH);
 	
 	// Comparators
 	private final static Comparator<Album> COMPARATOR_ALBUM_TYPE = Comparator.comparing(Album::getAlbumType);

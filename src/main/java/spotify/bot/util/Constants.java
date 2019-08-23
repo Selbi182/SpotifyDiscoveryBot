@@ -1,12 +1,14 @@
-package spotify.util;
+package spotify.bot.util;
 
 import java.text.SimpleDateFormat;
-import java.util.Comparator;
 import java.util.Locale;
 
-import com.wrapper.spotify.model_objects.specification.Album;
-
 public final class Constants {
+	/**
+	 * Static calls only
+	 */
+	private Constants() {}
+	
 	// Generic
 	public static final long BOT_TIMEOUT = 10 * 60 * 1000;
 	public final static int RETRY_TIMEOUT = 500;
@@ -29,22 +31,4 @@ public final class Constants {
 	// Playlist Timestamps
 	public final static String NEW_INDICATOR_TEXT = "\uD83C\uDD7D\uD83C\uDD74\uD83C\uDD86";
 	public final static SimpleDateFormat DESCRIPTION_TIMESTAMP_FORMAT = new SimpleDateFormat("MMMMM d, yyyy \u2014 HH:mm", Locale.ENGLISH);
-	
-	// Comparators
-	private final static Comparator<Album> COMPARATOR_ALBUM_TYPE = Comparator.comparing(Album::getAlbumType);
-	private final static Comparator<Album> COMPARATOR_RELEASE_DATE = Comparator.comparing(Album::getReleaseDate);
-	private final static Comparator<Album> COMPARATOR_FIRST_ARTIST_NAME = (a1, a2) -> a1.getArtists()[0].getName()
-			.compareTo(a2.getArtists()[0].getName());
-	private final static Comparator<Album> COMPARATOR_ALBUM_NAME = Comparator.comparing(Album::getName);
-
-	public final static Comparator<Album> RELEASE_COMPARATOR =
-			COMPARATOR_ALBUM_TYPE
-			.thenComparing(COMPARATOR_RELEASE_DATE)
-			.thenComparing(COMPARATOR_FIRST_ARTIST_NAME)
-			.thenComparing(COMPARATOR_ALBUM_NAME);
-
-	/**
-	 * Private constructor
-	 */
-	private Constants() {}
 }

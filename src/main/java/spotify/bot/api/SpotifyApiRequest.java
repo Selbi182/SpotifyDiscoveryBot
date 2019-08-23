@@ -1,4 +1,4 @@
-package spotify.util;
+package spotify.bot.api;
 
 import java.io.IOException;
 import java.util.concurrent.Callable;
@@ -7,7 +7,9 @@ import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.exceptions.detailed.TooManyRequestsException;
 import com.wrapper.spotify.requests.IRequest;
 
-public final class SpotifyApiRequest {
+import spotify.bot.util.Constants;
+
+public class SpotifyApiRequest {
 
 	private SpotifyApiRequest() {
 	}

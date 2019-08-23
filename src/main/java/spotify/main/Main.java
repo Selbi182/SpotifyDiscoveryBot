@@ -1,35 +1,31 @@
 package spotify.main;
 
-import java.util.logging.Logger;
-
 import spotify.bot.Config;
 import spotify.bot.SpotifyDiscoveryBot;
-import spotify.util.Constants;
+import spotify.bot.util.Constants;
 
 public class Main {
 
 	public static void main(String[] args) {	
 		try {
-			Config config = new Config();
-			runBotOnce(config);
+			runBotOnce();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}		
 	}
 	
-	private static void runBotOnce(Config config) throws Exception {
+	private static void runBotOnce() throws Exception {
 		try {
-			Logger log = config.getLog();
-			Thread bot = new Thread(new SpotifyDiscoveryBot(config), SpotifyDiscoveryBot.class.getSimpleName());
+			Thread bot = new Thread(new SpotifyDiscoveryBot(), SpotifyDiscoveryBot.class.getSimpleName());
 			bot.start();
 			bot.join(Constants.BOT_TIMEOUT);
 			if (bot.isAlive()) {
 				bot.interrupt();
-				log.severe("Bot instance didn't finish in time and will forcibly killed!");
+				Config.log().severe("Bot instance didn't finish in time and will forcibly killed!");
 			}	
 		} finally {
-			if (config != null && config.getLog() != null) {
-				config.closeLogger();
+			if (Config.getInstance() != null && Config.log() != null) {
+				Config.getInstance().closeLogger();
 			}
 		}
 	}

@@ -1,6 +1,6 @@
 package spotify.bot;
 
-import static spotify.util.Constants.DB_FILE_NAME;
+import static spotify.bot.util.Constants.DB_FILE_NAME;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,13 +13,16 @@ import java.util.logging.SimpleFormatter;
 import org.ini4j.Wini;
 
 import com.neovisionaries.i18n.CountryCode;
-import com.wrapper.spotify.SpotifyApi;
-import com.wrapper.spotify.SpotifyHttpManager;
 
-import spotify.util.Constants;
+import spotify.bot.util.Constants;
 
 public class Config {
 
+	// SINGLETON
+	private static Config instance;
+
+	/////////////////
+	
 	// Logger
 	private final Logger log;
 
@@ -29,9 +32,6 @@ public class Config {
 	// DB
 	private final String dbUrl;
 
-	// Spotify API
-	private final SpotifyApi spotifyApi;
-	
 	/////////////////
 	
 	// [Client]
@@ -86,11 +86,24 @@ public class Config {
 	private final static String KEY_NEW_NOTIFICATION_TIMEOUT = "newNotificationTimeout";
 
 	/**
+	 * Creates or returns the current (singleton) configuration instance for the Spotify bot
+	 * based on the contents of the local INI-file
+	 * 
+	 * @throws IOException
+	 */
+	public static Config getInstance() throws IOException {
+		if (Config.instance == null) {
+			Config.instance = new Config();
+		}
+		return Config.instance;
+	}
+
+	/**
 	 * Sets up the configuration for the Spotify bot based on the contents of the local INI-file
 	 * 
 	 * @throws IOException
 	 */
-	public Config() throws IOException {
+	private Config() throws IOException {
 		// Set file paths
 		File ownLocation = new File(ClassLoader.getSystemClassLoader().getResource(".").getPath()).getAbsoluteFile();
 		File iniFilePath = new File(ownLocation, INI_FILENAME);
@@ -130,13 +143,6 @@ public class Config {
 		this.clientId = iniFile.get(SECTION_CLIENT, KEY_CLIENT_ID);
 		this.clientSecret = iniFile.get(SECTION_CLIENT, KEY_CLIENT_SECRET);
 		this.callbackUri = iniFile.get(SECTION_CLIENT, KEY_CALLBACK_URI);
-		
-		// Build the API
-		this.spotifyApi = new SpotifyApi.Builder()
-			.setClientId(getClientId())
-			.setClientSecret(getClientSecret())
-			.setRedirectUri(SpotifyHttpManager.makeUri(getCallbackUri()))
-			.build();
 
 		// Set playlist IDs
 		this.playlistAlbums = iniFile.get(SECTION_PLAYLISTS, KEY_PLAYLIST_ALBUMS);
@@ -180,8 +186,8 @@ public class Config {
 		}
 	}
 	
-	public Logger getLog() {
-		return log;
+	public static Logger log() throws IOException {
+		return Config.getInstance().log;
 	}
 
 	public Wini getIniFile() {
@@ -222,10 +228,6 @@ public class Config {
 
 	public String getRefreshToken() {
 		return refreshToken;
-	}
-	
-	public SpotifyApi getSpotifyApi() {
-		return spotifyApi;
 	}
 
 	public String getPlaylistAlbums() {

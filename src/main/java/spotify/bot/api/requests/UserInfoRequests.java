@@ -27,14 +27,14 @@ public class UserInfoRequests {
 	 * @return
 	 * @throws Exception
 	 */
-	public static List<Artist> getFollowedArtists(SpotifyApiSessionManager api) throws Exception {
+	public static List<Artist> getFollowedArtists() throws Exception {
 		List<Artist> followedArtists = SpotifyApiRequest.execute(new Callable<List<Artist>>() {
 			@Override
 			public List<Artist> call() throws Exception {
 				List<Artist> followedArtists = new ArrayList<>();
 				PagingCursorbased<Artist> artists = null;
 				do {
-					GetUsersFollowedArtistsRequest.Builder request = api.api().getUsersFollowedArtists(ModelObjectType.ARTIST).limit(Constants.DEFAULT_LIMIT);
+					GetUsersFollowedArtistsRequest.Builder request = SpotifyApiSessionManager.api().getUsersFollowedArtists(ModelObjectType.ARTIST).limit(Constants.DEFAULT_LIMIT);
 					if (artists != null && artists.getNext() != null) {
 						String after = artists.getCursors()[0].getAfter();
 						request = request.after(after);

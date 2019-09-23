@@ -32,7 +32,7 @@ public class AlbumRequests {
 	 * @return
 	 * @throws Exception 
 	 */
-	public static List<String> getAlbumsIdsByArtists(SpotifyApiSessionManager api, List<Artist> artists, AlbumType albumType) throws Exception {
+	public static List<String> getAlbumsIdsByArtists(List<Artist> artists, AlbumType albumType) throws Exception {
 		List<String> ids = new ArrayList<>();
 		for (Artist a : artists) {
 			List<String> albumsIdsOfCurrentArtist = SpotifyApiRequest.execute(new Callable<List<String>>() {
@@ -41,8 +41,10 @@ public class AlbumRequests {
 					List<AlbumSimplified> albumsOfCurrentArtist = new ArrayList<>();
 					Paging<AlbumSimplified> albums = null;
 					do {
-						GetArtistsAlbumsRequest.Builder request = api.api().getArtistsAlbums(
-								a.getId()).market(Config.getInstance().getMarket()).limit(Constants.DEFAULT_LIMIT).album_type(albumType.getType());
+						GetArtistsAlbumsRequest.Builder request = SpotifyApiSessionManager.api().getArtistsAlbums(a.getId())
+							.market(Config.getInstance().getMarket())
+							.limit(Constants.DEFAULT_LIMIT)
+							.album_type(albumType.getType());
 						if (albums != null && albums.getNext() != null) {
 							request = request.offset(albums.getOffset() + Constants.DEFAULT_LIMIT);
 						}
@@ -67,11 +69,11 @@ public class AlbumRequests {
 	 * @return
 	 * @throws Exception 
 	 */
-	public static List<Album> convertAlbumIdsToFullAlbums(SpotifyApiSessionManager api, List<String> ids) throws Exception {
+	public static List<Album> convertAlbumIdsToFullAlbums(List<String> ids) throws Exception {
 		List<Album> albums = new ArrayList<>();
 		for (List<String> partition : Lists.partition(ids, Constants.SEVERAL_ALBUMS_LIMIT)) {
 			String[] idSubListPrimitive = partition.toArray(new String[partition.size()]);
-			Album[] fullAlbums = SpotifyApiRequest.execute(api.api().getSeveralAlbums(idSubListPrimitive).market(Config.getInstance().getMarket()).build());
+			Album[] fullAlbums = SpotifyApiRequest.execute(SpotifyApiSessionManager.api().getSeveralAlbums(idSubListPrimitive).market(Config.getInstance().getMarket()).build());
 			albums.addAll(Arrays.asList(fullAlbums));
 		}
 		return albums;

@@ -31,7 +31,7 @@ public class PlaylistRequests {
 	 * @param songs
 	 * @throws Exception 
 	 */
-	public static void addSongsToPlaylist(SpotifyApiSessionManager api, List<List<TrackSimplified>> newSongs, AlbumType albumType) throws Exception {
+	public static void addSongsToPlaylist(List<List<TrackSimplified>> newSongs, AlbumType albumType) throws Exception {
 		String playlistId = BotUtils.getPlaylistIdByType(albumType);
 		if (!newSongs.isEmpty()) {
 			int songsAdded = 0;
@@ -43,10 +43,10 @@ public class PlaylistRequests {
 						json.add(Constants.TRACK_PREFIX + s.getId());
 					}
 					try {
-						SpotifyApiRequest.execute(api.api().addTracksToPlaylist(playlistId, json).position(0).build());
+						SpotifyApiRequest.execute(SpotifyApiSessionManager.api().addTracksToPlaylist(playlistId, json).position(0).build());
 						songsAdded += partition.size();
 					} catch (InternalServerErrorException e) {
-						Playlist p = SpotifyApiRequest.execute(api.api().getPlaylist(playlistId).build());
+						Playlist p = SpotifyApiRequest.execute(SpotifyApiSessionManager.api().getPlaylist(playlistId).build());
 						int playlistSize = p.getTracks().getTotal();
 						if (playlistSize >= Constants.PLAYLIST_SIZE_LIMIT) {
 							Config.log().severe(albumType.toString() + " playlist is full! Maximum capacity is " + Constants.PLAYLIST_SIZE_LIMIT + ".");
@@ -59,7 +59,7 @@ public class PlaylistRequests {
 				Config.log().info("> " + songsAdded + " new " + albumType.toString() + " song" + (songsAdded == 1 ? "" : "s") + " added!");
 			}
 		}
-		timestampPlaylist(api, playlistId);
+		timestampPlaylist(playlistId);
 	}
 	
 	/**
@@ -68,10 +68,10 @@ public class PlaylistRequests {
 	 * @param playlistId
 	 * @throws Exception 
 	 */
-	public static void timestampPlaylist(SpotifyApiSessionManager api, String playlistId) throws Exception {
+	public static void timestampPlaylist(String playlistId) throws Exception {
 		Calendar cal = Calendar.getInstance();
 		
-		Playlist p = SpotifyApiRequest.execute(api.api().getPlaylist(playlistId).build());
+		Playlist p = SpotifyApiRequest.execute(SpotifyApiSessionManager.api().getPlaylist(playlistId).build());
 		String playlistName = p.getName().replace(Constants.NEW_INDICATOR_TEXT, "").trim();
 		PlaylistTrack[] playlistTracks = p.getTracks().getItems();
 		if (playlistTracks.length > 0) {
@@ -86,7 +86,7 @@ public class PlaylistRequests {
 		
 		String newDescription = String.format("Last Search: %s", Constants.DESCRIPTION_TIMESTAMP_FORMAT.format(cal.getTime()));
 		
-		SpotifyApiRequest.execute(api.api().changePlaylistsDetails(playlistId).name(playlistName).description(newDescription).build());			
+		SpotifyApiRequest.execute(SpotifyApiSessionManager.api().changePlaylistsDetails(playlistId).name(playlistName).description(newDescription).build());			
 	}
 
 }

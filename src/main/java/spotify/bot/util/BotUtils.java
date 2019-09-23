@@ -20,13 +20,14 @@ public final class BotUtils {
 	// Comparators
 	private final static Comparator<Album> COMPARATOR_ALBUM_TYPE = Comparator.comparing(Album::getAlbumType);
 	private final static Comparator<Album> COMPARATOR_RELEASE_DATE = Comparator.comparing(Album::getReleaseDate);
-	private final static Comparator<Album> COMPARATOR_FIRST_ARTIST_NAME = (a1, a2) -> a1.getArtists()[0].getName()
-			.compareTo(a2.getArtists()[0].getName());
-	private final static Comparator<Album> COMPARATOR_ALBUM_NAME = Comparator.comparing(Album::getName);
+	private final static Comparator<Album> COMPARATOR_TRACK_COUNT = Comparator.comparing((a) -> a.getTracks().getTotal(), Comparator.reverseOrder());
+	private final static Comparator<Album> COMPARATOR_FIRST_ARTIST_NAME = Comparator.comparing((a) -> a.getArtists()[0].getName(), Comparator.reverseOrder());
+	private final static Comparator<Album> COMPARATOR_ALBUM_NAME = Comparator.comparing(Album::getName, Comparator.reverseOrder());
 
 	private final static Comparator<Album> RELEASE_COMPARATOR =
 			COMPARATOR_ALBUM_TYPE
 			.thenComparing(COMPARATOR_RELEASE_DATE)
+			.thenComparing(COMPARATOR_TRACK_COUNT)
 			.thenComparing(COMPARATOR_FIRST_ARTIST_NAME)
 			.thenComparing(COMPARATOR_ALBUM_NAME);
 
@@ -57,7 +58,7 @@ public final class BotUtils {
 		try {
 			switch (albumType) {
 				case ALBUM:
-						return Config.getInstance().getPlaylistAlbums();
+					return Config.getInstance().getPlaylistAlbums();
 				case SINGLE:
 					return Config.getInstance().getPlaylistSingles();
 				case COMPILATION:
@@ -69,5 +70,32 @@ public final class BotUtils {
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	/**
+	 * Returns true if at least one of tha arguments equates to null
+	 * 
+	 * @param objects
+	 * @return
+	 */
+	public static boolean anyNotNull(Object... objects) {
+		for (Object o : objects) {
+			if (o == null) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Wait for every given thread to finish and exit
+	 * 
+	 * @param threads
+	 * @throws InterruptedException
+	 */
+	public static void joinAll(Thread... threads) throws InterruptedException {
+		for (Thread t : threads) {
+			t.join();
+		}
 	}
 }

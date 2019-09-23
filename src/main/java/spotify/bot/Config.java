@@ -110,14 +110,14 @@ public class Config {
 
 		// Parse INI File
 		if (!iniFilePath.canRead()) {
-			throw new IOException("Cannot read .ini file!");
+			throw new IOException("Could not read .ini file! Expected location: " + iniFilePath.getAbsolutePath());
 		}
 		this.iniFile = new Wini(iniFilePath);
 
 		// Ensure readability of the database file
 		File dbFilePath = new File(ownLocation, DB_FILE_NAME);
 		if (!dbFilePath.canRead()) {
-			throw new IOException("Cannot read .db file!");
+			throw new IOException("Could not read .db file! Expected location: " + dbFilePath.getAbsolutePath());
 		}
 		this.dbUrl = Constants.DB_URL_PREFIX + dbFilePath.getAbsolutePath();
 

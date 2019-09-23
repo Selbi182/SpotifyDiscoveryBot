@@ -28,8 +28,11 @@ proguard/
 *.iws
 .idea/
 
-#Gradle
+# Gradle
 .gradletasknamecache
 .gradle/
 build/
 bin/
+
+# Spotify Bot
+templates/READY

@@ -12,10 +12,10 @@ jar {
     version = '1.0'
     
     manifest {
-	    attributes(
-	      'Main-Class': 'spotify.Main'
-	    )
-	}
+        attributes(
+          'Main-Class': 'spotify.main.Main'
+        )
+    }
 }
 
 
@@ -30,5 +30,7 @@ dependencies {
     compile 'com.github.thelinmichael:spotify-web-api-java:master-SNAPSHOT'
     compile group:'org.xerial', name:'sqlite-jdbc', version:'3.27.2.1'
     compile group: 'org.ini4j', name: 'ini4j', version: '0.5.4'
-	compile group: 'com.google.guava', name: 'guava', version: '11.0.2'
+    compile group: 'com.google.guava', name: 'guava', version: '11.0.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.1'
 }

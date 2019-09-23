@@ -54,6 +54,7 @@ public class Config {
 	private final CountryCode market;
 	private final int lookbackDays;
 	private final int newNotificationTimeout;
+	private final boolean circularPlaylistFitting;
 	
 	////////////////
 	
@@ -79,11 +80,12 @@ public class Config {
 	private final static String KEY_INTELLIGENT_APPEARS_ON_SEARCH = "intelligentAppearsOnSearch";
 	private final static String KEY_MARKET = "market";
 	private final static String KEY_LOOKBACK_DAYS = "lookbackDays";
+	private final static String KEY_NEW_NOTIFICATION_TIMEOUT = "newNotificationTimeout";
+	private final static String KEY_CIRCULAR_PLAYLIST_FITTING = "circularPlaylistFitting";
 
 	private final static String SECTION_BOT_CONFIG = "BotConfig";
 	private final static String KEY_LOGLEVEL = "logLevel";
 	private final static String KEY_LOG_TO_FILE = "logToFile";
-	private final static String KEY_NEW_NOTIFICATION_TIMEOUT = "newNotificationTimeout";
 
 	/**
 	 * Creates or returns the current (singleton) configuration instance for the Spotify bot
@@ -155,6 +157,7 @@ public class Config {
 		this.market = CountryCode.valueOf(iniFile.get(SECTION_USER_CONFIG, KEY_MARKET));
 		this.lookbackDays = iniFile.get(SECTION_USER_CONFIG, KEY_LOOKBACK_DAYS, int.class);
 		this.newNotificationTimeout = iniFile.get(SECTION_USER_CONFIG, KEY_NEW_NOTIFICATION_TIMEOUT, int.class);
+		this.circularPlaylistFitting = Boolean.valueOf(iniFile.get(SECTION_USER_CONFIG, KEY_CIRCULAR_PLAYLIST_FITTING));
 		
 		// Writable tokens
 		updateTokens(iniFile.get(SECTION_TOKENS, KEY_ACCESS_TOKEN), iniFile.get(SECTION_TOKENS, KEY_REFRESH_TOKEN));
@@ -248,5 +251,9 @@ public class Config {
 
 	public int getNewNotificationTimeout() {
 		return newNotificationTimeout;
+	}
+
+	public boolean isCircularPlaylistFitting() {
+		return circularPlaylistFitting;
 	}
 }

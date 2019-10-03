@@ -1,5 +1,6 @@
 package spotify.main;
 
+import java.io.File;
 import java.util.List;
 
 import com.wrapper.spotify.enums.AlbumType;
@@ -7,6 +8,7 @@ import com.wrapper.spotify.model_objects.specification.Artist;
 
 import spotify.bot.Config;
 import spotify.bot.api.requests.UserInfoRequests;
+import spotify.bot.database.SpotifyBotDatabase;
 import spotify.bot.factory.CrawlThreadFactory;
 import spotify.bot.factory.CrawlThreadFactory.CrawlThreadBuilder;
 import spotify.bot.util.BotUtils;
@@ -14,6 +16,11 @@ import spotify.bot.util.Constants;
 
 public class Main {
 
+	/**
+	 * Own file location to read and write files in the same folder as the JAR
+	 */
+	public final static File OWN_LOCATION = new File(ClassLoader.getSystemClassLoader().getResource(".").getPath()).getAbsoluteFile();
+	
 	/**
 	 * Main entry point of the bot
 	 * 
@@ -42,9 +49,8 @@ public class Main {
 				Config.log().severe("Bot instance didn't finish in time and will forcibly killed!");
 			}
 		} finally {
-			if (Config.getInstance() != null && Config.log() != null) {
-				Config.getInstance().closeLogger();
-			}
+			Config.getInstance().closeLogger();
+			SpotifyBotDatabase.getInstance().closeConnection();
 		}
 	}
 

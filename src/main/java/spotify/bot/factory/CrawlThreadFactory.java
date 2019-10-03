@@ -108,7 +108,7 @@ public class CrawlThreadFactory {
 							// 	  b. Filter out all albums not released in the lookbackDays range (default: 3 days)
 							// 4. Get the songs IDs of the remaining (new) albums using the given crawler
 							List<String> albumIds = AlbumRequests.getAlbumsIdsByArtists(followedArtists, albumType);
-							albumIds = SpotifyBotDatabase.filterNonCachedAlbumsOnly(albumIds);
+							albumIds = SpotifyBotDatabase.getInstance().filterNonCachedAlbumsOnly(albumIds);
 							List<List<TrackSimplified>> newSongs = new ArrayList<>();
 							if (!albumIds.isEmpty()) {
 								List<Album> albums = AlbumRequests.convertAlbumIdsToFullAlbums(albumIds);
@@ -121,7 +121,7 @@ public class CrawlThreadFactory {
 
 							// Store the album IDs to the DB to prevent them from getting added a second time
 							// This happens even if no new songs are added, because it will significantly speed up the future search processes
-							SpotifyBotDatabase.storeAlbumIDsToDB(albumIds);
+							SpotifyBotDatabase.getInstance().storeAlbumIDsToDB(albumIds);
 
 							// Add songs to playlist as very last step to prevent duplication in case of a crash
 							PlaylistRequests.addSongsToPlaylist(newSongs, albumType);

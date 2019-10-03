@@ -1,20 +1,20 @@
 package spotify.bot;
 
-import static spotify.bot.util.Constants.DB_FILE_NAME;
-
 import java.io.File;
 import java.io.IOException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
-import org.ini4j.Wini;
-
 import com.neovisionaries.i18n.CountryCode;
 
+import spotify.bot.database.SpotifyBotDatabase;
 import spotify.bot.util.Constants;
+import spotify.main.Main;
 
 public class Config {
 
@@ -24,32 +24,24 @@ public class Config {
 	/////////////////
 	
 	// Logger
-	private final Logger log;
-
-	// INI
-	private final Wini iniFile;
-
-	// DB
-	private final String dbUrl;
+	private Logger log;
 
 	/////////////////
 	
-	// [Client]
+	// [BotConfig]
 	private final String clientId;
 	private final String clientSecret;
 	private final String callbackUri;
+	private final Level logLevel;
+	private final String logToFile;
 
-	// [Tokens]
+	// [UserConfig]
 	private String accessToken;
 	private String refreshToken;
-	
-	// [Playlists]
 	private final String playlistAlbums;
 	private final String playlistSingles;
 	private final String playlistCompilations;
 	private final String playlistAppearsOn;
-	
-	// [UserConfig]
 	private final boolean intelligentAppearsOnSearch;
 	private final CountryCode market;
 	private final int lookbackDays;
@@ -58,42 +50,14 @@ public class Config {
 	
 	////////////////
 	
-	// INI
-	private final static String INI_FILENAME = "settings.ini";
-
-	private final static String SECTION_CLIENT = "Client";
-	private final static String KEY_CLIENT_ID = "clientId";
-	private final static String KEY_CLIENT_SECRET = "clientSecret";
-	private final static String KEY_CALLBACK_URI = "callbackUri";
-
-	private final static String SECTION_TOKENS = "Tokens";
-	private final static String KEY_ACCESS_TOKEN = "accessToken";
-	private final static String KEY_REFRESH_TOKEN = "refreshToken";
-
-	private final static String SECTION_PLAYLISTS = "Playlists";
-	private final static String KEY_PLAYLIST_ALBUMS = "playlistAlbums";
-	private final static String KEY_PLAYLIST_SINGLES = "playlistSingles";
-	private final static String KEY_PLAYLIST_COMPILATIONS = "playlistCompilations";
-	private final static String KEY_PLAYLIST_APPEARS_ON = "playlistAppearsOn";
-	
-	private final static String SECTION_USER_CONFIG = "UserConfig";
-	private final static String KEY_INTELLIGENT_APPEARS_ON_SEARCH = "intelligentAppearsOnSearch";
-	private final static String KEY_MARKET = "market";
-	private final static String KEY_LOOKBACK_DAYS = "lookbackDays";
-	private final static String KEY_NEW_NOTIFICATION_TIMEOUT = "newNotificationTimeout";
-	private final static String KEY_CIRCULAR_PLAYLIST_FITTING = "circularPlaylistFitting";
-
-	private final static String SECTION_BOT_CONFIG = "BotConfig";
-	private final static String KEY_LOGLEVEL = "logLevel";
-	private final static String KEY_LOG_TO_FILE = "logToFile";
-
 	/**
 	 * Creates or returns the current (singleton) configuration instance for the Spotify bot
 	 * based on the contents of the local INI-file
 	 * 
 	 * @throws IOException
+	 * @throws SQLException 
 	 */
-	public static Config getInstance() throws IOException {
+	public static Config getInstance() throws IOException, SQLException {
 		if (Config.instance == null) {
 			Config.instance = new Config();
 		}
@@ -104,31 +68,41 @@ public class Config {
 	 * Sets up the configuration for the Spotify bot based on the contents of the local INI-file
 	 * 
 	 * @throws IOException
+	 * @throws SQLException 
 	 */
-	private Config() throws IOException {
-		// Set file paths
-		File ownLocation = new File(ClassLoader.getSystemClassLoader().getResource(".").getPath()).getAbsoluteFile();
-		File iniFilePath = new File(ownLocation, INI_FILENAME);
-
-		// Parse INI File
-		if (!iniFilePath.canRead()) {
-			throw new IOException("Could not read .ini file! Expected location: " + iniFilePath.getAbsolutePath());
-		}
-		this.iniFile = new Wini(iniFilePath);
-
-		// Ensure readability of the database file
-		File dbFilePath = new File(ownLocation, DB_FILE_NAME);
-		if (!dbFilePath.canRead()) {
-			throw new IOException("Could not read .db file! Expected location: " + dbFilePath.getAbsolutePath());
-		}
-		this.dbUrl = Constants.DB_URL_PREFIX + dbFilePath.getAbsolutePath();
-
-		// Configure Logger
+	private Config() throws IOException, SQLException {
+		// Read and set config
+		ResultSet botConfig = SpotifyBotDatabase.getInstance().singleRow(Constants.TABLE_BOT_CONFIG);
+		ResultSet userConfig = SpotifyBotDatabase.getInstance().singleRow(Constants.TABLE_USER_CONFIG);
+		
+		// Set bot config
+		clientId = botConfig.getString(Constants.COL_CLIENT_ID);
+		clientSecret = botConfig.getString(Constants.COL_CLIENT_SECRET);
+		callbackUri = botConfig.getString(Constants.COL_CALLBACK_URI);
+		logLevel = Level.parse(botConfig.getString(Constants.COL_LOGLEVEL));
+		logToFile = botConfig.getString(Constants.COL_LOG_TO_FILE);
+		
+		// Create logger
+		createLogger();
+		
+		// Set user config
+		accessToken = userConfig.getString(Constants.COL_ACCESS_TOKEN);
+		refreshToken = userConfig.getString(Constants.COL_REFRESH_TOKEN);
+		playlistAlbums = userConfig.getString(Constants.COL_PLAYLIST_ALBUMS);
+		playlistSingles = userConfig.getString(Constants.COL_PLAYLIST_SINGLES);
+		playlistCompilations = userConfig.getString(Constants.COL_PLAYLIST_COMPILATIONS);
+		playlistAppearsOn = userConfig.getString(Constants.COL_PLAYLIST_APPEARS_ON);
+		intelligentAppearsOnSearch = userConfig.getBoolean(Constants.COL_INTELLIGENT_APPEARS_ON_SEARCH);
+		market = CountryCode.valueOf(userConfig.getString(Constants.COL_MARKET));
+		lookbackDays = userConfig.getInt(Constants.COL_LOOKBACK_DAYS);
+		newNotificationTimeout = userConfig.getInt(Constants.COL_NEW_NOTIFICATION_TIMEOUT);
+		circularPlaylistFitting = userConfig.getBoolean(Constants.COL_CIRCULAR_PLAYLIST_FITTING);
+	}
+	
+	private void createLogger() throws IOException {
 		this.log = Logger.getGlobal();
-		Level l = Level.parse(iniFile.get(SECTION_BOT_CONFIG, KEY_LOGLEVEL));
-		String logToFile = iniFile.get(SECTION_BOT_CONFIG, KEY_LOG_TO_FILE);
 		if (logToFile != null && !logToFile.isEmpty()) {
-			File logFilePath = new File(ownLocation, logToFile);
+			File logFilePath = new File(Main.OWN_LOCATION, logToFile);
 			if (!logFilePath.canRead()) {
 				logFilePath.createNewFile();
 			}
@@ -136,31 +110,10 @@ public class Config {
 			h.setFormatter(new SimpleFormatter());
 			log.addHandler(h);
 		}
-		log.setLevel(l);
+		log.setLevel(logLevel);
 		for (Handler h : log.getHandlers()) {
-			h.setLevel(l);
+			h.setLevel(logLevel);
 		}
-
-		// Set general client data given via the Spotify dashboard
-		this.clientId = iniFile.get(SECTION_CLIENT, KEY_CLIENT_ID);
-		this.clientSecret = iniFile.get(SECTION_CLIENT, KEY_CLIENT_SECRET);
-		this.callbackUri = iniFile.get(SECTION_CLIENT, KEY_CALLBACK_URI);
-
-		// Set playlist IDs
-		this.playlistAlbums = iniFile.get(SECTION_PLAYLISTS, KEY_PLAYLIST_ALBUMS);
-		this.playlistSingles = iniFile.get(SECTION_PLAYLISTS, KEY_PLAYLIST_SINGLES);
-		this.playlistCompilations = iniFile.get(SECTION_PLAYLISTS, KEY_PLAYLIST_COMPILATIONS);
-		this.playlistAppearsOn = iniFile.get(SECTION_PLAYLISTS, KEY_PLAYLIST_APPEARS_ON);
-		
-		// Sert user config
-		this.intelligentAppearsOnSearch = Boolean.valueOf(iniFile.get(SECTION_USER_CONFIG, KEY_INTELLIGENT_APPEARS_ON_SEARCH));
-		this.market = CountryCode.valueOf(iniFile.get(SECTION_USER_CONFIG, KEY_MARKET));
-		this.lookbackDays = iniFile.get(SECTION_USER_CONFIG, KEY_LOOKBACK_DAYS, int.class);
-		this.newNotificationTimeout = iniFile.get(SECTION_USER_CONFIG, KEY_NEW_NOTIFICATION_TIMEOUT, int.class);
-		this.circularPlaylistFitting = Boolean.valueOf(iniFile.get(SECTION_USER_CONFIG, KEY_CIRCULAR_PLAYLIST_FITTING));
-		
-		// Writable tokens
-		updateTokens(iniFile.get(SECTION_TOKENS, KEY_ACCESS_TOKEN), iniFile.get(SECTION_TOKENS, KEY_REFRESH_TOKEN));
 	}
 
 	/**
@@ -170,36 +123,39 @@ public class Config {
 	 * @param accessToken
 	 * @param refreshToken
 	 * @throws IOException
+	 * @throws SQLException 
 	 */
-	public void updateTokens(String accessToken, String refreshToken) throws IOException {
+	public void updateTokens(String accessToken, String refreshToken) throws IOException, SQLException {
 		this.accessToken = accessToken;
 		this.refreshToken = refreshToken;
-
-		iniFile.put(SECTION_TOKENS, KEY_ACCESS_TOKEN, accessToken);
-		iniFile.put(SECTION_TOKENS, KEY_REFRESH_TOKEN, refreshToken);
-		iniFile.store();
+		SpotifyBotDatabase.getInstance().updateColumnInTable(Constants.TABLE_USER_CONFIG, Constants.COL_ACCESS_TOKEN, accessToken);
+		SpotifyBotDatabase.getInstance().updateColumnInTable(Constants.TABLE_USER_CONFIG, Constants.COL_REFRESH_TOKEN, refreshToken);
 	}
 
+	////////////////////
+	
+	/**
+	 * Fetch the current logger instance
+	 * @return
+	 * @throws IOException
+	 * @throws SQLException 
+	 */
+	public static Logger log() throws IOException, SQLException {
+		return Config.getInstance().log;
+	}
+	
 	/**
 	 * Kill all logger handlers before closing the app
 	 */
 	public void closeLogger() {
-		for (Handler h : log.getHandlers()) {
-			h.close();
+		if (log != null) {
+			for (Handler h : log.getHandlers()) {
+				h.close();
+			}			
 		}
 	}
 	
-	public static Logger log() throws IOException {
-		return Config.getInstance().log;
-	}
-
-	public Wini getIniFile() {
-		return iniFile;
-	}
-
-	public String getDbUrl() {
-		return dbUrl;
-	}
+	////////////////////
 
 	public String getClientId() {
 		return clientId;

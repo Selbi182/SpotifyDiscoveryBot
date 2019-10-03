@@ -2,6 +2,7 @@ package spotify.bot.api;
 
 import java.io.IOException;
 import java.net.URI;
+import java.sql.SQLException;
 import java.util.Scanner;
 
 import com.wrapper.spotify.SpotifyApi;
@@ -106,8 +107,9 @@ public class SpotifyApiSessionManager {
 	 * Store the access and refresh tokens in the INI file
 	 * 
 	 * @throws IOException
+	 * @throws SQLException 
 	 */
-	private void updateTokens() throws IOException {
+	private void updateTokens() throws IOException, SQLException {
 		Config.getInstance().updateTokens(spotifyApi().getAccessToken(), spotifyApi().getRefreshToken());
 	}
 }

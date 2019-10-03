@@ -1,6 +1,7 @@
 package spotify.bot.util;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -66,7 +67,7 @@ public final class BotUtils {
 				case APPEARS_ON:
 					return Config.getInstance().getPlaylistAppearsOn();
 			}
-		} catch (IOException e) {
+		} catch (IOException | SQLException e) {
 			e.printStackTrace();
 		}
 		return null;

@@ -24,7 +24,7 @@ public class SpotifyApiRequest {
 	 * @return
 	 * @throws Exception 
 	 */
-	public static <T> T execute(IRequest request) throws Exception {
+	public static <T> T execute(IRequest<T> request) throws Exception {
 		return execute(new Callable<T>() {
 			@Override
 			public T call() throws Exception {

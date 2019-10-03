@@ -76,6 +76,52 @@ public final class BotUtils {
 	}
 	
 	/**
+	 * Returns the stored playlist update timestamp by the given album type
+	 * 
+	 * @param albumType
+	 * @return
+	 * @throws IOException 
+	 */
+	public static Date getPlaylistLastUpdatedByType(AlbumType albumType) {
+		try {
+			switch (albumType) {
+				case ALBUM:
+					return Config.getInstance().getLastUpdatedPlaylistAlbums();
+				case SINGLE:
+					return Config.getInstance().getLastUpdatedPlaylistSingles();
+				case COMPILATION:
+					return Config.getInstance().getLastUpdatedPlaylistCompilations();
+				case APPEARS_ON:
+					return Config.getInstance().getLastUpdatedPlaylistAppearsOn();
+			}
+		} catch (IOException | SQLException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * Returns the stored playlist update timestamp by the given album type
+	 * 
+	 * @param albumType
+	 * @return
+	 * @throws IOException 
+	 */
+	public static String getPlaylistLastUpdatedColumnByType(AlbumType albumType) {
+		switch (albumType) {
+			case ALBUM:
+				return Constants.COL_LAST_UPDATED_PLAYLIST_ALBUMS;
+			case SINGLE:
+				return Constants.COL_LAST_UPDATED_PLAYLIST_SINGLES;
+			case COMPILATION:
+				return Constants.COL_LAST_UPDATED_PLAYLIST_COMPILATIONS;
+			case APPEARS_ON:
+				return Constants.COL_LAST_UPDATED_PLAYLIST_APPEARS_ON;
+		}
+		return null;
+	}
+	
+	/**
 	 * Returns true if at least one of tha arguments equates to null
 	 * 
 	 * @param objects

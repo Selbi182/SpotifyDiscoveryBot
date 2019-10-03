@@ -12,7 +12,9 @@ import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.wrapper.spotify.enums.AlbumType;
+import com.wrapper.spotify.model_objects.miscellaneous.CurrentlyPlaying;
 import com.wrapper.spotify.model_objects.specification.Paging;
+import com.wrapper.spotify.model_objects.specification.PlayHistory;
 import com.wrapper.spotify.model_objects.specification.Playlist;
 import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
@@ -21,6 +23,7 @@ import com.wrapper.spotify.requests.data.playlists.GetPlaylistsTracksRequest;
 import spotify.bot.Config;
 import spotify.bot.api.SpotifyApiRequest;
 import spotify.bot.api.SpotifyApiSessionManager;
+import spotify.bot.database.SpotifyBotDatabase;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.Constants;
 
@@ -31,30 +34,70 @@ public class PlaylistRequests {
 	private PlaylistRequests() {}
 	
 	/**
-	 * Timestamp the playlist's description (and, if set, the title) with the last time the crawling process was initiated.
+	 * Timestamp the playlist's description with the last time the crawling process was initiated. Also places a [NEW] indicator where sensible.
 	 * 
 	 * @param playlistId
+	 * @param albumType 
+	 * @param
 	 * @throws Exception 
 	 */
-	public static void timestampPlaylist(String playlistId) throws Exception {
-		Calendar cal = Calendar.getInstance();
+	public static void timestampPlaylist(AlbumType albumType, boolean newAdditions) throws Exception {
+		String playlistId = BotUtils.getPlaylistIdByType(albumType);
 		
+		// Set/unset the [NEW] indicator, depending on timeouts and whether new songs were added
 		Playlist p = SpotifyApiRequest.execute(SpotifyApiSessionManager.api().getPlaylist(playlistId).build());
-		String playlistName = p.getName().replace(Constants.NEW_INDICATOR_TEXT, "").trim();
-		PlaylistTrack[] playlistTracks = p.getTracks().getItems();
-		if (playlistTracks.length > 0) {
-			Date mostRecentAdditionDate = playlistTracks[0].getAddedAt();
-			Calendar calOld = Calendar.getInstance();
-			calOld.setTime(mostRecentAdditionDate);
-			calOld.add(Calendar.HOUR_OF_DAY, Config.getInstance().getNewNotificationTimeout());
-			if (cal.before(calOld)) {
+		String playlistName = p.getName();
+		if (newAdditions) {
+			if (!playlistName.contains(Constants.NEW_INDICATOR_TEXT)) {
 				playlistName = String.format("%s %s", playlistName, Constants.NEW_INDICATOR_TEXT);
+				SpotifyBotDatabase.getInstance().updateTimestamp(BotUtils.getPlaylistLastUpdatedColumnByType(albumType));
 			}
-		}
+		} else {
+			if (playlistName.contains(Constants.NEW_INDICATOR_TEXT)) {
+				if (!isNewIndicatorPrevailing(playlistId, albumType)) {
+					playlistName = p.getName().replaceFirst(Constants.NEW_INDICATOR_TEXT, "").trim();
+					SpotifyBotDatabase.getInstance().unsetTimestamp(BotUtils.getPlaylistLastUpdatedColumnByType(albumType));
+				}
+			}		
+		}		
 		
+		// Assemble the new playlist description
+		Calendar cal = Calendar.getInstance();
 		String newDescription = String.format("Last Search: %s", Constants.DESCRIPTION_TIMESTAMP_FORMAT.format(cal.getTime()));
 		
+		// Overwrite the old playlist texts
 		SpotifyApiRequest.execute(SpotifyApiSessionManager.api().changePlaylistsDetails(playlistId).name(playlistName).description(newDescription).build());			
+	}
+	
+	private static boolean isNewIndicatorPrevailing(String playlistId, AlbumType albumType) throws IOException, Exception {
+		Date lastUpdated = BotUtils.getPlaylistLastUpdatedByType(albumType);
+		
+		// Indicator is already unset
+		if (lastUpdated == null) {
+			return false;
+		}
+		
+		// Fallback timeout after 18 hours
+		int newNotificationTimeout = Config.getInstance().getNewNotificationTimeout();
+		if (!BotUtils.isTimeoutActive(lastUpdated, newNotificationTimeout)) {
+			return false;
+		}
+		
+		// If the currently played song is in the context of the discovery playlist
+		CurrentlyPlaying currentlyPlaying = SpotifyApiRequest.execute(SpotifyApiSessionManager.api().getUsersCurrentlyPlayingTrack().build());
+		if (currentlyPlaying != null && currentlyPlaying.getContext().getUri().contains(playlistId)) {
+			return false;
+		}
+		
+		// Last resort, check up to 50 of the most recently played songs that were played after the playlist was updated and check if any of them is in in the playlist's context
+		// (This should happen super rarely)
+		PlayHistory[] playHistory = SpotifyApiRequest.execute(SpotifyApiSessionManager.api().getCurrentUsersRecentlyPlayedTracks().limit(Constants.DEFAULT_LIMIT).after(lastUpdated).build()).getItems();
+		for (PlayHistory ph : playHistory) {
+			if (ph.getPlayedAt().after(lastUpdated) && ph.getContext().getUri().contains(playlistId)) {
+				return false;
+			}
+		}
+		return true;
 	}
 	
 	/**
@@ -66,6 +109,7 @@ public class PlaylistRequests {
 	 */
 	public static void addSongsToPlaylist(List<List<TrackSimplified>> newSongs, AlbumType albumType) throws Exception {
 		String playlistId = BotUtils.getPlaylistIdByType(albumType);
+		int songsAdded = 0;
 		if (!newSongs.isEmpty()) {
 			Playlist p = SpotifyApiRequest.execute(SpotifyApiSessionManager.api().getPlaylist(playlistId).build());
 			final int currentPlaylistCount = p.getTracks().getTotal();
@@ -78,7 +122,6 @@ public class PlaylistRequests {
 				deleteSongsFromBottomOnLimit(playlistId, currentPlaylistCount, songsToAddCount);
 			}
 			
-			int songsAdded = 0;
 			for (List<TrackSimplified> songsInAlbum : newSongs) {
 				for (List<TrackSimplified> partition : Lists.partition(songsInAlbum, Constants.PLAYLIST_ADD_LIMIT)) {
 					JsonArray json = new JsonArray();
@@ -93,7 +136,7 @@ public class PlaylistRequests {
 				Config.log().info("> " + songsAdded + " new " + albumType.toString() + " song" + (songsAdded == 1 ? "" : "s") + " added!");
 			}
 		}
-		timestampPlaylist(playlistId);
+		timestampPlaylist(albumType, songsAdded > 0);
 	}
 	
 	/**

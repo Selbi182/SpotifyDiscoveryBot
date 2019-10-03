@@ -1,6 +1,7 @@
 package spotify.main;
 
 import java.io.File;
+import java.util.Calendar;
 import java.util.List;
 
 import com.wrapper.spotify.enums.AlbumType;
@@ -60,9 +61,10 @@ public class Main {
 		@Override
 		public void run() {
 			try {
-				// Set up config and database instances
+				// Set up heavy instances from the get-go (mostly to make debugging easier)
 				Config.getInstance();
 				SpotifyBotDatabase.getInstance();
+				Calendar.getInstance();
 				
 				// Fetch all followed artists of the user
 				final List<String> followedArtists = UserInfoRequests.getFollowedArtistsIds();

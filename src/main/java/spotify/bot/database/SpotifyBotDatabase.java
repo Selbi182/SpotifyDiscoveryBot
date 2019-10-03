@@ -167,4 +167,15 @@ public class SpotifyBotDatabase {
 		Statement statement = connection.createStatement();
 		statement.executeUpdate(String.format("UPDATE %s SET %s = strftime('%%s', 'now') * 1000;", Constants.TABLE_TIMESTAMP_STORE, column));
 	}
+	
+	/**
+	 * Unset the given timestamp column to the current date
+	 * 
+	 * @param column
+	 * @throws SQLException
+	 */
+	public synchronized void unsetTimestamp(String column) throws SQLException {
+		Statement statement = connection.createStatement();
+		statement.executeUpdate(String.format("UPDATE %s SET %s = null;", Constants.TABLE_TIMESTAMP_STORE, column));
+	}
 }

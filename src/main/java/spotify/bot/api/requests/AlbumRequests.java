@@ -10,7 +10,6 @@ import com.google.common.collect.Lists;
 import com.wrapper.spotify.enums.AlbumType;
 import com.wrapper.spotify.model_objects.specification.Album;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
-import com.wrapper.spotify.model_objects.specification.Artist;
 import com.wrapper.spotify.model_objects.specification.Paging;
 import com.wrapper.spotify.requests.data.artists.GetArtistsAlbumsRequest;
 
@@ -32,16 +31,16 @@ public class AlbumRequests {
 	 * @return
 	 * @throws Exception 
 	 */
-	public static List<String> getAlbumsIdsByArtists(List<Artist> artists, AlbumType albumType) throws Exception {
+	public static List<String> getAlbumsIdsByArtists(List<String> artists, AlbumType albumType) throws Exception {
 		List<String> ids = new ArrayList<>();
-		for (Artist a : artists) {
+		for (String a : artists) {
 			List<String> albumsIdsOfCurrentArtist = SpotifyApiRequest.execute(new Callable<List<String>>() {
 				@Override
 				public List<String> call() throws Exception {
 					List<AlbumSimplified> albumsOfCurrentArtist = new ArrayList<>();
 					Paging<AlbumSimplified> albums = null;
 					do {
-						GetArtistsAlbumsRequest.Builder request = SpotifyApiSessionManager.api().getArtistsAlbums(a.getId())
+						GetArtistsAlbumsRequest.Builder request = SpotifyApiSessionManager.api().getArtistsAlbums(a)
 							.market(Config.getInstance().getMarket())
 							.limit(Constants.DEFAULT_LIMIT)
 							.album_type(albumType.getType());

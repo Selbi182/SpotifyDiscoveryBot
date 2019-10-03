@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Date;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -34,6 +35,8 @@ public class Config {
 	private final String callbackUri;
 	private final Level logLevel;
 	private final String logToFile;
+	private final int newNotificationTimeout;
+	private final int artistCacheTimeout;
 
 	// [UserConfig]
 	private String accessToken;
@@ -45,8 +48,14 @@ public class Config {
 	private final boolean intelligentAppearsOnSearch;
 	private final CountryCode market;
 	private final int lookbackDays;
-	private final int newNotificationTimeout;
 	private final boolean circularPlaylistFitting;
+	
+	// [TimestampStore]
+	private Date lastUpdatedPlaylistAlbums;
+	private Date lastUpdatedPlaylistSingles;
+	private Date lastUpdatedPlaylistCompilations;
+	private Date lastUpdatedPlaylistAppearsOn;
+	private Date lastUpdatedArtistCache;
 	
 	////////////////
 	
@@ -74,6 +83,7 @@ public class Config {
 		// Read and set config
 		ResultSet botConfig = SpotifyBotDatabase.getInstance().singleRow(Constants.TABLE_BOT_CONFIG);
 		ResultSet userConfig = SpotifyBotDatabase.getInstance().singleRow(Constants.TABLE_USER_CONFIG);
+		ResultSet timestampStore = SpotifyBotDatabase.getInstance().singleRow(Constants.TABLE_TIMESTAMP_STORE);
 		
 		// Set bot config
 		clientId = botConfig.getString(Constants.COL_CLIENT_ID);
@@ -81,6 +91,8 @@ public class Config {
 		callbackUri = botConfig.getString(Constants.COL_CALLBACK_URI);
 		logLevel = Level.parse(botConfig.getString(Constants.COL_LOGLEVEL));
 		logToFile = botConfig.getString(Constants.COL_LOG_TO_FILE);
+		newNotificationTimeout = botConfig.getInt(Constants.COL_NEW_NOTIFICATION_TIMEOUT);
+		artistCacheTimeout = botConfig.getInt(Constants.COL_ARTIST_CACHE_TIMEOUT);
 		
 		// Create logger
 		createLogger();
@@ -95,8 +107,14 @@ public class Config {
 		intelligentAppearsOnSearch = userConfig.getBoolean(Constants.COL_INTELLIGENT_APPEARS_ON_SEARCH);
 		market = CountryCode.valueOf(userConfig.getString(Constants.COL_MARKET));
 		lookbackDays = userConfig.getInt(Constants.COL_LOOKBACK_DAYS);
-		newNotificationTimeout = userConfig.getInt(Constants.COL_NEW_NOTIFICATION_TIMEOUT);
 		circularPlaylistFitting = userConfig.getBoolean(Constants.COL_CIRCULAR_PLAYLIST_FITTING);
+		
+		// Set timestamps
+		lastUpdatedPlaylistAlbums = timestampStore.getDate(Constants.COL_LAST_UPDATED_PLAYLIST_ALBUMS);
+		lastUpdatedPlaylistSingles = timestampStore.getDate(Constants.COL_LAST_UPDATED_PLAYLIST_SINGLES);
+		lastUpdatedPlaylistCompilations = timestampStore.getDate(Constants.COL_LAST_UPDATED_PLAYLIST_COMPILATIONS);
+		lastUpdatedPlaylistAppearsOn = timestampStore.getDate(Constants.COL_LAST_UPDATED_PLAYLIST_APPEARS_ON);
+		lastUpdatedArtistCache = timestampStore.getTimestamp(Constants.COL_LAST_UPDATED_ARTIST_CACHE);
 	}
 	
 	private void createLogger() throws IOException {
@@ -211,5 +229,49 @@ public class Config {
 
 	public boolean isCircularPlaylistFitting() {
 		return circularPlaylistFitting;
+	}
+
+	public int getArtistCacheTimeout() {
+		return artistCacheTimeout;
+	}
+	
+	public Date getLastUpdatedPlaylistAlbums() {
+		return lastUpdatedPlaylistAlbums;
+	}
+
+	public void setLastUpdatedPlaylistAlbums(Date lastUpdatedPlaylistAlbums) {
+		this.lastUpdatedPlaylistAlbums = lastUpdatedPlaylistAlbums;
+	}
+
+	public Date getLastUpdatedPlaylistSingles() {
+		return lastUpdatedPlaylistSingles;
+	}
+
+	public void setLastUpdatedPlaylistSingles(Date lastUpdatedPlaylistSingles) {
+		this.lastUpdatedPlaylistSingles = lastUpdatedPlaylistSingles;
+	}
+
+	public Date getLastUpdatedPlaylistCompilations() {
+		return lastUpdatedPlaylistCompilations;
+	}
+
+	public void setLastUpdatedPlaylistCompilations(Date lastUpdatedPlaylistCompilations) {
+		this.lastUpdatedPlaylistCompilations = lastUpdatedPlaylistCompilations;
+	}
+
+	public Date getLastUpdatedPlaylistAppearsOn() {
+		return lastUpdatedPlaylistAppearsOn;
+	}
+
+	public void setLastUpdatedPlaylistAppearsOn(Date lastUpdatedPlaylistAppearsOn) {
+		this.lastUpdatedPlaylistAppearsOn = lastUpdatedPlaylistAppearsOn;
+	}
+
+	public Date getLastUpdatedArtistCache() {
+		return lastUpdatedArtistCache;
+	}
+
+	public void setLastUpdatedArtistCache(Date lastUpdatedArtistCache) {
+		this.lastUpdatedArtistCache = lastUpdatedArtistCache;
 	}
 }

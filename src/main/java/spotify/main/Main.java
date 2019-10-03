@@ -4,7 +4,6 @@ import java.io.File;
 import java.util.List;
 
 import com.wrapper.spotify.enums.AlbumType;
-import com.wrapper.spotify.model_objects.specification.Artist;
 
 import spotify.bot.Config;
 import spotify.bot.api.requests.UserInfoRequests;
@@ -61,8 +60,12 @@ public class Main {
 		@Override
 		public void run() {
 			try {
+				// Set up config and database instances
+				Config.getInstance();
+				SpotifyBotDatabase.getInstance();
+				
 				// Fetch all followed artists of the user
-				final List<Artist> followedArtists = UserInfoRequests.getFollowedArtists();
+				final List<String> followedArtists = UserInfoRequests.getFollowedArtistsIds();
 
 				// Set up the crawl threads and run them
 				Thread tAlbum = CrawlThreadFactory.crawlThread(followedArtists, AlbumType.ALBUM).buildAndStart();

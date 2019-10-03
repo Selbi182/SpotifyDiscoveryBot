@@ -10,6 +10,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -19,9 +20,10 @@ import spotify.main.Main;
 
 public class SpotifyBotDatabase {
 
-	private final static String SINGLE_SELECT_MASK = "SELECT * FROM %s LIMIT 1;";
-	private final static String SELECT_QUERY_MASK = "SELECT %s FROM %s";
+	private final static String SINGLE_SELECT_QUERY_MASK = "SELECT * FROM %s LIMIT 1;";
+	private final static String FULL_SELECT_QUERY_MASK = "SELECT * FROM %s";
 	private final static String INSERT_QUERY_MASK = "INSERT INTO %s(%s) VALUES('%s')";
+	private final static String DELETE_QUERY_MASK = "DELETE FROM %s WHERE %s = '%s'";
 
 	private static SpotifyBotDatabase instance;
 	
@@ -72,10 +74,23 @@ public class SpotifyBotDatabase {
 	 */
 	public ResultSet singleRow(String tableName) throws SQLException, IOException {
 		Statement statement = connection.createStatement();
-		ResultSet rs = statement.executeQuery(String.format(SINGLE_SELECT_MASK, tableName));
+		ResultSet rs = statement.executeQuery(String.format(SINGLE_SELECT_QUERY_MASK, tableName));
 		if (!rs.next()) {
 			throw new SQLException("Table " + tableName + " not found or empty!");
 		}
+		return rs;
+	}
+	
+	/**
+	 * Fetch an entire table result set
+	 * 
+	 * @param tableName
+	 * @return
+	 * @throws SQLException 
+	 */
+	public ResultSet fullTable(String tableName) throws SQLException {
+		Statement statement = connection.createStatement();
+		ResultSet rs = statement.executeQuery(String.format(FULL_SELECT_QUERY_MASK, tableName));
 		return rs;
 	}
 	
@@ -87,9 +102,8 @@ public class SpotifyBotDatabase {
 	 * @throws SQLException 
 	 */
 	public List<String> filterNonCachedAlbumsOnly(List<String> allAlbums) throws IOException, SQLException {
+		ResultSet rs = fullTable(Constants.TABLE_ALBUM_CACHE);
 		Set<String> filteredAlbums = new HashSet<>(allAlbums);
-		Statement statement = connection.createStatement();
-		ResultSet rs = statement.executeQuery(String.format(SELECT_QUERY_MASK, Constants.COL_ALBUM_IDS, Constants.TABLE_ALBUM_CACHE));
 		while (rs.next()) {
 			filteredAlbums.remove(rs.getString(Constants.COL_ALBUM_IDS));
 		}
@@ -97,22 +111,60 @@ public class SpotifyBotDatabase {
 	}
 
 	/**
-	 * Store the list of album IDs in the database to prevent them from getting added again
+	 * Update every given column's value in the given table by a new value
 	 * 
-	 * @param albumIDs
-	 * @throws SQLException 
+	 * @param table
+	 * @param column
+	 * @param newValue
+	 * @throws SQLException
 	 */
-	public synchronized void storeAlbumIDsToDB(List<String> albumIDs) throws IOException, SQLException {
-		if (!albumIDs.isEmpty()) {
+	public synchronized void updateColumnInTable(String table, String column, String newValue) throws SQLException {
+		Statement statement = connection.createStatement();
+		statement.executeUpdate(String.format("UPDATE %s SET %s = '%s';", table, column, newValue));
+	}
+
+	/**
+	 * Adds all given strings to the specified table's specified column
+	 * 
+	 * @param stringsToAdd
+	 * @param table
+	 * @param column
+	 * @throws SQLException
+	 */
+	public synchronized void storeStringsToTableColumn(Collection<String> stringsToAdd, String table, String column) throws SQLException {
+		if (table != null && column != null && stringsToAdd != null && !stringsToAdd.isEmpty()) {
 			Statement statement = connection.createStatement();
-			for (String s : albumIDs) {
-				statement.executeUpdate(String.format(INSERT_QUERY_MASK, Constants.TABLE_ALBUM_CACHE, Constants.COL_ALBUM_IDS, s));
+			for (String s : stringsToAdd) {
+				statement.executeUpdate(String.format(INSERT_QUERY_MASK, table, column, s));
 			}
 		}
 	}
 
-	public synchronized void updateColumnInTable(String table, String column, String newValue) throws SQLException {
+	/**
+	 * Removes all given strings from the specified table's specified column
+	 * 
+	 * @param stringsToRemove
+	 * @param table
+	 * @param column
+	 * @throws SQLException
+	 */
+	public synchronized void removeStringsFromTableColumn(Collection<String> stringsToRemove, String table, String column) throws SQLException {
+		if (table != null && column != null && stringsToRemove != null && !stringsToRemove.isEmpty()) {
+			Statement statement = connection.createStatement();
+			for (String s : stringsToRemove) {
+				statement.execute(String.format(DELETE_QUERY_MASK, table, column, s));
+			}
+		}
+	}
+
+	/**
+	 * Set the given timestamp column to the current date
+	 * 
+	 * @param column
+	 * @throws SQLException
+	 */
+	public synchronized void updateTimestamp(String column) throws SQLException {
 		Statement statement = connection.createStatement();
-		statement.executeUpdate(String.format("UPDATE %s SET %s = '%s';", table, column, newValue));
+		statement.executeUpdate(String.format("UPDATE %s SET %s = strftime('%%s', 'now') * 1000;", Constants.TABLE_TIMESTAMP_STORE, column));
 	}
 }

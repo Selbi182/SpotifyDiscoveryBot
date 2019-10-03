@@ -2,8 +2,10 @@ package spotify.bot.util;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 
 import com.wrapper.spotify.enums.AlbumType;
@@ -98,5 +100,19 @@ public final class BotUtils {
 		for (Thread t : threads) {
 			t.join();
 		}
+	}
+
+	/**
+	 * Check if the given old date is still within the allowed timeout threshold in hours
+	 * 
+	 * @param oldDate
+	 * @param timeout
+	 */
+	public static boolean isTimeoutActive(Date oldDate, int timeout) {
+		Calendar calCurrent = Calendar.getInstance();
+		Calendar calOld = Calendar.getInstance();
+		calOld.setTime(oldDate);
+		calOld.add(Calendar.HOUR_OF_DAY, timeout);
+		return calCurrent.before(calOld);
 	}
 }

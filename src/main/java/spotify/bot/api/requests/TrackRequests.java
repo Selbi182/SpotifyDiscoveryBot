@@ -9,7 +9,6 @@ import java.util.concurrent.Callable;
 
 import com.wrapper.spotify.enums.AlbumType;
 import com.wrapper.spotify.model_objects.specification.Album;
-import com.wrapper.spotify.model_objects.specification.Artist;
 import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
 import com.wrapper.spotify.model_objects.specification.Paging;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
@@ -69,7 +68,7 @@ public class TrackRequests {
 	 * @return
 	 * @throws Exception
 	 */
-	public static List<List<TrackSimplified>> findFollowedArtistsSongsOnAlbums(List<Album> newAlbums, List<Artist> followedArtists) {
+	public static List<List<TrackSimplified>> findFollowedArtistsSongsOnAlbums(List<Album> newAlbums, List<String> followedArtists) {
 		try {
 			List<List<TrackSimplified>> selectedSongsByAlbum = new ArrayList<>();
 			List<Album> newAlbumsWithoutCompilations = new ArrayList<>();
@@ -88,8 +87,8 @@ public class TrackRequests {
 				}
 			}
 			Set<String> followedArtistsIds = new HashSet<>();
-			for (Artist a : followedArtists) {
-				followedArtistsIds.add(a.getId());
+			for (String a : followedArtists) {
+				followedArtistsIds.add(a);
 			}
 			List<List<TrackSimplified>> newSongs = getSongIdsByAlbums(newAlbumsWithoutCompilations);
 			for (List<TrackSimplified> songsInAlbum : newSongs) {

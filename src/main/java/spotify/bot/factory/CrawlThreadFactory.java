@@ -6,7 +6,6 @@ import java.util.function.BiFunction;
 
 import com.wrapper.spotify.enums.AlbumType;
 import com.wrapper.spotify.model_objects.specification.Album;
-import com.wrapper.spotify.model_objects.specification.Artist;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
 import spotify.bot.Config;
@@ -16,6 +15,7 @@ import spotify.bot.api.requests.PlaylistRequests;
 import spotify.bot.api.requests.TrackRequests;
 import spotify.bot.database.SpotifyBotDatabase;
 import spotify.bot.util.BotUtils;
+import spotify.bot.util.Constants;
 
 public class CrawlThreadFactory {
 	private static CrawlThreadFactory factory;
@@ -36,8 +36,8 @@ public class CrawlThreadFactory {
 	
 	/////////////////////
 	
-	public final static BiFunction<List<Album>, List<Artist>, List<List<TrackSimplified>>> GENERIC_CRAWLER = (albums, artists) -> TrackRequests.getSongIdsByAlbums(albums);
-	public final static BiFunction<List<Album>, List<Artist>, List<List<TrackSimplified>>> INTELLIGENT_SEARCH_CRAWLER = (albums, artists) -> TrackRequests.findFollowedArtistsSongsOnAlbums(albums, artists);
+	public final static BiFunction<List<Album>, List<String>, List<List<TrackSimplified>>> GENERIC_CRAWLER = (albums, artists) -> TrackRequests.getSongIdsByAlbums(albums);
+	public final static BiFunction<List<Album>, List<String>, List<List<TrackSimplified>>> INTELLIGENT_SEARCH_CRAWLER = (albums, artists) -> TrackRequests.findFollowedArtistsSongsOnAlbums(albums, artists);
 	
 	/**
 	 * Create a Thread for the most common crawl operations
@@ -47,7 +47,7 @@ public class CrawlThreadFactory {
 	 * @param albumType
 	 * @return
 	 */
-	public static CrawlThreadBuilder crawlThread(List<Artist> followedArtists, AlbumType albumType) {
+	public static CrawlThreadBuilder crawlThread(List<String> followedArtists, AlbumType albumType) {
 		CrawlThreadBuilder builder = new CrawlThreadBuilder();
 		builder.setFollowedArtists(followedArtists);
 		builder.setAlbumType(albumType);
@@ -63,7 +63,7 @@ public class CrawlThreadFactory {
 	 * @param crawler
 	 * @return
 	 */
-	public static CrawlThreadBuilder customCrawlThread(List<Artist> followedArtists, AlbumType albumType, BiFunction<List<Album>, List<Artist>, List<List<TrackSimplified>>> crawler) {
+	public static CrawlThreadBuilder customCrawlThread(List<String> followedArtists, AlbumType albumType, BiFunction<List<Album>, List<String>, List<List<TrackSimplified>>> crawler) {
 		CrawlThreadBuilder builder = new CrawlThreadBuilder();
 		builder.setFollowedArtists(followedArtists);
 		builder.setAlbumType(albumType);
@@ -75,9 +75,9 @@ public class CrawlThreadFactory {
 	 * Private class to streamline crawl thread building
 	 */
 	public static class CrawlThreadBuilder {
-		private List<Artist> followedArtists;
+		private List<String> followedArtists;
 		private AlbumType albumType;
-		private BiFunction<List<Album>, List<Artist>, List<List<TrackSimplified>>> crawler;
+		private BiFunction<List<Album>, List<String>, List<List<TrackSimplified>>> crawler;
 
 		private CrawlThreadBuilder() {}
 
@@ -121,8 +121,8 @@ public class CrawlThreadFactory {
 
 							// Store the album IDs to the DB to prevent them from getting added a second time
 							// This happens even if no new songs are added, because it will significantly speed up the future search processes
-							SpotifyBotDatabase.getInstance().storeAlbumIDsToDB(albumIds);
-
+							SpotifyBotDatabase.getInstance().storeStringsToTableColumn(albumIds, Constants.TABLE_ALBUM_CACHE, Constants.COL_ALBUM_IDS);
+							
 							// Add songs to playlist as very last step to prevent duplication in case of a crash
 							PlaylistRequests.addSongsToPlaylist(newSongs, albumType);
 						} catch (Exception e) {
@@ -133,7 +133,7 @@ public class CrawlThreadFactory {
 			};
 		}
 
-		public void setFollowedArtists(List<Artist> followedArtists) {
+		public void setFollowedArtists(List<String> followedArtists) {
 			this.followedArtists = followedArtists;
 		}
 
@@ -141,7 +141,7 @@ public class CrawlThreadFactory {
 			this.albumType = albumType;
 		}
 
-		public void setCrawler(BiFunction<List<Album>, List<Artist>, List<List<TrackSimplified>>> crawler) {
+		public void setCrawler(BiFunction<List<Album>, List<String>, List<List<TrackSimplified>>> crawler) {
 			this.crawler = crawler;
 		}
 	}

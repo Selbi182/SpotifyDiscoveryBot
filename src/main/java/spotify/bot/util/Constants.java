@@ -21,12 +21,17 @@ public final class Constants {
 	public final static String TABLE_ALBUM_CACHE = "album_cache";
 	public final static String COL_ALBUM_IDS = "album_id";
 	
+	public final static String TABLE_ARTIST_CACHE = "artist_cache";
+	public final static String COL_ARTIST_IDS = "artist_id";
+	
 	public final static String TABLE_BOT_CONFIG = "bot_config";
 	public final static String COL_CLIENT_ID = "client_id";
 	public final static String COL_CLIENT_SECRET = "client_secret";
 	public final static String COL_CALLBACK_URI = "callback_uri";
     public final static String COL_LOGLEVEL = "log_level";
     public final static String COL_LOG_TO_FILE = "log_to_file";
+    public final static String COL_NEW_NOTIFICATION_TIMEOUT = "new_notification_timeout";
+    public static final String COL_ARTIST_CACHE_TIMEOUT = "artist_cache_timeout";
     
     public final static String TABLE_USER_CONFIG = "user_config";
     public final static String COL_ACCESS_TOKEN = "access_token";
@@ -38,10 +43,16 @@ public final class Constants {
     public final static String COL_INTELLIGENT_APPEARS_ON_SEARCH = "intelligent_appears_on_search";
     public final static String COL_MARKET = "market";
     public final static String COL_LOOKBACK_DAYS = "lookback_days";
-    public final static String COL_NEW_NOTIFICATION_TIMEOUT = "new_notification_timeout";
     public final static String COL_CIRCULAR_PLAYLIST_FITTING = "circular_playlist_fitting";
 
-	// Spotify
+    public static final String TABLE_TIMESTAMP_STORE = "timestamp_store";
+    public static final String COL_LAST_UPDATED_PLAYLIST_ALBUMS = "last_updated_playlist_albums";
+    public static final String COL_LAST_UPDATED_PLAYLIST_SINGLES = "last_updated_playlist_singles";
+    public static final String COL_LAST_UPDATED_PLAYLIST_COMPILATIONS = "last_updated_playlist_compilations";
+    public static final String COL_LAST_UPDATED_PLAYLIST_APPEARS_ON = "last_updated_playlist_appears_on";
+    public static final String COL_LAST_UPDATED_ARTIST_CACHE = "last_updated_artist_cache";
+    
+    // Spotify
 	public final static String SCOPES = "user-follow-read playlist-modify-private";
 	public final static String TRACK_PREFIX = "spotify:track:";
 	public final static int DEFAULT_LIMIT = 50;

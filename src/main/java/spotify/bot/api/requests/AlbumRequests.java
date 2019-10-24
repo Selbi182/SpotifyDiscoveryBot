@@ -34,7 +34,7 @@ public class AlbumRequests {
 	 */
 	public static List<String> getAlbumsIdsByArtists(List<String> artists, List<AlbumType> albumTypes) throws Exception {
 		StringJoiner albumTypesAsString = new StringJoiner(",");
-		albumTypes.parallelStream().forEach(at -> albumTypesAsString.add(at.getType()));
+		albumTypes.stream().forEach(at -> albumTypesAsString.add(at.getType()));
 		List<String> ids = new ArrayList<>();
 		artists.parallelStream().forEach((a) -> {
 			List<String> albumsIdsOfCurrentArtist = getAlbumIdsOfSingleArtist(a, albumTypesAsString.toString());

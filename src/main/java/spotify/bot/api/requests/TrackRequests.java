@@ -104,12 +104,12 @@ public class TrackRequests {
 	 * @throws Exception
 	 */
 	public static Map<AlbumType, List<List<TrackSimplified>>> intelligentAppearsOnSearch(List<Album> newAlbums, Set<String> followedArtists) {
-		List<Album> newAlbumCandidates = newAlbums.parallelStream().filter((a) -> !BotUtils.isCollectionOrSampler(a)).collect(Collectors.toList()); 
-		newAlbumCandidates = newAlbumCandidates.parallelStream().filter(a -> !BotUtils.containsFeaturedArtist(followedArtists, a.getArtists())).collect(Collectors.toList());
+		List<Album> newAlbumCandidates = newAlbums.stream().filter((a) -> !BotUtils.isCollectionOrSampler(a)).collect(Collectors.toList()); 
+		newAlbumCandidates = newAlbumCandidates.stream().filter(a -> !BotUtils.containsFeaturedArtist(followedArtists, a.getArtists())).collect(Collectors.toList());
 		List<List<TrackSimplified>> songsByAlbums = getSongIdsByAlbums(newAlbumCandidates);
 		List<List<TrackSimplified>> filteredTracks = new ArrayList<>();
 		songsByAlbums.parallelStream().forEach(songsOfAlbum -> {
-			List<TrackSimplified> selectedSongs = songsOfAlbum.parallelStream()
+			List<TrackSimplified> selectedSongs = songsOfAlbum.stream()
 				.filter(song -> BotUtils.containsFeaturedArtist(followedArtists, song.getArtists()))
 				.collect(Collectors.toList());
 			filteredTracks.add(selectedSongs);

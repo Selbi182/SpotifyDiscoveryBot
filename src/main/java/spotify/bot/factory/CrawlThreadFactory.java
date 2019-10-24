@@ -1,6 +1,7 @@
 package spotify.bot.factory;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -118,24 +119,25 @@ public class CrawlThreadFactory {
 				
 				private void runCrawler() throws Exception {
 					BotUtils.removeUnsetAlbumTypes(albumTypes);
-					PlaylistRequests.timestampPlaylists(albumTypes);
 
 					List<String> albumIds = AlbumRequests.getAlbumsIdsByArtists(followedArtists, albumTypes);
 					albumIds = SpotifyBotDatabase.getInstance().filterNonCachedAlbumsOnly(albumIds);
 				
+					Map<AlbumType, List<List<TrackSimplified>>> newSongs = Collections.emptyMap();
 					if (!albumIds.isEmpty()) {
 						List<Album> albums = AlbumRequests.convertAlbumIdsToFullAlbums(albumIds);
 						albums = OfflineRequests.filterNewAlbumsOnly(albums, Config.getInstance().getLookbackDays());
 						if (!albums.isEmpty()) {
 							BotUtils.sortAlbums(albums);
 							Map<AlbumType, List<Album>> albumsByAlbumType = OfflineRequests.categorizeAlbumsByAlbumType(albums);
-							Map<AlbumType, List<List<TrackSimplified>>> newSongs = getNewSongsByCrawlType(albumsByAlbumType, followedArtists);
-							newSongs.keySet().parallelStream().forEach(at -> {
-								PlaylistRequests.addSongsToPlaylist(newSongs.get(at), at);
+							newSongs = getNewSongsByCrawlType(albumsByAlbumType, followedArtists);
+							newSongs.entrySet().parallelStream().forEach(entry -> {
+								PlaylistRequests.addSongsToPlaylist(entry.getValue(), entry.getKey());								
 							});									
 						}
 					}
-
+					
+					PlaylistRequests.timestampPlaylistsAndSetNotifiers(albumTypes, newSongs.size() > 0);					
 					SpotifyBotDatabase.getInstance().storeStringsToTableColumn(albumIds, Constants.TABLE_ALBUM_CACHE, Constants.COL_ALBUM_IDS);
 				}
 			};

@@ -36,49 +36,40 @@ public class PlaylistRequests {
 	/**
 	 * Timestamp the playlist's description with the last time the crawling process was initiated
 	 * 
-	 * @param playlistId
 	 * @param albumType
+	 * @param forceNotifier
 	 * @throws Exception 
 	 */
-	public static void timestampPlaylists(List<AlbumType> albumTypes) throws Exception {
+	public static void timestampPlaylistsAndSetNotifiers(List<AlbumType> albumTypes, boolean forceNotifier) throws Exception {
 		albumTypes.parallelStream().forEach(at -> {
-			String playlistId = BotUtils.getPlaylistIdByType(at);
-			Calendar cal = Calendar.getInstance();
-			String newDescription = String.format("Last Search: %s", Constants.DESCRIPTION_TIMESTAMP_FORMAT.format(cal.getTime()));
-			SpotifyApiRequest.execute(SpotifyApiSessionManager.api().changePlaylistsDetails(playlistId).description(newDescription).build());						
-		});
-	}
-	
-	/**
-	 * Places a [NEW] indicator where sensible
-	 * 
-	 * @param playlistId
-	 * @param albumType 
-	 * @param
-	 * @throws Exception 
-	 */
-	public static void setNewNotifier(AlbumType albumType, boolean newAdditions) throws Exception {
-		String playlistId = BotUtils.getPlaylistIdByType(albumType);
-		
-		// Set/unset the [NEW] indicator, depending on timeouts and whether new songs were added
-		Playlist p = SpotifyApiRequest.execute(SpotifyApiSessionManager.api().getPlaylist(playlistId).build());
-		String playlistName = p.getName();
-		if (newAdditions) {
-			if (!playlistName.contains(Constants.NEW_INDICATOR_TEXT)) {
-				playlistName = String.format("%s %s", playlistName, Constants.NEW_INDICATOR_TEXT);
-				SpotifyBotDatabase.getInstance().updateTimestamp(BotUtils.getPlaylistLastUpdatedColumnByType(albumType));
+			try {
+				// Fetch the playlist
+				String playlistId = BotUtils.getPlaylistIdByType(at);
+				Playlist p = SpotifyApiRequest.execute(SpotifyApiSessionManager.api().getPlaylist(playlistId).build());
+				String playlistName = p.getName();
+				
+				// Write the new description
+				String newDescription = String.format("Last Search: %s", Constants.DESCRIPTION_TIMESTAMP_FORMAT.format(Calendar.getInstance().getTime()));
+				
+				// Set/unset the [NEW] indicator, depending on timeouts and whether the force flag was set
+				if (forceNotifier) {
+					if (!playlistName.contains(Constants.NEW_INDICATOR_TEXT)) {
+						playlistName = String.format("%s %s", playlistName, Constants.NEW_INDICATOR_TEXT);
+					}
+					SpotifyBotDatabase.getInstance().updateTimestamp(BotUtils.getPlaylistLastUpdatedColumnByType(at));
+				} else {
+					if (playlistName.contains(Constants.NEW_INDICATOR_TEXT)) {
+						if (!isNewIndicatorPrevailing(playlistId, at)) {
+							playlistName = p.getName().replaceFirst(Constants.NEW_INDICATOR_TEXT, "").trim();
+							SpotifyBotDatabase.getInstance().unsetTimestamp(BotUtils.getPlaylistLastUpdatedColumnByType(at));
+						}
+					}		
+				}			
+				SpotifyApiRequest.execute(SpotifyApiSessionManager.api().changePlaylistsDetails(playlistId).name(playlistName).description(newDescription).build());
+			} catch (Exception e) {
+				Config.logStackTrace(e);
 			}
-		} else {
-			if (playlistName.contains(Constants.NEW_INDICATOR_TEXT)) {
-				if (!isNewIndicatorPrevailing(playlistId, albumType)) {
-					playlistName = p.getName().replaceFirst(Constants.NEW_INDICATOR_TEXT, "").trim();
-					SpotifyBotDatabase.getInstance().unsetTimestamp(BotUtils.getPlaylistLastUpdatedColumnByType(albumType));
-				}
-			}		
-		}		
-		
-		// Overwrite the old playlist texts
-		SpotifyApiRequest.execute(SpotifyApiSessionManager.api().changePlaylistsDetails(playlistId).name(playlistName).build());			
+		});
 	}
 	
 	private static boolean isNewIndicatorPrevailing(String playlistId, AlbumType albumType) throws IOException, Exception {
@@ -123,7 +114,7 @@ public class PlaylistRequests {
 	public static void addSongsToPlaylist(List<List<TrackSimplified>> newSongs, AlbumType albumType) {
 		try {
 			String playlistId = BotUtils.getPlaylistIdByType(albumType);
-			circularPlaylistFitting(playlistId, newSongs.parallelStream().mapToInt(List::size).sum());
+			circularPlaylistFitting(playlistId, newSongs.stream().mapToInt(List::size).sum());
 			int songsAdded = 0;
 			if (!newSongs.isEmpty()) {
 				for (List<TrackSimplified> songsInAlbum : newSongs) {
@@ -140,7 +131,6 @@ public class PlaylistRequests {
 					Config.log().info("> " + songsAdded + " new " + albumType.toString() + " song" + (songsAdded == 1 ? "" : "s") + " added!");
 				}
 			}
-			setNewNotifier(albumType, songsAdded > 0);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

@@ -202,7 +202,7 @@ public final class BotUtils {
 
 	public static boolean isCollectionOrSampler(Album a) {
 		if (!a.getAlbumType().equals(AlbumType.COMPILATION)) {
-			return Arrays.asList(a.getArtists()).parallelStream().anyMatch(as -> as.getName().equals(Constants.VARIOUS_ARTISTS));
+			return Arrays.asList(a.getArtists()).stream().anyMatch(as -> as.getName().equals(Constants.VARIOUS_ARTISTS));
 		}
 		return true;
 	}
@@ -215,7 +215,7 @@ public final class BotUtils {
 	 * @return
 	 */
 	public static boolean containsFeaturedArtist(Collection<String> artistSuperset, ArtistSimplified[] artistSubset) {
-		Set<String> artistSubsetIds = Arrays.asList(artistSubset).parallelStream().map(ArtistSimplified::getId).collect(Collectors.toSet());
-		return artistSuperset.parallelStream().anyMatch(a -> artistSubsetIds.contains(a));
+		Set<String> artistSubsetIds = Arrays.asList(artistSubset).stream().map(ArtistSimplified::getId).collect(Collectors.toSet());
+		return artistSuperset.stream().anyMatch(a -> artistSubsetIds.contains(a));
 	}
 }

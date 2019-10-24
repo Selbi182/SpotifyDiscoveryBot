@@ -11,6 +11,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
+import org.junit.platform.commons.util.ExceptionUtils;
+
 import com.neovisionaries.i18n.CountryCode;
 
 import spotify.bot.database.SpotifyBotDatabase;
@@ -160,6 +162,19 @@ public class Config {
 	 */
 	public static Logger log() throws IOException, SQLException {
 		return Config.getInstance().log;
+	}
+	
+	/**
+	 * Log and print the given exception's stack trace
+	 * 
+	 * @param e
+	 */
+	public static void logStackTrace(Exception e) {
+		try {
+			log().severe(ExceptionUtils.readStackTrace(e));
+		} catch (IOException | SQLException ex) {
+			ex.printStackTrace();
+		}
 	}
 	
 	/**

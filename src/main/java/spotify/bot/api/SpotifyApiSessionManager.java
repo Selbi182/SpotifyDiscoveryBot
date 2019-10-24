@@ -24,7 +24,7 @@ public class SpotifyApiSessionManager {
 	 * @return
 	 * @throws IOException
 	 */
-	public static SpotifyApi api() throws IOException {
+	public static SpotifyApi api() {
 		if (sessionManagerSingleton == null) {
 			sessionManagerSingleton = new SpotifyApiSessionManager();
 		}
@@ -48,7 +48,7 @@ public class SpotifyApiSessionManager {
 				authenticate();			
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			Config.logStackTrace(e);
 		}
 	}
 	
@@ -67,7 +67,7 @@ public class SpotifyApiSessionManager {
 				.build();
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			Config.logStackTrace(e);
 		}
 		return spotifyApi;
 	}

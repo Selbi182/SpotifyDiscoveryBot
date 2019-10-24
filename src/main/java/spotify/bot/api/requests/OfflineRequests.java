@@ -5,8 +5,11 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
+import com.wrapper.spotify.enums.AlbumType;
 import com.wrapper.spotify.enums.ReleaseDatePrecision;
 import com.wrapper.spotify.model_objects.specification.Album;
 
@@ -39,5 +42,23 @@ public class OfflineRequests {
 			}
 		}
 		return filteredAlbums;
+	}
+
+	/**
+	 * Categorizes the given list of albums into a map of their respective album types 
+	 * 
+	 * @param albums
+	 * @return
+	 */
+	public static Map<AlbumType, List<Album>> categorizeAlbumsByAlbumType(List<Album> albums) {
+		Map<AlbumType, List<Album>> categorized = new ConcurrentHashMap<>();
+		albums.parallelStream().forEach(a -> {
+			AlbumType albumTypeOfAlbum = a.getAlbumType();
+			if (!categorized.containsKey(albumTypeOfAlbum)) {
+				categorized.put(albumTypeOfAlbum, new ArrayList<>());
+			}
+			categorized.get(albumTypeOfAlbum).add(a);
+		});
+		return categorized;
 	}
 }

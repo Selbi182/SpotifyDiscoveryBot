@@ -61,7 +61,7 @@ public class UserInfoRequests {
 						request = request.after(after);
 					}
 					artists = request.build().execute();
-					Arrays.asList(artists.getItems()).stream().forEach(a -> followedArtists.add(a.getId()));
+					Arrays.asList(artists.getItems()).parallelStream().forEach(a -> followedArtists.add(a.getId()));
 				} while (artists.getNext() != null);
 				updateFollowedArtistsCache(followedArtists, cachedArtists);
 				return followedArtists;

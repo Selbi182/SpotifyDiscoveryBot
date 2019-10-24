@@ -2,14 +2,23 @@ package spotify.bot.util;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import com.wrapper.spotify.enums.AlbumType;
 import com.wrapper.spotify.model_objects.specification.Album;
+import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
 
 import spotify.bot.Config;
 
@@ -70,7 +79,7 @@ public final class BotUtils {
 					return Config.getInstance().getPlaylistAppearsOn();
 			}
 		} catch (IOException | SQLException e) {
-			e.printStackTrace();
+			Config.logStackTrace(e);
 		}
 		return null;
 	}
@@ -95,7 +104,7 @@ public final class BotUtils {
 					return Config.getInstance().getLastUpdatedPlaylistAppearsOn();
 			}
 		} catch (IOException | SQLException e) {
-			e.printStackTrace();
+			Config.logStackTrace(e);
 		}
 		return null;
 	}
@@ -160,5 +169,53 @@ public final class BotUtils {
 		calOld.setTime(oldDate);
 		calOld.add(Calendar.HOUR_OF_DAY, timeout);
 		return calCurrent.before(calOld);
+	}
+
+	/**
+	 * Delete all album types of the given list that aren't set in the config
+	 * 
+	 * @param albumTypes
+	 */
+	public static void removeUnsetAlbumTypes(List<AlbumType> albumTypes) {
+		for (Iterator<AlbumType> itr = albumTypes.iterator(); itr.hasNext();) {
+			String playlistId = BotUtils.getPlaylistIdByType(itr.next());
+			if (!BotUtils.isPlaylistSet(playlistId)) {
+				itr.remove();
+			}
+		}
+	}
+
+	/**
+	 * Takes a map of album types with albums and puts them all into a single key
+	 * 
+	 * @param albumsByAlbumType
+	 * @param appearsOn
+	 */
+	public static Map<AlbumType, List<Album>> flattenToSingleAlbumType(Map<AlbumType, List<Album>> albumsByAlbumType, AlbumType newSoloAlbumType) {
+		Map<AlbumType, List<Album>> flattened = new ConcurrentHashMap<>();
+		flattened.put(newSoloAlbumType, new ArrayList<>());
+		albumsByAlbumType.values().parallelStream().forEach(abat -> {
+			flattened.get(newSoloAlbumType).addAll(abat);
+		});
+		return flattened;
+	}
+
+	public static boolean isCollectionOrSampler(Album a) {
+		if (!a.getAlbumType().equals(AlbumType.COMPILATION)) {
+			return Arrays.asList(a.getArtists()).parallelStream().anyMatch(as -> as.getName().equals(Constants.VARIOUS_ARTISTS));
+		}
+		return true;
+	}
+
+	/**
+	 * Checks if at least a single artist of the subset is part of the given artist superset
+	 * 
+	 * @param followedArtists
+	 * @param artists
+	 * @return
+	 */
+	public static boolean containsFeaturedArtist(Collection<String> artistSuperset, ArtistSimplified[] artistSubset) {
+		Set<String> artistSubsetIds = Arrays.asList(artistSubset).parallelStream().map(ArtistSimplified::getId).collect(Collectors.toSet());
+		return artistSuperset.parallelStream().anyMatch(a -> artistSubsetIds.contains(a));
 	}
 }

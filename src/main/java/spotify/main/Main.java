@@ -4,13 +4,10 @@ import java.io.File;
 import java.util.Calendar;
 import java.util.List;
 
-import com.wrapper.spotify.enums.AlbumType;
-
 import spotify.bot.Config;
 import spotify.bot.api.requests.UserInfoRequests;
 import spotify.bot.database.SpotifyBotDatabase;
 import spotify.bot.factory.CrawlThreadFactory;
-import spotify.bot.factory.CrawlThreadFactory.CrawlThreadBuilder;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.Constants;
 
@@ -30,7 +27,7 @@ public class Main {
 		try {
 			runBotOnce();
 		} catch (Exception e) {
-			e.printStackTrace();
+			Config.logStackTrace(e);
 		}
 	}
 
@@ -68,21 +65,15 @@ public class Main {
 				
 				// Fetch all followed artists of the user
 				final List<String> followedArtists = UserInfoRequests.getFollowedArtistsIds();
-
+				
 				// Set up the crawl threads and run them
-				Thread tAlbum = CrawlThreadFactory.crawlThread(followedArtists, AlbumType.ALBUM).buildAndStart();
-				Thread tSingle = CrawlThreadFactory.crawlThread(followedArtists, AlbumType.SINGLE).buildAndStart();
-				Thread tCompilation = CrawlThreadFactory.crawlThread(followedArtists, AlbumType.COMPILATION).buildAndStart();
-				CrawlThreadBuilder tAppearsOnBuilder = CrawlThreadFactory.crawlThread(followedArtists, AlbumType.APPEARS_ON);
-				if (Config.getInstance().isIntelligentAppearsOnSearch()) {
-					tAppearsOnBuilder.setCrawler(CrawlThreadFactory.INTELLIGENT_SEARCH_CRAWLER);
-				}
-				Thread tAppearsOn = tAppearsOnBuilder.buildAndStart();
+				Thread tAlbumSingleCompilation = CrawlThreadFactory.albumSingleCompilation(followedArtists).buildAndStart();
+				Thread tAppearsOn = CrawlThreadFactory.appearsOn(followedArtists, Config.getInstance().isIntelligentAppearsOnSearch()).buildAndStart();
 
 				// Wait for them all to finish
-				BotUtils.joinAll(tAlbum, tSingle, tCompilation, tAppearsOn);
+				BotUtils.joinAll(tAlbumSingleCompilation, tAppearsOn);
 			} catch (Exception e) {
-				e.printStackTrace();
+				Config.logStackTrace(e);
 			}
 		}
 	}

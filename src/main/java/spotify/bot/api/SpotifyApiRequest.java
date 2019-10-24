@@ -7,6 +7,7 @@ import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.exceptions.detailed.TooManyRequestsException;
 import com.wrapper.spotify.requests.IRequest;
 
+import spotify.bot.Config;
 import spotify.bot.util.Constants;
 
 public class SpotifyApiRequest {
@@ -24,13 +25,18 @@ public class SpotifyApiRequest {
 	 * @return
 	 * @throws Exception 
 	 */
-	public static <T> T execute(IRequest<T> request) throws Exception {
-		return execute(new Callable<T>() {
-			@Override
-			public T call() throws Exception {
-				return request.execute();
-			}
-		});
+	public static <T> T execute(IRequest<T> request) {
+		try {
+			return execute(new Callable<T>() {
+				@Override
+				public T call() throws Exception {
+					return request.execute();
+				}
+			});			
+		} catch (Exception e) {
+			Config.logStackTrace(e);
+			return null;
+		}
 	}
 
 	/**
@@ -46,15 +52,20 @@ public class SpotifyApiRequest {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public static <T> T execute(Callable<T> callable) throws Exception {
-		while (true) {
-			try {
-				T t = callable.call();
-				return t;
-			} catch (TooManyRequestsException e) {
-				int timeout = e.getRetryAfter() + 1;
-				Thread.sleep(timeout * Constants.RETRY_TIMEOUT);
-			}
+	public static <T> T execute(Callable<T> callable) {
+		try {
+			while (true) {
+				try {
+					T t = callable.call();
+					return t;
+				} catch (TooManyRequestsException e) {
+					int timeout = e.getRetryAfter() + 1;
+					Thread.sleep(timeout * Constants.RETRY_TIMEOUT);
+				}
+			}			
+		} catch (Exception e) {
+			Config.logStackTrace(e);
+			return null;
 		}
 	}
 }

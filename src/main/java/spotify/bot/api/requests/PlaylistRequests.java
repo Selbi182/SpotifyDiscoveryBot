@@ -34,14 +34,30 @@ public class PlaylistRequests {
 	private PlaylistRequests() {}
 	
 	/**
-	 * Timestamp the playlist's description with the last time the crawling process was initiated. Also places a [NEW] indicator where sensible.
+	 * Timestamp the playlist's description with the last time the crawling process was initiated
+	 * 
+	 * @param playlistId
+	 * @param albumType
+	 * @throws Exception 
+	 */
+	public static void timestampPlaylists(List<AlbumType> albumTypes) throws Exception {
+		albumTypes.parallelStream().forEach(at -> {
+			String playlistId = BotUtils.getPlaylistIdByType(at);
+			Calendar cal = Calendar.getInstance();
+			String newDescription = String.format("Last Search: %s", Constants.DESCRIPTION_TIMESTAMP_FORMAT.format(cal.getTime()));
+			SpotifyApiRequest.execute(SpotifyApiSessionManager.api().changePlaylistsDetails(playlistId).description(newDescription).build());						
+		});
+	}
+	
+	/**
+	 * Places a [NEW] indicator where sensible
 	 * 
 	 * @param playlistId
 	 * @param albumType 
 	 * @param
 	 * @throws Exception 
 	 */
-	public static void timestampPlaylist(AlbumType albumType, boolean newAdditions) throws Exception {
+	public static void setNewNotifier(AlbumType albumType, boolean newAdditions) throws Exception {
 		String playlistId = BotUtils.getPlaylistIdByType(albumType);
 		
 		// Set/unset the [NEW] indicator, depending on timeouts and whether new songs were added
@@ -61,12 +77,8 @@ public class PlaylistRequests {
 			}		
 		}		
 		
-		// Assemble the new playlist description
-		Calendar cal = Calendar.getInstance();
-		String newDescription = String.format("Last Search: %s", Constants.DESCRIPTION_TIMESTAMP_FORMAT.format(cal.getTime()));
-		
 		// Overwrite the old playlist texts
-		SpotifyApiRequest.execute(SpotifyApiSessionManager.api().changePlaylistsDetails(playlistId).name(playlistName).description(newDescription).build());			
+		SpotifyApiRequest.execute(SpotifyApiSessionManager.api().changePlaylistsDetails(playlistId).name(playlistName).build());			
 	}
 	
 	private static boolean isNewIndicatorPrevailing(String playlistId, AlbumType albumType) throws IOException, Exception {
@@ -105,38 +117,53 @@ public class PlaylistRequests {
 	 * 
 	 * @param albumType
 	 * @param songs
+	 * @throws  
 	 * @throws Exception 
 	 */
-	public static void addSongsToPlaylist(List<List<TrackSimplified>> newSongs, AlbumType albumType) throws Exception {
-		String playlistId = BotUtils.getPlaylistIdByType(albumType);
-		int songsAdded = 0;
-		if (!newSongs.isEmpty()) {
-			Playlist p = SpotifyApiRequest.execute(SpotifyApiSessionManager.api().getPlaylist(playlistId).build());
-			final int currentPlaylistCount = p.getTracks().getTotal();
-			final int songsToAddCount = (int) newSongs.stream().mapToInt(List::size).sum();
-			if (currentPlaylistCount + songsToAddCount > Constants.PLAYLIST_SIZE_LIMIT) {
-				if (!Config.getInstance().isCircularPlaylistFitting()) {
-					Config.log().severe(p.getName() + " is full! Maximum capacity is " + Constants.PLAYLIST_SIZE_LIMIT + ". Enable circularPlaylistFitting or flush the playlist for new songs.");
-					return;
-				}
-				deleteSongsFromBottomOnLimit(playlistId, currentPlaylistCount, songsToAddCount);
-			}
-			
-			for (List<TrackSimplified> songsInAlbum : newSongs) {
-				for (List<TrackSimplified> partition : Lists.partition(songsInAlbum, Constants.PLAYLIST_ADD_LIMIT)) {
-					JsonArray json = new JsonArray();
-					for (TrackSimplified s : partition) {
-						json.add(Constants.TRACK_PREFIX + s.getId());
+	public static void addSongsToPlaylist(List<List<TrackSimplified>> newSongs, AlbumType albumType) {
+		try {
+			String playlistId = BotUtils.getPlaylistIdByType(albumType);
+			circularPlaylistFitting(playlistId, newSongs.parallelStream().mapToInt(List::size).sum());
+			int songsAdded = 0;
+			if (!newSongs.isEmpty()) {
+				for (List<TrackSimplified> songsInAlbum : newSongs) {
+					for (List<TrackSimplified> partition : Lists.partition(songsInAlbum, Constants.PLAYLIST_ADD_LIMIT)) {
+						JsonArray json = new JsonArray();
+						for (TrackSimplified s : partition) {
+							json.add(Constants.TRACK_PREFIX + s.getId());
+						}
+						SpotifyApiRequest.execute(SpotifyApiSessionManager.api().addTracksToPlaylist(playlistId, json).position(0).build());
+						songsAdded += partition.size();
 					}
-					SpotifyApiRequest.execute(SpotifyApiSessionManager.api().addTracksToPlaylist(playlistId, json).position(0).build());
-					songsAdded += partition.size();
+				}
+				if (songsAdded > 0) {
+					Config.log().info("> " + songsAdded + " new " + albumType.toString() + " song" + (songsAdded == 1 ? "" : "s") + " added!");
 				}
 			}
-			if (songsAdded > 0) {
-				Config.log().info("> " + songsAdded + " new " + albumType.toString() + " song" + (songsAdded == 1 ? "" : "s") + " added!");
-			}
+			setNewNotifier(albumType, songsAdded > 0);
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
-		timestampPlaylist(albumType, songsAdded > 0);
+	}
+	
+	/**
+	 * Check if circular playlist fitting is required (if enabled; otherwise an exception is thrown)
+	 * 
+	 * @param playlistId
+	 * @param songsToAddCount
+	 * @throws Exception
+	 */
+	private static void circularPlaylistFitting(String playlistId, int songsToAddCount) throws Exception {
+		Playlist p = SpotifyApiRequest.execute(SpotifyApiSessionManager.api().getPlaylist(playlistId).build());
+
+		final int currentPlaylistCount = p.getTracks().getTotal();
+		if (currentPlaylistCount + songsToAddCount > Constants.PLAYLIST_SIZE_LIMIT) {
+			if (!Config.getInstance().isCircularPlaylistFitting()) {
+				Config.log().severe(p.getName() + " is full! Maximum capacity is " + Constants.PLAYLIST_SIZE_LIMIT + ". Enable circularPlaylistFitting or flush the playlist for new songs.");
+				return;
+			}
+			deleteSongsFromBottomOnLimit(playlistId, currentPlaylistCount, songsToAddCount);
+		}
 	}
 	
 	/**

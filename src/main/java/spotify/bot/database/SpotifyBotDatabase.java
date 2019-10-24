@@ -156,17 +156,6 @@ public class SpotifyBotDatabase {
 			}
 		}
 	}
-
-	/**
-	 * Set the given timestamp column to the current date
-	 * 
-	 * @param column
-	 * @throws SQLException
-	 */
-	public synchronized void updateTimestamp(String column) throws SQLException {
-		Statement statement = connection.createStatement();
-		statement.executeUpdate(String.format("UPDATE %s SET %s = strftime('%%s', 'now') * 1000;", Constants.TABLE_TIMESTAMP_STORE, column));
-	}
 	
 	/**
 	 * Unset the given timestamp column to the current date
@@ -174,8 +163,40 @@ public class SpotifyBotDatabase {
 	 * @param column
 	 * @throws SQLException
 	 */
-	public synchronized void unsetTimestamp(String column) throws SQLException {
+	public synchronized void unsetUpdateStore(String type) throws SQLException {
 		Statement statement = connection.createStatement();
-		statement.executeUpdate(String.format("UPDATE %s SET %s = null;", Constants.TABLE_TIMESTAMP_STORE, column));
+		statement.executeUpdate(String.format("UPDATE %s SET %s = null WHERE %s = '%s';",
+			Constants.TABLE_UPDATE_STORE,
+			Constants.COL_LAST_UPDATED_TIMESTAMP,
+			Constants.COL_TYPE,
+			type
+		));
+		statement.executeUpdate(String.format("UPDATE %s SET %s = null WHERE %s = '%s';",
+			Constants.TABLE_UPDATE_STORE,
+			Constants.COL_LAST_UPDATED_TIMESTAMP,
+			Constants.COL_TYPE,
+			type
+		));
+	}
+
+	public synchronized void refreshUpdateStore(String type) throws SQLException {
+		refreshUpdateStore(type, null);
+	}
+	
+	public synchronized void refreshUpdateStore(String type, Integer addedSongs) throws SQLException {
+		Statement statement = connection.createStatement();
+		statement.executeUpdate(String.format("UPDATE %s SET %s = strftime('%%s', 'now') * 1000 WHERE %s = '%s';",
+			Constants.TABLE_UPDATE_STORE,
+			Constants.COL_LAST_UPDATED_TIMESTAMP,
+			Constants.COL_TYPE,
+			type
+		));
+		statement.executeUpdate(String.format("UPDATE %s SET %s = %d WHERE %s = '%s';",
+			Constants.TABLE_UPDATE_STORE,
+			Constants.COL_LAST_UPDATE_SONG_COUNT,
+			addedSongs,
+			Constants.COL_TYPE,
+			type
+		));
 	}
 }

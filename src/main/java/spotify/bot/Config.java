@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -53,11 +55,7 @@ public class Config {
 	private final boolean circularPlaylistFitting;
 	
 	// [TimestampStore]
-	private Date lastUpdatedPlaylistAlbums;
-	private Date lastUpdatedPlaylistSingles;
-	private Date lastUpdatedPlaylistCompilations;
-	private Date lastUpdatedPlaylistAppearsOn;
-	private Date lastUpdatedArtistCache;
+	private Map<String, UpdateStore> updateStoreMap;
 	
 	////////////////
 	
@@ -85,7 +83,7 @@ public class Config {
 		// Read and set config
 		ResultSet botConfig = SpotifyBotDatabase.getInstance().singleRow(Constants.TABLE_BOT_CONFIG);
 		ResultSet userConfig = SpotifyBotDatabase.getInstance().singleRow(Constants.TABLE_USER_CONFIG);
-		ResultSet timestampStore = SpotifyBotDatabase.getInstance().singleRow(Constants.TABLE_TIMESTAMP_STORE);
+		ResultSet updateStore = SpotifyBotDatabase.getInstance().fullTable(Constants.TABLE_UPDATE_STORE);
 		
 		// Set bot config
 		clientId = botConfig.getString(Constants.COL_CLIENT_ID);
@@ -111,12 +109,14 @@ public class Config {
 		lookbackDays = userConfig.getInt(Constants.COL_LOOKBACK_DAYS);
 		circularPlaylistFitting = userConfig.getBoolean(Constants.COL_CIRCULAR_PLAYLIST_FITTING);
 		
-		// Set timestamps
-		lastUpdatedPlaylistAlbums = timestampStore.getDate(Constants.COL_LAST_UPDATED_PLAYLIST_ALBUMS);
-		lastUpdatedPlaylistSingles = timestampStore.getDate(Constants.COL_LAST_UPDATED_PLAYLIST_SINGLES);
-		lastUpdatedPlaylistCompilations = timestampStore.getDate(Constants.COL_LAST_UPDATED_PLAYLIST_COMPILATIONS);
-		lastUpdatedPlaylistAppearsOn = timestampStore.getDate(Constants.COL_LAST_UPDATED_PLAYLIST_APPEARS_ON);
-		lastUpdatedArtistCache = timestampStore.getTimestamp(Constants.COL_LAST_UPDATED_ARTIST_CACHE);
+		// Set update store
+		updateStoreMap = new HashMap<>();
+		while (updateStore.next()) {
+			Date lastUpdated = updateStore.getDate(Constants.COL_LAST_UPDATED_TIMESTAMP);
+			Integer lastUpdateSongCount = updateStore.getInt(Constants.COL_LAST_UPDATE_SONG_COUNT);
+			UpdateStore us = new UpdateStore(lastUpdated, lastUpdateSongCount);
+			updateStoreMap.put(updateStore.getString(Constants.COL_TYPE), us);	
+		}
 	}
 	
 	private void createLogger() throws IOException {
@@ -249,44 +249,37 @@ public class Config {
 	public int getArtistCacheTimeout() {
 		return artistCacheTimeout;
 	}
+
+	public UpdateStore getUpdateStoreByType(String type) {
+		return updateStoreMap.get(type);
+	}
+
 	
-	public Date getLastUpdatedPlaylistAlbums() {
-		return lastUpdatedPlaylistAlbums;
-	}
+	///////////////////
+	
+	public class UpdateStore {
+		private Date lastUpdatedTimestamp;
+		private Integer lastUpdateSongCount;
 
-	public void setLastUpdatedPlaylistAlbums(Date lastUpdatedPlaylistAlbums) {
-		this.lastUpdatedPlaylistAlbums = lastUpdatedPlaylistAlbums;
-	}
+		public UpdateStore(Date lastUpdatedTimestamp, Integer lastUpdateSongCount) {
+			this.lastUpdatedTimestamp = lastUpdatedTimestamp;
+			this.lastUpdateSongCount = lastUpdateSongCount;
+		}
 
-	public Date getLastUpdatedPlaylistSingles() {
-		return lastUpdatedPlaylistSingles;
-	}
+		public Date getLastUpdatedTimestamp() {
+			return lastUpdatedTimestamp;
+		}
 
-	public void setLastUpdatedPlaylistSingles(Date lastUpdatedPlaylistSingles) {
-		this.lastUpdatedPlaylistSingles = lastUpdatedPlaylistSingles;
-	}
+		public void setLastUpdatedTimestamp(Date lastUpdatedTimestamp) {
+			this.lastUpdatedTimestamp = lastUpdatedTimestamp;
+		}
 
-	public Date getLastUpdatedPlaylistCompilations() {
-		return lastUpdatedPlaylistCompilations;
-	}
+		public Integer getLastUpdateSongCount() {
+			return lastUpdateSongCount;
+		}
 
-	public void setLastUpdatedPlaylistCompilations(Date lastUpdatedPlaylistCompilations) {
-		this.lastUpdatedPlaylistCompilations = lastUpdatedPlaylistCompilations;
-	}
-
-	public Date getLastUpdatedPlaylistAppearsOn() {
-		return lastUpdatedPlaylistAppearsOn;
-	}
-
-	public void setLastUpdatedPlaylistAppearsOn(Date lastUpdatedPlaylistAppearsOn) {
-		this.lastUpdatedPlaylistAppearsOn = lastUpdatedPlaylistAppearsOn;
-	}
-
-	public Date getLastUpdatedArtistCache() {
-		return lastUpdatedArtistCache;
-	}
-
-	public void setLastUpdatedArtistCache(Date lastUpdatedArtistCache) {
-		this.lastUpdatedArtistCache = lastUpdatedArtistCache;
+		public void setLastUpdateSongCount(Integer lastUpdateSongCount) {
+			this.lastUpdateSongCount = lastUpdateSongCount;
+		}
 	}
 }

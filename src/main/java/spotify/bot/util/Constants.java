@@ -45,12 +45,10 @@ public final class Constants {
     public final static String COL_LOOKBACK_DAYS = "lookback_days";
     public final static String COL_CIRCULAR_PLAYLIST_FITTING = "circular_playlist_fitting";
 
-    public static final String TABLE_TIMESTAMP_STORE = "timestamp_store";
-    public static final String COL_LAST_UPDATED_PLAYLIST_ALBUMS = "last_updated_playlist_albums";
-    public static final String COL_LAST_UPDATED_PLAYLIST_SINGLES = "last_updated_playlist_singles";
-    public static final String COL_LAST_UPDATED_PLAYLIST_COMPILATIONS = "last_updated_playlist_compilations";
-    public static final String COL_LAST_UPDATED_PLAYLIST_APPEARS_ON = "last_updated_playlist_appears_on";
-    public static final String COL_LAST_UPDATED_ARTIST_CACHE = "last_updated_artist_cache";
+    public final static String TABLE_UPDATE_STORE = "update_store";
+    public final static String COL_TYPE = "type";
+    public final static String COL_LAST_UPDATED_TIMESTAMP = "last_updated_timestamp";
+    public final static String COL_LAST_UPDATE_SONG_COUNT = "last_update_song_count";
     
     // Spotify
 	public final static String SCOPES = "user-follow-read playlist-modify-private";

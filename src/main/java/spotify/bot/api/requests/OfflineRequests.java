@@ -35,7 +35,7 @@ public class OfflineRequests {
 			cal.add(Calendar.DAY_OF_MONTH, -1);
 		}
 		for (Album a : albums) {
-			if (a.getReleaseDatePrecision().equals(ReleaseDatePrecision.DAY)) {
+			if (a != null && a.getReleaseDatePrecision().equals(ReleaseDatePrecision.DAY)) {
 				if (validDates.contains(a.getReleaseDate())) {
 					filteredAlbums.add(a);
 				}

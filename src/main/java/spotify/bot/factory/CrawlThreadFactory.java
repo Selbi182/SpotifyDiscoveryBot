@@ -1,11 +1,10 @@
 package spotify.bot.factory;
 
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.wrapper.spotify.enums.AlbumType;
 import com.wrapper.spotify.model_objects.specification.Album;
@@ -87,7 +86,7 @@ public class CrawlThreadFactory {
 
 		private Runnable createCrawler() {
 			if (BotUtils.anyNotNull(followedArtists, albumTypes)) {
-				throw new NullPointerException("Not all properties are set to create crawl thread");
+				throw new NullPointerException("Not all required properties are set to create crawl thread");
 			}
 			return crawlerRunnable();
 		}		
@@ -104,8 +103,6 @@ public class CrawlThreadFactory {
 	     * 
 	 	 * Store the album IDs to the DB to prevent them from getting added a second time
 	 	 * This happens even if no new songs are added, because it will significantly speed up the future search processes
-	 	 * 
-		 * @return
 		 */
 		private Runnable crawlerRunnable() {
 			return new Runnable() {
@@ -120,12 +117,16 @@ public class CrawlThreadFactory {
 				
 				private void runCrawler() throws Exception {
 					BotUtils.removeUnsetAlbumTypes(albumTypes);
+					if (albumTypes.isEmpty()) {
+						return;
+					}
 
 					List<String> albumIds = AlbumRequests.getAlbumsIdsByArtists(followedArtists, albumTypes);
 					albumIds = SpotifyBotDatabase.getInstance().filterNonCachedAlbumsOnly(albumIds);
 				
-					Map<AlbumType, Integer> songsAddedPerAlbumType = new HashMap<>();
-					int newSongsCount = 0;
+					Map<AlbumType, Integer> songsAddedPerAlbumType = new ConcurrentHashMap<>();
+					albumTypes.stream().forEach(at -> songsAddedPerAlbumType.put(at, 0));
+					
 					if (!albumIds.isEmpty()) {
 						List<Album> albums = AlbumRequests.convertAlbumIdsToFullAlbums(albumIds);
 						albums = OfflineRequests.filterNewAlbumsOnly(albums, Config.getInstance().getLookbackDays());

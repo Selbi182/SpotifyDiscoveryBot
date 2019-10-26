@@ -49,6 +49,7 @@ public final class Constants {
     public final static String COL_TYPE = "type";
     public final static String COL_LAST_UPDATED_TIMESTAMP = "last_updated_timestamp";
     public final static String COL_LAST_UPDATE_SONG_COUNT = "last_update_song_count";
+	public static final String US_ARTIST_CACHE = "artist_cache";
     
     // Spotify
 	public final static String SCOPES = "user-follow-read playlist-modify-private";

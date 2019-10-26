@@ -39,7 +39,7 @@ public class UserInfoRequests {
 		// Try to fetch from cache first
 		List<String> cachedArtists = getCachedFollowedArtists();
 		if (cachedArtists != null && !cachedArtists.isEmpty()) {
-			Date lastUpdatedArtistCache = Config.getInstance().getLastUpdatedArtistCache();
+			Date lastUpdatedArtistCache = Config.getInstance().getUpdateStoreByType(Constants.US_ARTIST_CACHE).getLastUpdatedTimestamp();
 			if (lastUpdatedArtistCache != null) {
 				int artistCacheTimeout = Config.getInstance().getArtistCacheTimeout();
 				if (BotUtils.isTimeoutActive(lastUpdatedArtistCache, artistCacheTimeout)) {
@@ -98,6 +98,6 @@ public class UserInfoRequests {
 			}			
 		}
 		
-		SpotifyBotDatabase.getInstance().updateTimestamp(Constants.COL_LAST_UPDATED_ARTIST_CACHE);
+		SpotifyBotDatabase.getInstance().refreshUpdateStore(Constants.US_ARTIST_CACHE);
 	}
 }

@@ -179,24 +179,42 @@ public class SpotifyBotDatabase {
 		));
 	}
 
+	/**
+	 * Update the update store's given timestamp and unset the song count
+	 * 
+	 * @param type
+	 * @throws SQLException
+	 */
 	public synchronized void refreshUpdateStore(String type) throws SQLException {
+		unsetUpdateStore(type);
 		refreshUpdateStore(type, null);
 	}
 	
+	/**
+	 * Update the update store's given timestamp and set the song count
+	 * 
+	 * @param type
+	 * @param addedSongs
+	 * @throws SQLException
+	 */
 	public synchronized void refreshUpdateStore(String type, Integer addedSongs) throws SQLException {
 		Statement statement = connection.createStatement();
-		statement.executeUpdate(String.format("UPDATE %s SET %s = strftime('%%s', 'now') * 1000 WHERE %s = '%s';",
-			Constants.TABLE_UPDATE_STORE,
-			Constants.COL_LAST_UPDATED_TIMESTAMP,
-			Constants.COL_TYPE,
-			type
-		));
-		statement.executeUpdate(String.format("UPDATE %s SET %s = %d WHERE %s = '%s';",
-			Constants.TABLE_UPDATE_STORE,
-			Constants.COL_LAST_UPDATE_SONG_COUNT,
-			addedSongs,
-			Constants.COL_TYPE,
-			type
-		));
+		if (type != null) {
+			statement.executeUpdate(String.format("UPDATE %s SET %s = strftime('%%s', 'now') * 1000 WHERE %s = '%s';",
+				Constants.TABLE_UPDATE_STORE,
+				Constants.COL_LAST_UPDATED_TIMESTAMP,
+				Constants.COL_TYPE,
+				type
+			));
+		}
+		if (addedSongs != null) {
+			statement.executeUpdate(String.format("UPDATE %s SET %s = %d WHERE %s = '%s';",
+				Constants.TABLE_UPDATE_STORE,
+				Constants.COL_LAST_UPDATE_SONG_COUNT,
+				addedSongs,
+				Constants.COL_TYPE,
+				type
+			));
+		}
 	}
 }

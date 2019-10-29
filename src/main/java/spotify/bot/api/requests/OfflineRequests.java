@@ -12,6 +12,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.wrapper.spotify.enums.AlbumType;
 import com.wrapper.spotify.enums.ReleaseDatePrecision;
 import com.wrapper.spotify.model_objects.specification.Album;
+import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
+
+import spotify.bot.util.BotUtils;
 
 public class OfflineRequests {
 	/**
@@ -22,11 +25,10 @@ public class OfflineRequests {
 	/**
 	 * Filter out all albums not released within the lookbackDays range
 	 * 
-	 * @param albums
+	 * @param fullAlbums
 	 * @return
 	 */
-	public static List<Album> filterNewAlbumsOnly(List<Album> albums, int lookbackDays) {
-		List<Album> filteredAlbums = new ArrayList<>();
+	public static Map<AlbumType, List<Album>> filterNewAlbumsOnly(Map<AlbumType, List<Album>> fullAlbums, int lookbackDays) {
 		Calendar cal = Calendar.getInstance();
 		SimpleDateFormat date = new SimpleDateFormat("yyyy-MM-dd");
 		Set<String> validDates = new HashSet<>();
@@ -34,30 +36,37 @@ public class OfflineRequests {
 			validDates.add(date.format(cal.getTime()));
 			cal.add(Calendar.DAY_OF_MONTH, -1);
 		}
-		for (Album a : albums) {
-			if (a != null && a.getReleaseDatePrecision().equals(ReleaseDatePrecision.DAY)) {
-				if (validDates.contains(a.getReleaseDate())) {
-					filteredAlbums.add(a);
+		
+		Map<AlbumType, List<Album>> filteredAlbums = BotUtils.createAlbumTypeMap(fullAlbums.keySet());
+		fullAlbums.entrySet().parallelStream().forEach(fa -> {
+			fa.getValue().stream().forEach(a -> {
+				if (a != null && a.getReleaseDatePrecision().equals(ReleaseDatePrecision.DAY)) {
+					if (validDates.contains(a.getReleaseDate())) {
+						filteredAlbums.get(fa.getKey()).add(a);
+					}
 				}
-			}
-		}
+			});
+		});
 		return filteredAlbums;
 	}
 
 	/**
-	 * Categorizes the given list of albums into a map of their respective album types 
+	 * Categorizes the given list of albums into a map of their respective album GROUPS
+	 * (aka the return context of the simplified album object) 
 	 * 
-	 * @param albums
+	 * @param albumsSimplified
 	 * @return
 	 */
-	public static Map<AlbumType, List<Album>> categorizeAlbumsByAlbumType(List<Album> albums) {
-		Map<AlbumType, List<Album>> categorized = new ConcurrentHashMap<>();
-		albums.parallelStream().forEach(a -> {
-			AlbumType albumTypeOfAlbum = a.getAlbumType();
+	public static Map<AlbumType, List<AlbumSimplified>> categorizeAlbumsByAlbumGroup(List<AlbumSimplified> albumsSimplified) {
+		Map<AlbumType, List<AlbumSimplified>> categorized = new ConcurrentHashMap<>();
+		albumsSimplified.parallelStream().forEach(as -> {
+			// TODO API hat keine album group, die husos
+			//AlbumType albumTypeOfAlbum = as.getAlbumGroup();
+			AlbumType albumTypeOfAlbum = as.getAlbumType();
 			if (!categorized.containsKey(albumTypeOfAlbum)) {
 				categorized.put(albumTypeOfAlbum, new ArrayList<>());
 			}
-			categorized.get(albumTypeOfAlbum).add(a);
+			categorized.get(albumTypeOfAlbum).add(as);
 		});
 		return categorized;
 	}

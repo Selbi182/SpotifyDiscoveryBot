@@ -147,9 +147,6 @@ public class PlaylistRequests {
 						songsAdded += partition.size();
 					}
 				}
-				if (songsAdded > 0) {
-					Config.log().info("> " + songsAdded + " new " + albumType.toString() + " song" + (songsAdded == 1 ? "" : "s") + " added!");
-				}
 				return songsAdded;
 			}
 		} catch (Exception e) {

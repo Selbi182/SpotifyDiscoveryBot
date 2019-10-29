@@ -11,7 +11,8 @@ public final class Constants {
 	
 	// Generic
 	public static final long BOT_TIMEOUT = 10 * 60 * 1000;
-	public final static int RETRY_TIMEOUT = 500;
+	public final static int RETRY_TIMEOUT_4XX = 500;
+	public final static int RETRY_TIMEOUT_5XX = 60 * 1000;
 	public final static String VARIOUS_ARTISTS = "Various Artists";
 
 	// Database

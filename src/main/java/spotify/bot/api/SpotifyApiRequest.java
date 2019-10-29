@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.util.concurrent.Callable;
 
 import com.wrapper.spotify.exceptions.SpotifyWebApiException;
+import com.wrapper.spotify.exceptions.detailed.BadGatewayException;
+import com.wrapper.spotify.exceptions.detailed.InternalServerErrorException;
+import com.wrapper.spotify.exceptions.detailed.NotFoundException;
 import com.wrapper.spotify.exceptions.detailed.TooManyRequestsException;
 import com.wrapper.spotify.requests.IRequest;
 
@@ -43,7 +46,8 @@ public class SpotifyApiRequest {
 	 * Executes a greedy API request, wrapped in a <code>Callable</code>, meaning
 	 * that on potential <i>429 Too many requests</i> errors the request will be
 	 * retried until it succeeds. Any attempts will be delayed by the response
-	 * body's given <code>retryAfter</code> parameter, in seconds.
+	 * body's given <code>retryAfter</code> parameter, in seconds. 5xx errors will be
+	 * given a fixed one-minute retry timeout.
 	 * 
 	 * @param request
 	 * @return
@@ -60,7 +64,9 @@ public class SpotifyApiRequest {
 					return t;
 				} catch (TooManyRequestsException e) {
 					int timeout = e.getRetryAfter() + 1;
-					Thread.sleep(timeout * Constants.RETRY_TIMEOUT);
+					Thread.sleep(timeout * Constants.RETRY_TIMEOUT_4XX);
+				} catch (InternalServerErrorException | BadGatewayException | NotFoundException e) {
+					Thread.sleep(Constants.RETRY_TIMEOUT_5XX);
 				}
 			}			
 		} catch (Exception e) {

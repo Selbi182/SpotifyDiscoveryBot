@@ -9,11 +9,13 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
+import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
 import spotify.bot.util.Constants;
 import spotify.main.Main;
@@ -97,17 +99,20 @@ public class SpotifyBotDatabase {
 	/**
 	 * Filter out all album IDs not currently present in the database
 	 * 
-	 * @param allAlbums
+	 * @param albumsSimplified
 	 * @return
 	 * @throws SQLException 
 	 */
-	public List<String> filterNonCachedAlbumsOnly(List<String> allAlbums) throws IOException, SQLException {
+	public List<AlbumSimplified> filterNonCachedAlbumsOnly(List<AlbumSimplified> albumsSimplified) throws IOException, SQLException {
 		ResultSet rs = fullTable(Constants.TABLE_ALBUM_CACHE);
-		Set<String> filteredAlbums = new HashSet<>(allAlbums);
+		Map<String, AlbumSimplified> filteredAlbums = new ConcurrentHashMap<>();
+		for (AlbumSimplified as : albumsSimplified) {
+			filteredAlbums.put(as.getId(), as);
+		}
 		while (rs.next()) {
 			filteredAlbums.remove(rs.getString(Constants.COL_ALBUM_IDS));
 		}
-		return new ArrayList<>(filteredAlbums);
+		return filteredAlbums.values().stream().collect(Collectors.toList());
 	}
 
 	/**
@@ -126,15 +131,15 @@ public class SpotifyBotDatabase {
 	/**
 	 * Adds all given strings to the specified table's specified column
 	 * 
-	 * @param stringsToAdd
+	 * @param strings
 	 * @param table
 	 * @param column
 	 * @throws SQLException
 	 */
-	public synchronized void storeStringsToTableColumn(Collection<String> stringsToAdd, String table, String column) throws SQLException {
-		if (table != null && column != null && stringsToAdd != null && !stringsToAdd.isEmpty()) {
+	public synchronized void storeStringsToTableColumn(Collection<String> strings, String table, String column) throws SQLException {
+		if (table != null && column != null && strings != null && !strings.isEmpty()) {
 			Statement statement = connection.createStatement();
-			for (String s : stringsToAdd) {
+			for (String s : strings) {
 				statement.executeUpdate(String.format(INSERT_QUERY_MASK, table, column, s));
 			}
 		}

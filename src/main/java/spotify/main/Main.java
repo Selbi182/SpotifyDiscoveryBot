@@ -2,12 +2,10 @@ package spotify.main;
 
 import java.io.File;
 import java.util.Calendar;
-import java.util.List;
 
 import spotify.bot.Config;
-import spotify.bot.api.requests.UserInfoRequests;
 import spotify.bot.database.SpotifyBotDatabase;
-import spotify.bot.factory.CrawlThreadFactory;
+import spotify.bot.factory.SpotifyDiscoveryBotCrawler;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.Constants;
 
@@ -17,11 +15,11 @@ public class Main {
 	 * Own file location to read and write files in the same folder as the JAR
 	 */
 	public final static File OWN_LOCATION = new File(ClassLoader.getSystemClassLoader().getResource(".").getPath()).getAbsoluteFile();
-	
+
 	/**
 	 * Main entry point of the bot
 	 * 
-	 * @param args aren't supported yet
+	 * @param args
 	 */
 	public static void main(String[] args) {
 		try {
@@ -38,8 +36,13 @@ public class Main {
 	 */
 	private static void runBotOnce() throws Exception {
 		try {
-			Thread bot = new Thread(new SpotifyDiscoveryBot(), SpotifyDiscoveryBot.class.getSimpleName());
-			bot.start();
+			// Set up heavy instances from the get-go (mostly to make debugging easier)
+			Config.getInstance();
+			SpotifyBotDatabase.getInstance();
+			Calendar.getInstance();
+
+			// Start the bot with the set-by-config album types
+			Thread bot = new SpotifyDiscoveryBotCrawler(BotUtils.getSetAlbumTypes()).buildAndStart();
 			bot.join(Constants.BOT_TIMEOUT);
 			if (bot.isAlive()) {
 				bot.interrupt();
@@ -48,33 +51,6 @@ public class Main {
 		} finally {
 			Config.getInstance().closeLogger();
 			SpotifyBotDatabase.getInstance().closeConnection();
-		}
-	}
-
-	/**
-	 * Main bot controlling instance for the sub-threads respective to each possible album type
-	 */
-	static class SpotifyDiscoveryBot implements Runnable {
-		@Override
-		public void run() {
-			try {
-				// Set up heavy instances from the get-go (mostly to make debugging easier)
-				Config.getInstance();
-				SpotifyBotDatabase.getInstance();
-				Calendar.getInstance();
-				
-				// Fetch all followed artists of the user
-				final List<String> followedArtists = UserInfoRequests.getFollowedArtistsIds();
-				
-				// Set up the crawl threads and run them
-				Thread tAlbumSingleCompilation = CrawlThreadFactory.albumSingleCompilation(followedArtists).buildAndStart();
-				Thread tAppearsOn = CrawlThreadFactory.appearsOn(followedArtists, Config.getInstance().isIntelligentAppearsOnSearch()).buildAndStart();
-
-				// Wait for them all to finish
-				BotUtils.joinAll(tAlbumSingleCompilation, tAppearsOn);
-			} catch (Exception e) {
-				Config.logStackTrace(e);
-			}
 		}
 	}
 }

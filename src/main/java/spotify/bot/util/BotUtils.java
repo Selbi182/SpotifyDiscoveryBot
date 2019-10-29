@@ -9,10 +9,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -46,10 +46,12 @@ public final class BotUtils {
 	/**
 	 * Sort the album list with the default comparator
 	 * 
-	 * @param albums
+	 * @param fullAlbums
 	 */
-	public static void sortAlbums(List<Album> albums) {
-		Collections.sort(albums, (a1, a2) -> RELEASE_COMPARATOR.compare(a1, a2));
+	public static void sortAlbums(Map<AlbumType, List<Album>> fullAlbums) {
+		fullAlbums.entrySet().parallelStream().forEach(fa -> {
+			Collections.sort(fa.getValue(), (a1, a2) -> RELEASE_COMPARATOR.compare(a1, a2));			
+		});
 	}
 
 	/**
@@ -126,17 +128,19 @@ public final class BotUtils {
 	}
 
 	/**
-	 * Delete all album types of the given list that aren't set in the config
+	 * Fetch all album types that are set in the config
 	 * 
 	 * @param albumTypes
 	 */
-	public static void removeUnsetAlbumTypes(List<AlbumType> albumTypes) {
-		for (Iterator<AlbumType> itr = albumTypes.iterator(); itr.hasNext();) {
-			String playlistId = BotUtils.getPlaylistIdByType(itr.next());
-			if (!BotUtils.isPlaylistSet(playlistId)) {
-				itr.remove();
+	public static List<AlbumType> getSetAlbumTypes() {
+		List<AlbumType> setAlbumTypes = new ArrayList<>();
+		for (AlbumType at : AlbumType.values()) {
+			String playlistId = BotUtils.getPlaylistIdByType(at);			
+			if (BotUtils.isPlaylistSet(playlistId)) {
+				setAlbumTypes.add(at);
 			}
 		}
+		return setAlbumTypes;
 	}
 
 	/**
@@ -171,5 +175,51 @@ public final class BotUtils {
 	public static boolean containsFeaturedArtist(Collection<String> artistSuperset, ArtistSimplified[] artistSubset) {
 		Set<String> artistSubsetIds = Arrays.asList(artistSubset).stream().map(ArtistSimplified::getId).collect(Collectors.toSet());
 		return artistSuperset.stream().anyMatch(a -> artistSubsetIds.contains(a));
+	}
+	
+	/**
+	 * Creates a concurrent generic map with some List T as the values
+	 *  
+	 * @param albumTypes
+	 * @return
+	 */
+	public static <T> Map<AlbumType, List<T>> createAlbumTypeMap(Collection<AlbumType> albumTypes) {
+		Map<AlbumType, List<T>> idsByAlbumType = new ConcurrentHashMap<>();
+		albumTypes.stream().forEach(at -> {
+			idsByAlbumType.put(at, new ArrayList<>());
+		});
+		return idsByAlbumType;
+	}
+	
+	/**
+	 * Creates the comma-delimited, lowercase String of album types to search for
+	 * 
+	 * @param albumTypes
+	 * @return
+	 */
+	public static String createAlbumTypeString(List<AlbumType> albumTypes) {
+		StringJoiner albumTypesAsString = new StringJoiner(",");
+		albumTypes.stream().forEach(at -> albumTypesAsString.add(at.getType()));
+		return albumTypesAsString.toString();
+	}
+
+	/**
+	 * Logs the final results of the bot if any songs were added
+	 * 
+	 * @param songsAddedPerAlbumTypes
+	 * @return
+	 * @throws SQLException 
+	 * @throws IOException 
+	 */
+	public static void logResults(Map<AlbumType, Integer> songsAddedPerAlbumTypes) throws IOException, SQLException {
+		StringJoiner sj = new StringJoiner(" / ");
+		songsAddedPerAlbumTypes.entrySet().stream().forEach(sapat -> {
+			if (sapat.getValue() > 0) {
+				sj.add(sapat.getValue() + " " + sapat.getKey());						
+			}
+		});
+		if (sj.length() > 0) {
+			Config.log().info("> New Songs: [%s]" + sj.toString());			
+		}
 	}
 }

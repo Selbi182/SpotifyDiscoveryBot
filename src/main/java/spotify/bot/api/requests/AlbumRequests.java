@@ -3,9 +3,8 @@ package spotify.bot.api.requests;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.StringJoiner;
+import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 import com.wrapper.spotify.enums.AlbumType;
@@ -17,6 +16,7 @@ import com.wrapper.spotify.requests.data.artists.GetArtistsAlbumsRequest;
 import spotify.bot.Config;
 import spotify.bot.api.SpotifyApiRequest;
 import spotify.bot.api.SpotifyApiSessionManager;
+import spotify.bot.util.BotUtils;
 import spotify.bot.util.Constants;
 
 public class AlbumRequests {
@@ -26,35 +26,34 @@ public class AlbumRequests {
 	private AlbumRequests() {}
 	
 	/**
-	 * Get all album IDs of the given list of artists
+	 * Get all album IDs of the given list of artists, mapped into album type
 	 * 
 	 * @param artists
 	 * @return
 	 * @throws Exception 
 	 */
-	public static List<String> getAlbumsIdsByArtists(List<String> artists, List<AlbumType> albumTypes) throws Exception {
-		StringJoiner albumTypesAsString = new StringJoiner(",");
-		albumTypes.stream().forEach(at -> albumTypesAsString.add(at.getType()));
-		List<String> ids = new ArrayList<>();
-		artists.parallelStream().forEach((a) -> {
-			List<String> albumsIdsOfCurrentArtist = getAlbumIdsOfSingleArtist(a, albumTypesAsString.toString());
-			ids.addAll(albumsIdsOfCurrentArtist);
+	public static List<AlbumSimplified> getAlbumsOfArtists(List<String> artists, List<AlbumType> albumTypes) throws Exception {
+		String albumTypeString = BotUtils.createAlbumTypeString(albumTypes);
+		List<AlbumSimplified> albums = new ArrayList<>();
+		artists.parallelStream().forEach(a -> {
+			List<AlbumSimplified> albumsOfCurrentArtist = getAlbumIdsOfSingleArtist(a, albumTypeString);
+			albums.addAll(albumsOfCurrentArtist);
 		});
-		return ids;
+		return albums;
 	}
 	
 	/**
-	 * Return the album IDs of a single given artist
+	 * Return the albums of a single given artist
 	 * 
 	 * @param artistId
 	 * @param albumType
 	 * @return
 	 * @throws Exception
 	 */
-	private static List<String> getAlbumIdsOfSingleArtist(String artistId, String albumTypes) {
-		List<String> albumsIdsOfCurrentArtist = SpotifyApiRequest.execute(new Callable<List<String>>() {
+	private static List<AlbumSimplified> getAlbumIdsOfSingleArtist(String artistId, String albumTypes) {
+		List<AlbumSimplified> albumsOfCurrentArtist = SpotifyApiRequest.execute(new Callable<List<AlbumSimplified>>() {
 			@Override
-			public List<String> call() throws Exception {
+			public List<AlbumSimplified> call() throws Exception {
 				List<AlbumSimplified> albumsOfCurrentArtist = new ArrayList<>();
 				Paging<AlbumSimplified> albums = null;
 				do {
@@ -68,31 +67,34 @@ public class AlbumRequests {
 					albums = request.build().execute();
 					albumsOfCurrentArtist.addAll(Arrays.asList(albums.getItems()));
 				} while (albums.getNext() != null);
-				return albumsOfCurrentArtist.parallelStream().map(AlbumSimplified::getId).collect(Collectors.toList());
+				return albumsOfCurrentArtist;
 			}
 		});
-		return albumsIdsOfCurrentArtist;
+		return albumsOfCurrentArtist;
 	}
 
 	/**
 	 * Convert the given list of album IDs into fully equipped Album DTOs
 	 * 
-	 * @param ids
+	 * @param albumsSimplifiedByType
 	 * @return
 	 * @throws Exception 
 	 */
-	public static List<Album> convertAlbumIdsToFullAlbums(List<String> ids) throws Exception {
-		List<Album> albums = new ArrayList<>();
-		List<List<String>> partitions = Lists.partition(ids, Constants.SEVERAL_ALBUMS_LIMIT);
-		partitions.parallelStream().forEach(p -> {
-			try {
-				String[] idSubListPrimitive = p.toArray(new String[p.size()]);
-				Album[] fullAlbums = SpotifyApiRequest.execute(SpotifyApiSessionManager.api().getSeveralAlbums(idSubListPrimitive).market(Config.getInstance().getMarket()).build());
-				albums.addAll(Arrays.asList(fullAlbums));				
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+	public static Map<AlbumType, List<Album>> convertAlbumIdsToFullAlbums(Map<AlbumType, List<AlbumSimplified>> albumsSimplifiedByType) throws Exception {
+		Map<AlbumType, List<Album>> albums = BotUtils.createAlbumTypeMap(albumsSimplifiedByType.keySet());
+		albumsSimplifiedByType.entrySet().parallelStream().forEach(as -> {
+			List<List<AlbumSimplified>> partitions = Lists.partition(new ArrayList<>(as.getValue()), Constants.SEVERAL_ALBUMS_LIMIT);
+			partitions.parallelStream().forEach(p -> {
+				try {
+					String[] ids = p.stream().map(AlbumSimplified::getId).toArray(size -> new String[size]);
+					Album[] fullAlbums = SpotifyApiRequest.execute(SpotifyApiSessionManager.api().getSeveralAlbums(ids).market(Config.getInstance().getMarket()).build());
+					albums.get(as.getKey()).addAll(Arrays.asList(fullAlbums));				
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			});
 		});
+		
 		return albums;
 	}
 }

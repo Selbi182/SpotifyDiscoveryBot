@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
 
 import com.google.common.collect.Lists;
@@ -26,6 +25,7 @@ import spotify.bot.Config.UpdateStore;
 import spotify.bot.api.SpotifyApiRequest;
 import spotify.bot.api.SpotifyApiSessionManager;
 import spotify.bot.database.SpotifyBotDatabase;
+import spotify.bot.util.AlbumTrackPair;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.Constants;
 
@@ -41,39 +41,34 @@ public class PlaylistRequests {
 	 * @param songsAddedPerAlbumType
 	 * @throws Exception 
 	 */
-	public static void timestampPlaylistsAndSetNotifiers(Map<AlbumType, Integer> songsAddedPerAlbumType) throws Exception {
-		songsAddedPerAlbumType.entrySet().parallelStream().forEach(entry -> {
-			try {
-				AlbumType at = entry.getKey();
-				int addedSongs = entry.getValue();
-				
-				// Fetch the playlist
-				String playlistId = BotUtils.getPlaylistIdByType(at);
-				Playlist p = SpotifyApiRequest.execute(SpotifyApiSessionManager.api().getPlaylist(playlistId).build());
-				String playlistName = p.getName();
-								
-				// Write the new description
-				String newDescription = String.format("Last Search: %s", Constants.DESCRIPTION_TIMESTAMP_FORMAT.format(Calendar.getInstance().getTime()));
-				
-				// Set/unset the [NEW] indicator, depending on whether any songs were added
-				if (addedSongs > 0) {
-					if (!playlistName.contains(Constants.NEW_INDICATOR_TEXT)) {
-						playlistName = String.format("%s %s", playlistName, Constants.NEW_INDICATOR_TEXT);
+	public static void timestampPlaylistsAndSetNotifiers(AlbumType albumType, int addedSongsCount) {
+		try {
+			// Fetch the playlist
+			String playlistId = BotUtils.getPlaylistIdByType(albumType);
+			Playlist p = SpotifyApiRequest.execute(SpotifyApiSessionManager.api().getPlaylist(playlistId).build());
+			String playlistName = p.getName();
+			
+			// Write the new description
+			String newDescription = String.format("Last Search: %s", Constants.DESCRIPTION_TIMESTAMP_FORMAT.format(Calendar.getInstance().getTime()));
+			
+			// Set/unset the [NEW] indicator, depending on whether any songs were added
+			if (addedSongsCount > 0) {
+				if (!playlistName.contains(Constants.NEW_INDICATOR_TEXT)) {
+					playlistName = String.format("%s %s", playlistName, Constants.NEW_INDICATOR_TEXT);
+				}
+				SpotifyBotDatabase.getInstance().refreshUpdateStore(albumType.getType(), addedSongsCount);
+			} else {
+				if (playlistName.contains(Constants.NEW_INDICATOR_TEXT)) {
+					if (isIndicatorMarkedAsRead(playlistId, albumType)) {
+						playlistName = p.getName().replaceFirst(Constants.NEW_INDICATOR_TEXT, "").trim();
+						SpotifyBotDatabase.getInstance().unsetUpdateStore(albumType.getType());
 					}
-					SpotifyBotDatabase.getInstance().refreshUpdateStore(at.getType(), addedSongs);
-				} else {
-					if (playlistName.contains(Constants.NEW_INDICATOR_TEXT)) {
-						if (isIndicatorMarkedAsRead(playlistId, at)) {
-							playlistName = p.getName().replaceFirst(Constants.NEW_INDICATOR_TEXT, "").trim();
-							SpotifyBotDatabase.getInstance().unsetUpdateStore(at.getType());
-						}
-					}		
-				}			
-				SpotifyApiRequest.execute(SpotifyApiSessionManager.api().changePlaylistsDetails(playlistId).name(playlistName).description(newDescription).build());
-			} catch (Exception e) {
-				Config.logStackTrace(e);
-			}
-		});
+				}		
+			}			
+			SpotifyApiRequest.execute(SpotifyApiSessionManager.api().changePlaylistsDetails(playlistId).name(playlistName).description(newDescription).build());
+		} catch (Exception e) {
+			Config.logStackTrace(e);
+		}
 	}
 	
 	/**
@@ -126,31 +121,37 @@ public class PlaylistRequests {
 	/**
 	 * Add the given list of song IDs to the playlist (a delay of a second per release is used to retain order). May remove older songs to make room.
 	 * 
-	 * @param albumType
+	 * @param sortedNewReleases
 	 * @param songs
 	 * @return 
 	 * @throws Exception 
 	 */
-	public static int addSongsToPlaylist(List<List<TrackSimplified>> newSongs, AlbumType albumType) {
+	public static int addSongsToPlaylist(List<AlbumTrackPair> albumTrackPairs, AlbumType albumType) {
 		try {
 			String playlistId = BotUtils.getPlaylistIdByType(albumType);
-			circularPlaylistFitting(playlistId, newSongs.stream().mapToInt(List::size).sum());
-			int songsAdded = 0;
-			if (!newSongs.isEmpty()) {
-				for (List<TrackSimplified> songsInAlbum : newSongs) {
-					for (List<TrackSimplified> partition : Lists.partition(songsInAlbum, Constants.PLAYLIST_ADD_LIMIT)) {
-						JsonArray json = new JsonArray();
-						for (TrackSimplified s : partition) {
-							json.add(Constants.TRACK_PREFIX + s.getId());
-						}
-						SpotifyApiRequest.execute(SpotifyApiSessionManager.api().addTracksToPlaylist(playlistId, json).position(0).build());
-						songsAdded += partition.size();
-					}
-				}
-				return songsAdded;
-			}
+			return addSongsToPlaylistSynchronized(albumTrackPairs, playlistId);
 		} catch (Exception e) {
 			Config.logStackTrace(e);
+		}
+		return 0;
+	}
+	
+	private synchronized static int addSongsToPlaylistSynchronized(List<AlbumTrackPair> albumTrackPairs, String playlistId) throws Exception {
+		circularPlaylistFitting(playlistId, albumTrackPairs.stream().mapToInt(AlbumTrackPair::trackCount).sum());
+		int songsAdded = 0;
+		if (!albumTrackPairs.isEmpty()) {
+			for (AlbumTrackPair atp : albumTrackPairs) {
+				for (List<TrackSimplified> partition : Lists.partition(atp.getTracks(), Constants.PLAYLIST_ADD_LIMIT)) {
+					JsonArray json = new JsonArray();
+					for (TrackSimplified s : partition) {
+						json.add(Constants.TRACK_PREFIX + s.getId());
+					}
+					SpotifyApiRequest.execute(SpotifyApiSessionManager.api().addTracksToPlaylist(playlistId, json).position(0).build());
+					songsAdded += partition.size();
+					Thread.sleep(Constants.PLAYLIST_ADDITION_COOLDOWN);
+				}
+			}
+			return songsAdded;
 		}
 		return 0;
 	}

@@ -4,17 +4,17 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import com.wrapper.spotify.enums.AlbumType;
-import com.wrapper.spotify.model_objects.specification.Album;
+import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.Paging;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 import com.wrapper.spotify.requests.data.albums.GetAlbumsTracksRequest;
@@ -22,6 +22,7 @@ import com.wrapper.spotify.requests.data.albums.GetAlbumsTracksRequest;
 import spotify.bot.Config;
 import spotify.bot.api.SpotifyApiRequest;
 import spotify.bot.api.SpotifyApiSessionManager;
+import spotify.bot.util.AlbumTrackPair;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.Constants;
 
@@ -32,7 +33,8 @@ public class TrackRequests {
 	private TrackRequests() {}
 
 	/**
-	 * Get all songs IDs of the given list of albums, categorized by album type. Appears_on is treated differently
+	 * Get all songs IDs of the given list of albums, categorized by album type and the source album.
+	 * Appears_on might bbe treated differently
 	 * 
 	 * @param followedArtists 
 	 * 
@@ -40,24 +42,24 @@ public class TrackRequests {
 	 * @return
 	 * @throws SQLException 
 	 * @throws IOException 
+	 * @throws ExecutionException 
+	 * @throws InterruptedException 
 	 * @throws Exception
 	 */
-	public static Map<AlbumType, List<List<TrackSimplified>>> getSongIdsByAlbums(Map<AlbumType, List<Album>> albumsByAlbumType, List<String> followedArtists) throws IOException, SQLException {
-		// TODO parallel machen
-		if (Config.getInstance().isIntelligentAppearsOnSearch()) {
-			List<Album> appearsOnTracks = albumsByAlbumType.remove(AlbumType.APPEARS_ON);
-			intelligentAppearsOnSearch(appearsOnTracks, new HashSet<>(followedArtists));			
-		}
-		
-		Map<AlbumType, List<List<TrackSimplified>>> tracksOfAlbumsByType = new ConcurrentHashMap<>();
-		albumsByAlbumType.keySet().parallelStream().forEach(at -> {
-			if (!tracksOfAlbumsByType.containsKey(at)) {
-				tracksOfAlbumsByType.put(at, new ArrayList<>());
+	public static Map<AlbumType, List<AlbumTrackPair>> getSongIdsByAlbums(Map<AlbumType, List<AlbumSimplified>> albumsByAlbumType, List<String> followedArtists) throws IOException, SQLException {
+		Map<AlbumType, List<AlbumTrackPair>> tracksOfAlbumsByType = BotUtils.createAlbumTypeMap(albumsByAlbumType.keySet());
+		final boolean isIntelligentAppearsOnSearch = Config.getInstance().isIntelligentAppearsOnSearch();
+		albumsByAlbumType.entrySet().parallelStream().forEach(at -> {
+			AlbumType albumType = at.getKey();
+			List<AlbumSimplified> albums = at.getValue();
+			final List<AlbumTrackPair> target = tracksOfAlbumsByType.get(albumType);
+			if (AlbumType.APPEARS_ON.equals(albumType) && isIntelligentAppearsOnSearch) {
+				target.addAll(intelligentAppearsOnSearch(albums, followedArtists));
+			} else {
+				albums.parallelStream().forEach(a -> {
+					target.add(tracksOfAlbum(a));
+				});
 			}
-			albumsByAlbumType.get(at).parallelStream().forEach(a -> {
-				List<TrackSimplified> currentList = tracksOfAlbum(a);
-				tracksOfAlbumsByType.get(at).add(currentList);
-			});
 		});
 		return tracksOfAlbumsByType;
 	}
@@ -69,10 +71,10 @@ public class TrackRequests {
 	 * @return
 	 * @throws Exception
 	 */
-	public static List<List<TrackSimplified>> getSongIdsByAlbums(List<Album> albumsByAlbumType) {
-		List<List<TrackSimplified>> tracksOfAlbums = new ArrayList<>();
+	public static List<AlbumTrackPair> getSongIdsByAlbums(List<AlbumSimplified> albumsByAlbumType) {
+		List<AlbumTrackPair> tracksOfAlbums = new ArrayList<>();
 		albumsByAlbumType.parallelStream().forEach(a -> {
-			List<TrackSimplified> currentList = tracksOfAlbum(a);
+			AlbumTrackPair currentList = tracksOfAlbum(a);
 			tracksOfAlbums.add(currentList);
 		});
 		return tracksOfAlbums;
@@ -84,7 +86,7 @@ public class TrackRequests {
 	 * @param album
 	 * @return
 	 */
-	private static List<TrackSimplified> tracksOfAlbum(Album album) {
+	private static AlbumTrackPair tracksOfAlbum(AlbumSimplified album) {
 		try {
 			List<TrackSimplified> tracksOfAlbum = SpotifyApiRequest.execute(new Callable<List<TrackSimplified>>() {
 				@Override
@@ -102,7 +104,7 @@ public class TrackRequests {
 					return currentList;
 				}
 			});
-			return tracksOfAlbum;
+			return new AlbumTrackPair(album, tracksOfAlbum);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -117,19 +119,19 @@ public class TrackRequests {
 	 * @return
 	 * @throws Exception
 	 */
-	public static Map<AlbumType, List<List<TrackSimplified>>> intelligentAppearsOnSearch(List<Album> appearsOnAlbums, Set<String> followedArtists) {
-		List<Album> newAlbumCandidates = appearsOnAlbums.stream().filter((a) -> !BotUtils.isCollectionOrSampler(a)).collect(Collectors.toList()); 
-		newAlbumCandidates = newAlbumCandidates.stream().filter(a -> !BotUtils.containsFeaturedArtist(followedArtists, a.getArtists())).collect(Collectors.toList());
-		List<List<TrackSimplified>> songsByAlbums = getSongIdsByAlbums(newAlbumCandidates);
-		List<List<TrackSimplified>> filteredTracks = new ArrayList<>();
-		songsByAlbums.parallelStream().forEach(songsOfAlbum -> {
-			List<TrackSimplified> selectedSongs = songsOfAlbum.stream()
-				.filter(song -> BotUtils.containsFeaturedArtist(followedArtists, song.getArtists()))
+	public static List<AlbumTrackPair> intelligentAppearsOnSearch(List<AlbumSimplified> appearsOnAlbums, Collection<String> followedArtistsRaw) {
+		Set<String> followedArtistsSet = new HashSet<>(followedArtistsRaw);
+		
+		List<AlbumSimplified> newAlbumCandidates = appearsOnAlbums.stream().filter((a) -> !BotUtils.isCollectionOrSampler(a)).collect(Collectors.toList()); 
+		newAlbumCandidates = newAlbumCandidates.stream().filter(a -> !BotUtils.containsFeaturedArtist(followedArtistsSet, a.getArtists())).collect(Collectors.toList());
+		List<AlbumTrackPair> songsByAlbums = getSongIdsByAlbums(newAlbumCandidates);
+		List<AlbumTrackPair> filteredTracks = new ArrayList<>();
+		songsByAlbums.parallelStream().forEach(albumTrackPair -> {
+			List<TrackSimplified> selectedSongs = albumTrackPair.getTracks().stream()
+				.filter(song -> BotUtils.containsFeaturedArtist(followedArtistsSet, song.getArtists()))
 				.collect(Collectors.toList());
-			filteredTracks.add(selectedSongs);
+			filteredTracks.add(new AlbumTrackPair(albumTrackPair.getAlbum(), selectedSongs));
 		});
-		Map<AlbumType, List<List<TrackSimplified>>> selectedSongsByAlbumAndAlbum = new HashMap<>();
-		selectedSongsByAlbumAndAlbum.put(AlbumType.APPEARS_ON, filteredTracks);
-		return selectedSongsByAlbumAndAlbum;
+		return filteredTracks;
 	}
 }

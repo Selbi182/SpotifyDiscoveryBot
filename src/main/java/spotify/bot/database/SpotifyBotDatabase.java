@@ -222,4 +222,15 @@ public class SpotifyBotDatabase {
 			));
 		}
 	}
+
+	/**
+	 * Convenience method to read and cache the album IDs of the given list of albums
+	 * 
+	 * @param albumsSimplified
+	 * @throws SQLException 
+	 */
+	public void cacheAlbumIds(List<AlbumSimplified> albumsSimplified) throws SQLException {
+		List<String> albumIds = albumsSimplified.stream().map(AlbumSimplified::getId).collect(Collectors.toList());
+		storeStringsToTableColumn(albumIds, Constants.TABLE_ALBUM_CACHE, Constants.COL_ALBUM_IDS);
+	}
 }

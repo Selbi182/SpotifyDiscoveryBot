@@ -4,8 +4,8 @@ import java.io.File;
 import java.util.Calendar;
 
 import spotify.bot.Config;
+import spotify.bot.crawler.SpotifyDiscoveryBotCrawler;
 import spotify.bot.database.SpotifyBotDatabase;
-import spotify.bot.factory.SpotifyDiscoveryBotCrawler;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.Constants;
 
@@ -46,7 +46,7 @@ public class Main {
 			bot.join(Constants.BOT_TIMEOUT);
 			if (bot.isAlive()) {
 				bot.interrupt();
-				Config.log().severe("Bot instance didn't finish in time and will forcibly killed!");
+				Config.log().severe("Bot instance didn't finish in time and will be forcibly killed!");
 			}
 		} finally {
 			Config.getInstance().closeLogger();

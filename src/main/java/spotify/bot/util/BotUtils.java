@@ -6,8 +6,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +16,7 @@ import java.util.stream.Collectors;
 
 import com.wrapper.spotify.enums.AlbumType;
 import com.wrapper.spotify.model_objects.specification.Album;
+import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
 
 import spotify.bot.Config;
@@ -28,32 +27,6 @@ public final class BotUtils {
 	 */
 	private BotUtils() {}
 
-
-	// Comparators
-	private final static Comparator<Album> COMPARATOR_ALBUM_TYPE = Comparator.comparing(Album::getAlbumType);
-	private final static Comparator<Album> COMPARATOR_RELEASE_DATE = Comparator.comparing(Album::getReleaseDate);
-	private final static Comparator<Album> COMPARATOR_TRACK_COUNT = Comparator.comparing((a) -> a.getTracks().getTotal(), Comparator.reverseOrder());
-	private final static Comparator<Album> COMPARATOR_FIRST_ARTIST_NAME = Comparator.comparing((a) -> a.getArtists()[0].getName(), Comparator.reverseOrder());
-	private final static Comparator<Album> COMPARATOR_ALBUM_NAME = Comparator.comparing(Album::getName, Comparator.reverseOrder());
-
-	private final static Comparator<Album> RELEASE_COMPARATOR =
-			COMPARATOR_ALBUM_TYPE
-			.thenComparing(COMPARATOR_RELEASE_DATE)
-			.thenComparing(COMPARATOR_TRACK_COUNT)
-			.thenComparing(COMPARATOR_FIRST_ARTIST_NAME)
-			.thenComparing(COMPARATOR_ALBUM_NAME);
-
-	/**
-	 * Sort the album list with the default comparator
-	 * 
-	 * @param fullAlbums
-	 */
-	public static void sortAlbums(Map<AlbumType, List<Album>> fullAlbums) {
-		fullAlbums.entrySet().parallelStream().forEach(fa -> {
-			Collections.sort(fa.getValue(), (a1, a2) -> RELEASE_COMPARATOR.compare(a1, a2));			
-		});
-	}
-
 	/**
 	 * Check if the given playlistId has been set
 	 */
@@ -62,7 +35,8 @@ public final class BotUtils {
 	}
 
 	/**
-	 * Returns the stored playlist ID by the given album type
+	 * Returns the stored playlist ID by the given album type. Should the same ID be set for multiple playlists,
+	 * the album type is returned hierarchically: ALBUM > SINGLE > COMPILATION > APPEARS_ON
 	 * 
 	 * @param albumType
 	 * @return
@@ -158,7 +132,13 @@ public final class BotUtils {
 		return flattened;
 	}
 
-	public static boolean isCollectionOrSampler(Album a) {
+	/**
+	 * Returns true if the album type is set to Compilation or the artist is "Various Artists"
+	 * 
+	 * @param a
+	 * @return
+	 */
+	public static boolean isCollectionOrSampler(AlbumSimplified a) {
 		if (!a.getAlbumType().equals(AlbumType.COMPILATION)) {
 			return Arrays.asList(a.getArtists()).stream().anyMatch(as -> as.getName().equals(Constants.VARIOUS_ARTISTS));
 		}
@@ -211,15 +191,20 @@ public final class BotUtils {
 	 * @throws SQLException 
 	 * @throws IOException 
 	 */
-	public static void logResults(Map<AlbumType, Integer> songsAddedPerAlbumTypes) throws IOException, SQLException {
-		StringJoiner sj = new StringJoiner(" / ");
-		songsAddedPerAlbumTypes.entrySet().stream().forEach(sapat -> {
-			if (sapat.getValue() > 0) {
-				sj.add(sapat.getValue() + " " + sapat.getKey());						
-			}
-		});
-		if (sj.length() > 0) {
-			Config.log().info("> New Songs: [%s]" + sj.toString());			
+	public static void logResults(Map<AlbumType, Integer> songsAddedPerAlbumTypes) {
+		int totalSongsAdded = songsAddedPerAlbumTypes.values().stream().mapToInt(Integer::intValue).sum();
+		if (totalSongsAdded > 0) {
+			StringJoiner sj = new StringJoiner(" / ");
+			songsAddedPerAlbumTypes.entrySet().stream().forEach(sapat -> {
+				if (sapat.getValue() > 0) {
+					sj.add(sapat.getValue() + " " + sapat.getKey());						
+				}
+			});
+			try {
+				Config.log().info(String.format("%d new songs added! [%s]", totalSongsAdded, sj.toString()));
+			} catch (IOException | SQLException e) {
+				// Oh well, no info I guess
+			}			
 		}
 	}
 }

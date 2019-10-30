@@ -13,6 +13,7 @@ public final class Constants {
 	public static final long BOT_TIMEOUT = 10 * 60 * 1000;
 	public final static int RETRY_TIMEOUT_4XX = 500;
 	public final static int RETRY_TIMEOUT_5XX = 60 * 1000;
+	public final static int PLAYLIST_ADDITION_COOLDOWN = 1000;
 	public final static String VARIOUS_ARTISTS = "Various Artists";
 
 	// Database
@@ -59,6 +60,8 @@ public final class Constants {
 	public final static int SEVERAL_ALBUMS_LIMIT = 20;
 	public final static int PLAYLIST_ADD_LIMIT = 100;
 	public final static int PLAYLIST_SIZE_LIMIT = 10000;
+	public static final String RELEASE_DATE_FORMAT_DAY = "yyyy-MM-dd";
+	public static final String RELEASE_DATE_FORMAT_MONTH = "yyyy-MM";
 	
 	// Playlist Timestamps
 	public final static String NEW_INDICATOR_TEXT = "\uD83C\uDD7D\uD83C\uDD74\uD83C\uDD86";

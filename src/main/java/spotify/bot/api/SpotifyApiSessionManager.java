@@ -43,9 +43,9 @@ public class SpotifyApiSessionManager {
 			// Try to login with the stored access tokens or re-authenticate
 			try {
 				refreshAccessToken();
-			} catch (UnauthorizedException | BadRequestException e) {
+			} catch (UnauthorizedException | BadRequestException | NullPointerException e) {
 				Config.log().warning("Access token expired or is invalid, please sign in again under this URL:");
-				authenticate();			
+				authenticate();
 			}
 		} catch (Exception e) {
 			Config.logStackTrace(e);
@@ -94,11 +94,13 @@ public class SpotifyApiSessionManager {
 
 	/**
 	 * Refresh the access token
+	 * @throws SQLException 
+	 * @throws IOException 
 	 * 
 	 * @throws Exception
 	 */
-	private void refreshAccessToken() throws Exception {
-		AuthorizationCodeCredentials acc = SpotifyApiRequest.execute(spotifyApi().authorizationCodeRefresh().build());
+	private void refreshAccessToken() throws IOException, SQLException, BadRequestException, UnauthorizedException {
+		AuthorizationCodeCredentials acc = SpotifyApiRequest.execute(spotifyApi().authorizationCodeRefresh().build());						
 		spotifyApi().setAccessToken(acc.getAccessToken());
 		updateTokens();
 	}

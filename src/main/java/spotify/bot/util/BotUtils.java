@@ -163,12 +163,26 @@ public final class BotUtils {
 	 * @param albumTypes
 	 * @return
 	 */
-	public static <T> Map<AlbumType, List<T>> createAlbumTypeMap(Collection<AlbumType> albumTypes) {
-		Map<AlbumType, List<T>> idsByAlbumType = new ConcurrentHashMap<>();
+	public static <T> Map<AlbumType, List<T>> createAlbumTypeToListOfTMap(Collection<AlbumType> albumTypes) {
+		Map<AlbumType, List<T>> albumTypeToList = new ConcurrentHashMap<>();
 		albumTypes.stream().forEach(at -> {
-			idsByAlbumType.put(at, new ArrayList<>());
+			albumTypeToList.put(at, new ArrayList<>());
 		});
-		return idsByAlbumType;
+		return albumTypeToList;
+	}
+	
+	/**
+	 * Creates a concurrent generic map with 0-set integers as the values
+	 * 
+	 * @param albumTypes
+	 * @return
+	 */
+	public static Map<AlbumType, Integer> createAlbumTypeToIntegerMap(Collection<AlbumType> albumTypes) {
+		Map<AlbumType, Integer> albumTypeToInteger = new ConcurrentHashMap<>();
+		albumTypes.stream().forEach(at -> {
+			albumTypeToInteger.put(at, 0);
+		});
+		return albumTypeToInteger;
 	}
 	
 	/**

@@ -10,13 +10,16 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
+import spotify.bot.Config;
 import spotify.bot.util.Constants;
 import spotify.main.Main;
 
@@ -26,6 +29,8 @@ public class SpotifyBotDatabase {
 	private final static String FULL_SELECT_QUERY_MASK = "SELECT * FROM %s";
 	private final static String INSERT_QUERY_MASK = "INSERT INTO %s(%s) VALUES('%s')";
 	private final static String DELETE_QUERY_MASK = "DELETE FROM %s WHERE %s = '%s'";
+	private static final String CACHE_ALBUMS_THREAD_NAME = "Caching ALBUM IDs";
+	private static final String CACHE_ARTISTS_THREAD_NAME = "Caching ARTIST IDs";
 
 	private static SpotifyBotDatabase instance;
 	
@@ -224,13 +229,59 @@ public class SpotifyBotDatabase {
 	}
 
 	/**
-	 * Convenience method to read and cache the album IDs of the given list of albums
+	 * Cache the album IDs of the given list of albums in a separate thread
 	 * 
 	 * @param albumsSimplified
 	 * @throws SQLException 
 	 */
-	public void cacheAlbumIds(List<AlbumSimplified> albumsSimplified) throws SQLException {
-		List<String> albumIds = albumsSimplified.stream().map(AlbumSimplified::getId).collect(Collectors.toList());
-		storeStringsToTableColumn(albumIds, Constants.TABLE_ALBUM_CACHE, Constants.COL_ALBUM_IDS);
+	public void cacheAlbumIdsAsync(List<AlbumSimplified> albumsSimplified) throws SQLException {
+		Thread t = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				List<String> albumIds = albumsSimplified.stream().map(AlbumSimplified::getId).collect(Collectors.toList());
+				try {
+					storeStringsToTableColumn(albumIds, Constants.TABLE_ALBUM_CACHE, Constants.COL_ALBUM_IDS);
+				} catch (SQLException e) {
+					Config.logStackTrace(e);
+				}
+			}
+		}, CACHE_ALBUMS_THREAD_NAME);
+		t.start();
+	}
+	
+	/**
+	 * Cache the artist IDs in a separate thread
+	 * 
+	 * @param followedArtists
+	 * @param cachedArtists
+	 * @throws SQLException
+	 * @throws IOException
+	 */
+	public void updateFollowedArtistsCacheAsync(List<String> followedArtists, List<String> cachedArtists) throws SQLException, IOException {
+		Thread t = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					if (cachedArtists == null || cachedArtists.isEmpty()) {
+						storeStringsToTableColumn(followedArtists, Constants.TABLE_ARTIST_CACHE, Constants.COL_ARTIST_IDS);
+					} else {
+						Set<String> addedArtists = new HashSet<>(followedArtists);
+						addedArtists.removeAll(cachedArtists);
+						if (!addedArtists.isEmpty()) {
+							storeStringsToTableColumn(addedArtists, Constants.TABLE_ARTIST_CACHE, Constants.COL_ARTIST_IDS);
+						}
+						Set<String> removedArtists = new HashSet<>(cachedArtists);
+						removedArtists.removeAll(followedArtists);
+						if (!removedArtists.isEmpty()) {
+							removeStringsFromTableColumn(removedArtists, Constants.TABLE_ARTIST_CACHE, Constants.COL_ARTIST_IDS);
+						}			
+					}
+					refreshUpdateStore(Constants.US_ARTIST_CACHE);
+				} catch (SQLException e) {
+					Config.logStackTrace(e);
+				}
+			}
+		}, CACHE_ARTISTS_THREAD_NAME);
+		t.start();
 	}
 }

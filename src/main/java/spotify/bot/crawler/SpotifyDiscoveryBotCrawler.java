@@ -2,7 +2,6 @@ package spotify.bot.crawler;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import com.wrapper.spotify.enums.AlbumType;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
@@ -13,23 +12,17 @@ import spotify.bot.api.requests.OfflineRequests;
 import spotify.bot.api.requests.PlaylistRequests;
 import spotify.bot.api.requests.TrackRequests;
 import spotify.bot.api.requests.UserInfoRequests;
-import spotify.bot.database.SpotifyBotDatabase;
 import spotify.bot.util.AlbumTrackPair;
 import spotify.bot.util.BotUtils;
 
 public class SpotifyDiscoveryBotCrawler implements Runnable {
 	private List<AlbumType> albumTypes;
-	private Map<AlbumType, Integer> songsAddedPerAlbumTypes;
 
 	/**
 	 * Creates an idle crawling instance with 0 set songs per album type
 	 */
 	public SpotifyDiscoveryBotCrawler(List<AlbumType> albumTypes) {
 		this.albumTypes = albumTypes;
-		this.songsAddedPerAlbumTypes = new ConcurrentHashMap<>();
-		albumTypes.stream().forEach(at -> {
-			songsAddedPerAlbumTypes.put(at, 0);
-		});
 	}
 
 	/**
@@ -68,27 +61,16 @@ public class SpotifyDiscoveryBotCrawler implements Runnable {
 	 */
 	private void runCrawler() throws Exception {
 		List<String> followedArtists = UserInfoRequests.getFollowedArtistsIds();
-		List<AlbumSimplified> albumsSimplified = AlbumRequests.getAlbumsOfArtists(followedArtists, albumTypes);
-		albumsSimplified = SpotifyBotDatabase.getInstance().filterNonCachedAlbumsOnly(albumsSimplified);
-		if (!albumsSimplified.isEmpty()) {
-			Map<AlbumType, List<AlbumSimplified>> albumsByType = OfflineRequests.categorizeAlbumsByAlbumGroup(albumsSimplified, albumTypes);
-			albumsByType = OfflineRequests.filterNewAlbumsOnly(albumsByType, Config.getInstance().getLookbackDays());
-			if (!albumsByType.isEmpty()) {
-				Map<AlbumType, List<AlbumTrackPair>> newSongsByType = TrackRequests.getSongIdsByAlbums(albumsByType, followedArtists);
-				newSongsByType = OfflineRequests.mergeOnIdenticalPlaylists(newSongsByType, albumTypes);
-				newSongsByType.entrySet().stream().forEach(entry -> {
-					AlbumType albumType = entry.getKey();
-					List<AlbumTrackPair> albumTrackPairs = entry.getValue();
-					if (!albumTrackPairs.isEmpty()) {
-						List<AlbumTrackPair> sortedAlbums = OfflineRequests.sortReleases(albumTrackPairs);
-						int addedSongsCount = PlaylistRequests.addSongsToPlaylist(sortedAlbums, albumType);
-						songsAddedPerAlbumTypes.put(albumType, addedSongsCount);								
-						PlaylistRequests.timestampPlaylistsAndSetNotifiers(albumType, addedSongsCount);						
-					}
-				});									
+		List<AlbumSimplified> nonCachedAlbums = AlbumRequests.getNonCachedAlbumsOfArtists(followedArtists, albumTypes);
+		Map<AlbumType, Integer> songsAddedPerAlbumTypes = BotUtils.createAlbumTypeToIntegerMap(albumTypes);
+		if (!nonCachedAlbums.isEmpty()) {
+			Map<AlbumType, List<AlbumSimplified>> newAlbums = OfflineRequests.categorizeAndFilterAlbums(nonCachedAlbums, albumTypes);
+			if (!newAlbums.isEmpty()) {
+				Map<AlbumType, List<AlbumTrackPair>> newSongs = TrackRequests.getSongIdsByAlbums(newAlbums, followedArtists);
+				songsAddedPerAlbumTypes = PlaylistRequests.addAllReleasesToSetPlaylists(newSongs, albumTypes);							
 				BotUtils.logResults(songsAddedPerAlbumTypes);
 			}
-		}
-		SpotifyBotDatabase.getInstance().cacheAlbumIds(albumsSimplified);
+		}								
+		PlaylistRequests.timestampPlaylistsAndSetNotifiers(songsAddedPerAlbumTypes);
 	}
 }

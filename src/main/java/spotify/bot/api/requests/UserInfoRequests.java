@@ -6,9 +6,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.Callable;
 
 import com.wrapper.spotify.enums.ModelObjectType;
@@ -63,7 +61,7 @@ public class UserInfoRequests {
 					artists = request.build().execute();
 					Arrays.asList(artists.getItems()).stream().forEach(a -> followedArtists.add(a.getId()));
 				} while (artists.getNext() != null);
-				updateFollowedArtistsCache(followedArtists, cachedArtists);
+				SpotifyBotDatabase.getInstance().updateFollowedArtistsCacheAsync(followedArtists, cachedArtists);
 				return followedArtists;
 			}
 		});
@@ -80,24 +78,5 @@ public class UserInfoRequests {
 			cachedArtists.add(rs.getString(Constants.COL_ARTIST_IDS));
 		}
 		return cachedArtists;
-	}
-	
-	private static void updateFollowedArtistsCache(List<String> followedArtists, List<String> cachedArtists) throws SQLException, IOException {
-		if (cachedArtists == null || cachedArtists.isEmpty()) {
-			SpotifyBotDatabase.getInstance().storeStringsToTableColumn(followedArtists, Constants.TABLE_ARTIST_CACHE, Constants.COL_ARTIST_IDS);
-		} else {
-			Set<String> addedArtists = new HashSet<>(followedArtists);
-			addedArtists.removeAll(cachedArtists);
-			if (!addedArtists.isEmpty()) {
-				SpotifyBotDatabase.getInstance().storeStringsToTableColumn(addedArtists, Constants.TABLE_ARTIST_CACHE, Constants.COL_ARTIST_IDS);
-			}
-			Set<String> removedArtists = new HashSet<>(cachedArtists);
-			removedArtists.removeAll(followedArtists);
-			if (!removedArtists.isEmpty()) {
-				SpotifyBotDatabase.getInstance().removeStringsFromTableColumn(removedArtists, Constants.TABLE_ARTIST_CACHE, Constants.COL_ARTIST_IDS);
-			}			
-		}
-		
-		SpotifyBotDatabase.getInstance().refreshUpdateStore(Constants.US_ARTIST_CACHE);
 	}
 }

@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.Calendar;
 
 import spotify.bot.Config;
+import spotify.bot.api.SpotifyApiSessionManager;
 import spotify.bot.crawler.SpotifyDiscoveryBotCrawler;
 import spotify.bot.database.SpotifyBotDatabase;
 import spotify.bot.util.BotUtils;
@@ -39,6 +40,7 @@ public class Main {
 			// Set up heavy instances from the get-go (mostly to make debugging easier)
 			Config.getInstance();
 			SpotifyBotDatabase.getInstance();
+			SpotifyApiSessionManager.api();
 			Calendar.getInstance();
 
 			// Start the bot with the set-by-config album types

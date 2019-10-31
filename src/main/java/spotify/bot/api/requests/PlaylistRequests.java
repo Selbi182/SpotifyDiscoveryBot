@@ -6,7 +6,9 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
@@ -34,6 +36,17 @@ public class PlaylistRequests {
 	 * Static calls only
 	 */
 	private PlaylistRequests() {}
+
+	/**
+	 * Timestamp all given playlists and set the new indicator depending on the added song count
+	 * 
+	 * @param songsAddedPerAlbumTypes
+	 */
+	public static void timestampPlaylistsAndSetNotifiers(Map<AlbumType, Integer> songsAddedPerAlbumTypes) {
+		songsAddedPerAlbumTypes.entrySet().forEach(sapat -> {
+			timestampSinglePlaylistAndSetNotifier(sapat.getKey(), sapat.getValue());
+		});
+	}
 	
 	/**
 	 * Timestamp the playlist's description with the last time the crawling process was initiated and include the number of added songs
@@ -41,7 +54,7 @@ public class PlaylistRequests {
 	 * @param songsAddedPerAlbumType
 	 * @throws Exception 
 	 */
-	public static void timestampPlaylistsAndSetNotifiers(AlbumType albumType, int addedSongsCount) {
+	public static void timestampSinglePlaylistAndSetNotifier(AlbumType albumType, int addedSongsCount) {
 		try {
 			// Fetch the playlist
 			String playlistId = BotUtils.getPlaylistIdByType(albumType);
@@ -226,5 +239,29 @@ public class PlaylistRequests {
 		if (repeat) {
 			deleteSongsFromBottomOnLimit(playlistId, currentPlaylistCount - 100, songsToAddCount);
 		}
+	}
+
+	/**
+	 * Adds all releases to the set playlists. Reuse of album types will result in those releases to be added to the same playlist.
+	 * Playlists will get timestamped and receive a [NEW] indicator on new additions
+	 * 
+	 * @param newSongsByType
+	 * @param setAlbumTypes
+	 * @return
+	 */
+	public static Map<AlbumType, Integer> addAllReleasesToSetPlaylists(Map<AlbumType, List<AlbumTrackPair>> newSongsByType, List<AlbumType> setAlbumTypes) {
+		Map<AlbumType, Integer> songsAddedPerAlbumTypes = new ConcurrentHashMap<>();
+		
+		Map<AlbumType, List<AlbumTrackPair>> mergedAlbumTypesOfSongs = OfflineRequests.mergeOnIdenticalPlaylists(newSongsByType, setAlbumTypes);
+		mergedAlbumTypesOfSongs.entrySet().stream().forEach(entry -> {
+			AlbumType albumType = entry.getKey();
+			List<AlbumTrackPair> albumTrackPairs = entry.getValue();
+			if (!albumTrackPairs.isEmpty()) {
+				List<AlbumTrackPair> sortedAlbums = OfflineRequests.sortReleases(albumTrackPairs);
+				int addedSongsCount = PlaylistRequests.addSongsToPlaylist(sortedAlbums, albumType);
+				songsAddedPerAlbumTypes.put(albumType, addedSongsCount);			
+			}
+		});
+		return songsAddedPerAlbumTypes;
 	}
 }

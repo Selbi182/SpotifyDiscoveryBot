@@ -16,6 +16,7 @@ import com.wrapper.spotify.requests.data.artists.GetArtistsAlbumsRequest;
 import spotify.bot.Config;
 import spotify.bot.api.SpotifyApiRequest;
 import spotify.bot.api.SpotifyApiSessionManager;
+import spotify.bot.database.SpotifyBotDatabase;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.Constants;
 
@@ -81,7 +82,7 @@ public class AlbumRequests {
 	 * @throws Exception 
 	 */
 	public static Map<AlbumType, List<Album>> convertAlbumIdsToFullAlbums(Map<AlbumType, List<AlbumSimplified>> albumsSimplifiedByType) throws Exception {
-		Map<AlbumType, List<Album>> albums = BotUtils.createAlbumTypeMap(albumsSimplifiedByType.keySet());
+		Map<AlbumType, List<Album>> albums = BotUtils.createAlbumTypeToListOfTMap(albumsSimplifiedByType.keySet());
 		albumsSimplifiedByType.entrySet().parallelStream().forEach(as -> {
 			List<List<AlbumSimplified>> partitions = Lists.partition(new ArrayList<>(as.getValue()), Constants.SEVERAL_ALBUMS_LIMIT);
 			partitions.parallelStream().forEach(p -> {
@@ -96,5 +97,21 @@ public class AlbumRequests {
 		});
 		
 		return albums;
+	}
+
+	/**
+	 * Read all albums of the given artists and album types and filter them by non-cached albums.
+	 * New albums will be automatically cached.
+	 * 
+	 * @param followedArtists
+	 * @param albumTypes
+	 * @return
+	 * @throws Exception
+	 */
+	public static List<AlbumSimplified> getNonCachedAlbumsOfArtists(List<String> followedArtists, List<AlbumType> albumTypes) throws Exception {
+		List<AlbumSimplified> allAlbums = getAlbumsOfArtists(followedArtists, albumTypes);
+		List<AlbumSimplified> filteredAlbums = SpotifyBotDatabase.getInstance().filterNonCachedAlbumsOnly(allAlbums);
+		SpotifyBotDatabase.getInstance().cacheAlbumIdsAsync(filteredAlbums);
+		return filteredAlbums;
 	}
 }

@@ -47,7 +47,7 @@ public class TrackRequests {
 	 * @throws Exception
 	 */
 	public static Map<AlbumType, List<AlbumTrackPair>> getSongIdsByAlbums(Map<AlbumType, List<AlbumSimplified>> albumsByAlbumType, List<String> followedArtists) throws IOException, SQLException {
-		Map<AlbumType, List<AlbumTrackPair>> tracksOfAlbumsByType = BotUtils.createAlbumTypeMap(albumsByAlbumType.keySet());
+		Map<AlbumType, List<AlbumTrackPair>> tracksOfAlbumsByType = BotUtils.createAlbumTypeToListOfTMap(albumsByAlbumType.keySet());
 		final boolean isIntelligentAppearsOnSearch = Config.getInstance().isIntelligentAppearsOnSearch();
 		albumsByAlbumType.entrySet().parallelStream().forEach(at -> {
 			AlbumType albumType = at.getKey();

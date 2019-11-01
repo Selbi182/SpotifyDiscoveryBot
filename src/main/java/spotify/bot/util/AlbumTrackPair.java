@@ -32,14 +32,14 @@ public class AlbumTrackPair implements Comparable<AlbumTrackPair>, Comparator<Al
 
 	/////////////
 	
-	private final static Comparator<AlbumTrackPair> COMPARATOR_ALBUM_TYPE = Comparator.comparing(atp -> atp.getAlbum().getAlbumType());
+	private final static Comparator<AlbumTrackPair> COMPARATOR_ALBUM_GROUP = Comparator.comparing(atp -> atp.getAlbum().getAlbumGroup());
 	private final static Comparator<AlbumTrackPair> COMPARATOR_RELEASE_DATE = Comparator.comparing(atp -> atp.getAlbum().getReleaseDate());
 	private final static Comparator<AlbumTrackPair> COMPARATOR_TRACK_COUNT = Comparator.comparing(atp -> atp.getTracks().size(), Comparator.reverseOrder());
 	private final static Comparator<AlbumTrackPair> COMPARATOR_FIRST_ARTIST_NAME = Comparator.comparing(atp -> atp.getAlbum().getArtists()[0].getName(), Comparator.reverseOrder());
 	private final static Comparator<AlbumTrackPair> COMPARATOR_ALBUM_NAME = Comparator.comparing(atp -> atp.getAlbum().getName(), Comparator.reverseOrder());
 		
 	private final static Comparator<AlbumTrackPair> ATP_COMPARATOR = 
-		COMPARATOR_ALBUM_TYPE
+		COMPARATOR_ALBUM_GROUP
 		.thenComparing(COMPARATOR_RELEASE_DATE)
 		.thenComparing(COMPARATOR_TRACK_COUNT)
 		.thenComparing(COMPARATOR_FIRST_ARTIST_NAME)

@@ -37,7 +37,7 @@ public class UserInfoRequests {
 		// Try to fetch from cache first
 		List<String> cachedArtists = getCachedFollowedArtists();
 		if (cachedArtists != null && !cachedArtists.isEmpty()) {
-			Date lastUpdatedArtistCache = Config.getInstance().getUpdateStoreByType(Constants.US_ARTIST_CACHE).getLastUpdatedTimestamp();
+			Date lastUpdatedArtistCache = Config.getInstance().getUpdateStoreByGroup(Constants.US_ARTIST_CACHE).getLastUpdatedTimestamp();
 			if (lastUpdatedArtistCache != null) {
 				int artistCacheTimeout = Config.getInstance().getArtistCacheTimeout();
 				if (BotUtils.isTimeoutActive(lastUpdatedArtistCache, artistCacheTimeout)) {

@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import com.wrapper.spotify.enums.AlbumType;
+import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
 import spotify.bot.Config;
@@ -24,9 +24,9 @@ public class OfflineRequests {
 	private OfflineRequests() {}
 
 	/**
-	 * Sort the albums of each album type
+	 * Sort the albums of each album group
 	 * 
-	 * @param albumsByType
+	 * @param albumTrackPairs
 	 * @return 
 	 */
 	public static List<AlbumTrackPair> sortReleases(List<AlbumTrackPair> albumTrackPairs) {
@@ -39,14 +39,14 @@ public class OfflineRequests {
 	 * (aka the return context of the simplified album object) 
 	 * 
 	 * @param albumsSimplified
-	 * @param albumTypes 
+	 * @param albumGroups 
 	 * @return
 	 */
-	public static Map<AlbumType, List<AlbumSimplified>> categorizeAlbumsByAlbumGroup(List<AlbumSimplified> albumsSimplified, List<AlbumType> albumTypes) {
-		Map<AlbumType, List<AlbumSimplified>> categorized = BotUtils.createAlbumTypeToListOfTMap(albumTypes);
+	public static Map<AlbumGroup, List<AlbumSimplified>> categorizeAlbumsByAlbumGroup(List<AlbumSimplified> albumsSimplified, List<AlbumGroup> albumGroups) {
+		Map<AlbumGroup, List<AlbumSimplified>> categorized = BotUtils.createAlbumGroupToListOfTMap(albumGroups);
 		albumsSimplified.parallelStream().forEach(as -> {
-			AlbumType albumTypeOfAlbum = as.getAlbumGroup() != null ? AlbumType.keyOf(as.getAlbumGroup()) : as.getAlbumType();
-			categorized.get(albumTypeOfAlbum).add(as);
+			AlbumGroup albumGroupOfAlbum = as.getAlbumGroup();
+			categorized.get(albumGroupOfAlbum).add(as);
 		});
 		return categorized;
 	}
@@ -54,62 +54,62 @@ public class OfflineRequests {
 	/**
 	 * Filter out all albums not released within the lookbackDays range
 	 * 
-	 * @param albumsSimplifiedByType
+	 * @param albumsSimplifiedByGroup
 	 * @return
 	 */
-	public static Map<AlbumType, List<AlbumSimplified>> filterNewAlbumsOnly(Map<AlbumType, List<AlbumSimplified>> albumsSimplifiedByType, int lookbackDays) {
-		Map<AlbumType, List<AlbumSimplified>> filteredAlbums = BotUtils.createAlbumTypeToListOfTMap(albumsSimplifiedByType.keySet());
-		albumsSimplifiedByType.entrySet().stream().forEach(fa -> {
-			List<AlbumSimplified> filteredAlbumsOfType = fa.getValue().stream().filter(as -> ReleaseValidator.getInstance().isValidDate(as)).collect(Collectors.toList());
-			filteredAlbums.get(fa.getKey()).addAll(filteredAlbumsOfType);
+	public static Map<AlbumGroup, List<AlbumSimplified>> filterNewAlbumsOnly(Map<AlbumGroup, List<AlbumSimplified>> albumsSimplifiedByGroup, int lookbackDays) {
+		Map<AlbumGroup, List<AlbumSimplified>> filteredAlbums = BotUtils.createAlbumGroupToListOfTMap(albumsSimplifiedByGroup.keySet());
+		albumsSimplifiedByGroup.entrySet().stream().forEach(fa -> {
+			List<AlbumSimplified> filteredAlbumsOfGroup = fa.getValue().stream().filter(as -> ReleaseValidator.getInstance().isValidDate(as)).collect(Collectors.toList());
+			filteredAlbums.get(fa.getKey()).addAll(filteredAlbumsOfGroup);
 		});
 		return filteredAlbums;
 	}
 
 	/**
-	 * Returns a rearranged view of the given map, depending on whether any album types point to the same target playlist.
+	 * Returns a rearranged view of the given map, depending on whether any album groups point to the same target playlist.
 	 * The dominance is ordered as follows: ALBUM > SINGLE > COMPILATION > APPEARS_ON
 	 * 
-	 * @param newSongsByType
-	 * @param albumTypes
+	 * @param newSongsByGroup
+	 * @param albumGroups
 	 * @return
 	 */
-	public static Map<AlbumType, List<AlbumTrackPair>> mergeOnIdenticalPlaylists(Map<AlbumType, List<AlbumTrackPair>> newSongsByType, List<AlbumType> albumTypes) {
-		Map<String, List<AlbumType>> groupedAlbumTypes = new HashMap<>();
-		for (AlbumType at : albumTypes) {
-			String playlistId = BotUtils.getPlaylistIdByType(at);
-			if (!groupedAlbumTypes.containsKey(playlistId)) {
-				groupedAlbumTypes.put(playlistId, new ArrayList<>());
+	public static Map<AlbumGroup, List<AlbumTrackPair>> mergeOnIdenticalPlaylists(Map<AlbumGroup, List<AlbumTrackPair>> newSongsByGroup, List<AlbumGroup> albumGroups) {
+		Map<String, List<AlbumGroup>> albumGroupsByPlaylistId = new HashMap<>();
+		for (AlbumGroup ag : albumGroups) {
+			String playlistId = BotUtils.getPlaylistIdByGroup(ag);
+			if (!albumGroupsByPlaylistId.containsKey(playlistId)) {
+				albumGroupsByPlaylistId.put(playlistId, new ArrayList<>());
 			}
-			groupedAlbumTypes.get(playlistId).add(at);
+			albumGroupsByPlaylistId.get(playlistId).add(ag);
 		}
-		if (groupedAlbumTypes.size() == albumTypes.size()) {
-			return newSongsByType;
+		if (albumGroupsByPlaylistId.size() == albumGroups.size()) {
+			return newSongsByGroup;
 		}
 		
-		Map<AlbumType, List<AlbumTrackPair>> mergedAlbumTypes = BotUtils.createAlbumTypeToListOfTMap(albumTypes);
-		for (List<AlbumType> group : groupedAlbumTypes.values()) {
-			for (AlbumType at : group) {
-				mergedAlbumTypes.get(group.get(0)).addAll(newSongsByType.get(at));
+		Map<AlbumGroup, List<AlbumTrackPair>> mergedAlbumGroups = BotUtils.createAlbumGroupToListOfTMap(albumGroups);
+		for (List<AlbumGroup> group : albumGroupsByPlaylistId.values()) {
+			for (AlbumGroup ag : group) {
+				mergedAlbumGroups.get(group.get(0)).addAll(newSongsByGroup.get(ag));
 			}
 		}
-		return mergedAlbumTypes;
+		return mergedAlbumGroups;
 	}
 
 	/**
-	 * Categorize the list of given albums by album type and filter them by new albums only
+	 * Categorize the list of given albums by album group and filter them by new albums only
 	 * 
 	 * @param albumsSimplified
-	 * @param albumTypes
+	 * @param albumGroups
 	 * @param lookbackDays
 	 * @return
 	 * @throws SQLException 
 	 * @throws IOException 
 	 */
-	public static Map<AlbumType, List<AlbumSimplified>> categorizeAndFilterAlbums(List<AlbumSimplified> albumsSimplified, List<AlbumType> albumTypes) throws IOException, SQLException {
-		Map<AlbumType, List<AlbumSimplified>> categorizedAlbums = categorizeAlbumsByAlbumGroup(albumsSimplified, albumTypes);
+	public static Map<AlbumGroup, List<AlbumSimplified>> categorizeAndFilterAlbums(List<AlbumSimplified> albumsSimplified, List<AlbumGroup> albumGroups) throws IOException, SQLException {
+		Map<AlbumGroup, List<AlbumSimplified>> categorizedAlbums = categorizeAlbumsByAlbumGroup(albumsSimplified, albumGroups);
 		int lookbackDays = Config.getInstance().getLookbackDays();
-		Map<AlbumType, List<AlbumSimplified>> filteredAlbums = filterNewAlbumsOnly(categorizedAlbums, lookbackDays);
+		Map<AlbumGroup, List<AlbumSimplified>> filteredAlbums = filterNewAlbumsOnly(categorizedAlbums, lookbackDays);
 		return filteredAlbums;
 	}
 }

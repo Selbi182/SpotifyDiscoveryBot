@@ -3,7 +3,7 @@ package spotify.bot.crawler;
 import java.util.List;
 import java.util.Map;
 
-import com.wrapper.spotify.enums.AlbumType;
+import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
 import spotify.bot.Config;
@@ -16,22 +16,22 @@ import spotify.bot.util.AlbumTrackPair;
 import spotify.bot.util.BotUtils;
 
 public class SpotifyDiscoveryBotCrawler implements Runnable {
-	private List<AlbumType> albumTypes;
+	private List<AlbumGroup> albumGroups;
 
 	/**
-	 * Creates an idle crawling instance with 0 set songs per album type
+	 * Creates an idle crawling instance with 0 set songs per album group
 	 */
-	public SpotifyDiscoveryBotCrawler(List<AlbumType> albumTypes) {
-		this.albumTypes = albumTypes;
+	public SpotifyDiscoveryBotCrawler(List<AlbumGroup> albumGroups) {
+		this.albumGroups = albumGroups;
 	}
 
 	/**
-	 * Instantiate a new thread with the set album types as thread name and start it
+	 * Instantiate a new thread with the set album groups as thread name and start it
 	 * 
 	 * @return
 	 */
 	public Thread buildAndStart() {
-		Thread t = new Thread(this, albumTypes.toString());
+		Thread t = new Thread(this, albumGroups.toString());
 		t.start();
 		return t;
 	}
@@ -61,16 +61,16 @@ public class SpotifyDiscoveryBotCrawler implements Runnable {
 	 */
 	private void runCrawler() throws Exception {
 		List<String> followedArtists = UserInfoRequests.getFollowedArtistsIds();
-		List<AlbumSimplified> nonCachedAlbums = AlbumRequests.getNonCachedAlbumsOfArtists(followedArtists, albumTypes);
-		Map<AlbumType, Integer> songsAddedPerAlbumTypes = BotUtils.createAlbumTypeToIntegerMap(albumTypes);
+		List<AlbumSimplified> nonCachedAlbums = AlbumRequests.getNonCachedAlbumsOfArtists(followedArtists, albumGroups);
+		Map<AlbumGroup, Integer> songsAddedPerAlbumGroups = BotUtils.createAlbumGroupToIntegerMap(albumGroups);
 		if (!nonCachedAlbums.isEmpty()) {
-			Map<AlbumType, List<AlbumSimplified>> newAlbums = OfflineRequests.categorizeAndFilterAlbums(nonCachedAlbums, albumTypes);
-			if (!newAlbums.isEmpty()) {
-				Map<AlbumType, List<AlbumTrackPair>> newSongs = TrackRequests.getSongIdsByAlbums(newAlbums, followedArtists);
-				songsAddedPerAlbumTypes = PlaylistRequests.addAllReleasesToSetPlaylists(newSongs, albumTypes);							
-				BotUtils.logResults(songsAddedPerAlbumTypes);
+			Map<AlbumGroup, List<AlbumSimplified>> newAlbums = OfflineRequests.categorizeAndFilterAlbums(nonCachedAlbums, albumGroups);
+			if (!BotUtils.isAllEmptyAlbumsOfGroups(newAlbums)) {
+				Map<AlbumGroup, List<AlbumTrackPair>> newSongs = TrackRequests.getSongIdsByAlbums(newAlbums, followedArtists);
+				songsAddedPerAlbumGroups = PlaylistRequests.addAllReleasesToSetPlaylists(newSongs, albumGroups);							
+				BotUtils.logResults(songsAddedPerAlbumGroups);
 			}
 		}								
-		PlaylistRequests.timestampPlaylistsAndSetNotifiers(songsAddedPerAlbumTypes);
+		PlaylistRequests.timestampUnchangedPlaylistsAndCheckForObsoleteNotifiers(songsAddedPerAlbumGroups);
 	}
 }

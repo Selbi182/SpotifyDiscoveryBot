@@ -27,7 +27,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.github.thelinmichael:spotify-web-api-java:master-SNAPSHOT'
+    compile 'se.michaelthelin.spotify:spotify-web-api-java:4.2.0'
     compile group:'org.xerial', name:'sqlite-jdbc', version:'3.27.2.1'
     compile group: 'com.google.guava', name: 'guava', version: '11.0.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.1'

@@ -250,8 +250,8 @@ public class Config {
 		return artistCacheTimeout;
 	}
 
-	public UpdateStore getUpdateStoreByType(String type) {
-		return updateStoreMap.get(type);
+	public UpdateStore getUpdateStoreByGroup(String group) {
+		return updateStoreMap.get(group);
 	}
 
 	

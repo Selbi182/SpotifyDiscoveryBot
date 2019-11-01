@@ -173,48 +173,48 @@ public class SpotifyBotDatabase {
 	 * @param column
 	 * @throws SQLException
 	 */
-	public synchronized void unsetUpdateStore(String type) throws SQLException {
+	public synchronized void unsetUpdateStore(String group) throws SQLException {
 		Statement statement = connection.createStatement();
 		statement.executeUpdate(String.format("UPDATE %s SET %s = null WHERE %s = '%s';",
 			Constants.TABLE_UPDATE_STORE,
 			Constants.COL_LAST_UPDATED_TIMESTAMP,
 			Constants.COL_TYPE,
-			type
+			group
 		));
 		statement.executeUpdate(String.format("UPDATE %s SET %s = null WHERE %s = '%s';",
 			Constants.TABLE_UPDATE_STORE,
 			Constants.COL_LAST_UPDATED_TIMESTAMP,
 			Constants.COL_TYPE,
-			type
+			group
 		));
 	}
 
 	/**
 	 * Update the update store's given timestamp and unset the song count
 	 * 
-	 * @param type
+	 * @param group
 	 * @throws SQLException
 	 */
-	public synchronized void refreshUpdateStore(String type) throws SQLException {
-		unsetUpdateStore(type);
-		refreshUpdateStore(type, null);
+	public synchronized void refreshUpdateStore(String group) throws SQLException {
+		unsetUpdateStore(group);
+		refreshUpdateStore(group, null);
 	}
 	
 	/**
 	 * Update the update store's given timestamp and set the song count
 	 * 
-	 * @param type
+	 * @param group
 	 * @param addedSongs
 	 * @throws SQLException
 	 */
-	public synchronized void refreshUpdateStore(String type, Integer addedSongs) throws SQLException {
+	public synchronized void refreshUpdateStore(String group, Integer addedSongs) throws SQLException {
 		Statement statement = connection.createStatement();
-		if (type != null) {
+		if (group != null) {
 			statement.executeUpdate(String.format("UPDATE %s SET %s = strftime('%%s', 'now') * 1000 WHERE %s = '%s';",
 				Constants.TABLE_UPDATE_STORE,
 				Constants.COL_LAST_UPDATED_TIMESTAMP,
 				Constants.COL_TYPE,
-				type
+				group
 			));
 		}
 		if (addedSongs != null) {
@@ -223,7 +223,7 @@ public class SpotifyBotDatabase {
 				Constants.COL_LAST_UPDATE_SONG_COUNT,
 				addedSongs,
 				Constants.COL_TYPE,
-				type
+				group
 			));
 		}
 	}

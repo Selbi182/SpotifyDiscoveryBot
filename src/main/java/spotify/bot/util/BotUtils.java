@@ -14,7 +14,7 @@ import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import com.wrapper.spotify.enums.AlbumType;
+import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.model_objects.specification.Album;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
@@ -35,16 +35,16 @@ public final class BotUtils {
 	}
 
 	/**
-	 * Returns the stored playlist ID by the given album type. Should the same ID be set for multiple playlists,
-	 * the album type is returned hierarchically: ALBUM > SINGLE > COMPILATION > APPEARS_ON
+	 * Returns the stored playlist ID by the given album group. Should the same ID be set for multiple playlists,
+	 * the album group is returned hierarchically: ALBUM > SINGLE > COMPILATION > APPEARS_ON
 	 * 
-	 * @param albumType
+	 * @param albumGroup
 	 * @return
 	 * @throws IOException 
 	 */
-	public static String getPlaylistIdByType(AlbumType albumType) {
+	public static String getPlaylistIdByGroup(AlbumGroup albumGroup) {
 		try {
-			switch (albumType) {
+			switch (albumGroup) {
 				case ALBUM:
 					return Config.getInstance().getPlaylistAlbums();
 				case SINGLE:
@@ -61,7 +61,7 @@ public final class BotUtils {
 	}
 	
 	/**
-	 * Returns true if at least one of tha arguments equates to null
+	 * Returns true if ag least one of tha arguments equates to null
 	 * 
 	 * @param objects
 	 * @return
@@ -102,51 +102,51 @@ public final class BotUtils {
 	}
 
 	/**
-	 * Fetch all album types that are set in the config
+	 * Fetch all album groups that are set in the config
 	 * 
-	 * @param albumTypes
+	 * @param albumGroups
 	 */
-	public static List<AlbumType> getSetAlbumTypes() {
-		List<AlbumType> setAlbumTypes = new ArrayList<>();
-		for (AlbumType at : AlbumType.values()) {
-			String playlistId = BotUtils.getPlaylistIdByType(at);			
+	public static List<AlbumGroup> getSetAlbumGroups() {
+		List<AlbumGroup> setAlbumGroups = new ArrayList<>();
+		for (AlbumGroup ag : AlbumGroup.values()) {
+			String playlistId = BotUtils.getPlaylistIdByGroup(ag);			
 			if (BotUtils.isPlaylistSet(playlistId)) {
-				setAlbumTypes.add(at);
+				setAlbumGroups.add(ag);
 			}
 		}
-		return setAlbumTypes;
+		return setAlbumGroups;
 	}
 
 	/**
-	 * Takes a map of album types with albums and puts them all into a single key
+	 * Takes a map of album groups with albums and puts them all into a single key
 	 * 
-	 * @param albumsByAlbumType
+	 * @param albumsByAlbumGroup
 	 * @param appearsOn
 	 */
-	public static Map<AlbumType, List<Album>> flattenToSingleAlbumType(Map<AlbumType, List<Album>> albumsByAlbumType, AlbumType newSoloAlbumType) {
-		Map<AlbumType, List<Album>> flattened = new ConcurrentHashMap<>();
-		flattened.put(newSoloAlbumType, new ArrayList<>());
-		albumsByAlbumType.values().parallelStream().forEach(abat -> {
-			flattened.get(newSoloAlbumType).addAll(abat);
+	public static Map<AlbumGroup, List<Album>> flattenToSingleAlbumGroup(Map<AlbumGroup, List<Album>> albumsByAlbumGroup, AlbumGroup newSoloAlbumGroup) {
+		Map<AlbumGroup, List<Album>> flattened = new ConcurrentHashMap<>();
+		flattened.put(newSoloAlbumGroup, new ArrayList<>());
+		albumsByAlbumGroup.values().parallelStream().forEach(abat -> {
+			flattened.get(newSoloAlbumGroup).addAll(abat);
 		});
 		return flattened;
 	}
 
 	/**
-	 * Returns true if the album type is set to Compilation or the artist is "Various Artists"
+	 * Returns true if the album group is set to Compilation or the artist is "Various Artists"
 	 * 
 	 * @param a
 	 * @return
 	 */
 	public static boolean isCollectionOrSampler(AlbumSimplified a) {
-		if (!a.getAlbumType().equals(AlbumType.COMPILATION)) {
+		if (!a.getAlbumGroup().equals(AlbumGroup.COMPILATION)) {
 			return Arrays.asList(a.getArtists()).stream().anyMatch(as -> as.getName().equals(Constants.VARIOUS_ARTISTS));
 		}
 		return true;
 	}
 
 	/**
-	 * Checks if at least a single artist of the subset is part of the given artist superset
+	 * Checks if ag least a single artist of the subset is part of the given artist superset
 	 * 
 	 * @param followedArtists
 	 * @param artists
@@ -160,56 +160,56 @@ public final class BotUtils {
 	/**
 	 * Creates a concurrent generic map with some List T as the values
 	 *  
-	 * @param albumTypes
+	 * @param albumGroups
 	 * @return
 	 */
-	public static <T> Map<AlbumType, List<T>> createAlbumTypeToListOfTMap(Collection<AlbumType> albumTypes) {
-		Map<AlbumType, List<T>> albumTypeToList = new ConcurrentHashMap<>();
-		albumTypes.stream().forEach(at -> {
-			albumTypeToList.put(at, new ArrayList<>());
+	public static <T> Map<AlbumGroup, List<T>> createAlbumGroupToListOfTMap(Collection<AlbumGroup> albumGroups) {
+		Map<AlbumGroup, List<T>> albumGroupToList = new ConcurrentHashMap<>();
+		albumGroups.stream().forEach(ag -> {
+			albumGroupToList.put(ag, new ArrayList<>());
 		});
-		return albumTypeToList;
+		return albumGroupToList;
 	}
 	
 	/**
 	 * Creates a concurrent generic map with 0-set integers as the values
 	 * 
-	 * @param albumTypes
+	 * @param albumGroups
 	 * @return
 	 */
-	public static Map<AlbumType, Integer> createAlbumTypeToIntegerMap(Collection<AlbumType> albumTypes) {
-		Map<AlbumType, Integer> albumTypeToInteger = new ConcurrentHashMap<>();
-		albumTypes.stream().forEach(at -> {
-			albumTypeToInteger.put(at, 0);
+	public static Map<AlbumGroup, Integer> createAlbumGroupToIntegerMap(Collection<AlbumGroup> albumGroups) {
+		Map<AlbumGroup, Integer> albumGroupToInteger = new ConcurrentHashMap<>();
+		albumGroups.stream().forEach(ag -> {
+			albumGroupToInteger.put(ag, 0);
 		});
-		return albumTypeToInteger;
+		return albumGroupToInteger;
 	}
 	
 	/**
-	 * Creates the comma-delimited, lowercase String of album types to search for
+	 * Creates the comma-delimited, lowercase String of album groups to search for
 	 * 
-	 * @param albumTypes
+	 * @param albumGroups
 	 * @return
 	 */
-	public static String createAlbumTypeString(List<AlbumType> albumTypes) {
-		StringJoiner albumTypesAsString = new StringJoiner(",");
-		albumTypes.stream().forEach(at -> albumTypesAsString.add(at.getType()));
-		return albumTypesAsString.toString();
+	public static String createAlbumGroupString(List<AlbumGroup> albumGroups) {
+		StringJoiner albumGroupsAsString = new StringJoiner(",");
+		albumGroups.stream().forEach(ag -> albumGroupsAsString.add(ag.getGroup()));
+		return albumGroupsAsString.toString();
 	}
 
 	/**
 	 * Logs the final results of the bot if any songs were added
 	 * 
-	 * @param songsAddedPerAlbumTypes
+	 * @param songsAddedPerAlbumGroups
 	 * @return
 	 * @throws SQLException 
 	 * @throws IOException 
 	 */
-	public static void logResults(Map<AlbumType, Integer> songsAddedPerAlbumTypes) {
-		int totalSongsAdded = songsAddedPerAlbumTypes.values().stream().mapToInt(Integer::intValue).sum();
+	public static void logResults(Map<AlbumGroup, Integer> songsAddedPerAlbumGroups) {
+		int totalSongsAdded = songsAddedPerAlbumGroups.values().stream().mapToInt(Integer::intValue).sum();
 		if (totalSongsAdded > 0) {
 			StringJoiner sj = new StringJoiner(" / ");
-			songsAddedPerAlbumTypes.entrySet().stream().forEach(sapat -> {
+			songsAddedPerAlbumGroups.entrySet().stream().forEach(sapat -> {
 				if (sapat.getValue() > 0) {
 					sj.add(sapat.getValue() + " " + sapat.getKey());						
 				}
@@ -220,5 +220,15 @@ public final class BotUtils {
 				// Oh well, no info I guess
 			}			
 		}
+	}
+
+	/**
+	 * Returns true if all album groups have empty album lists
+	 * 
+	 * @param albumsByGroup
+	 * @return
+	 */
+	public static boolean isAllEmptyAlbumsOfGroups(Map<AlbumGroup, List<AlbumSimplified>> albumsByGroup) {
+		return albumsByGroup.values().stream().allMatch(l -> l.isEmpty());
 	}
 }

@@ -100,7 +100,11 @@ public class SpotifyApiSessionManager {
 	 * @throws Exception
 	 */
 	private void refreshAccessToken() throws IOException, SQLException, BadRequestException, UnauthorizedException {
-		AuthorizationCodeCredentials acc = SpotifyApiRequest.execute(spotifyApi().authorizationCodeRefresh().build());						
+		if (spotifyApi().getAccessToken() == null || spotifyApi().getRefreshToken() == null) {
+			throw new BadRequestException("Tokens aren't set");
+		}
+		
+		AuthorizationCodeCredentials acc = SpotifyApiRequest.execute(spotifyApi().authorizationCodeRefresh().build());
 		spotifyApi().setAccessToken(acc.getAccessToken());
 		updateTokens();
 	}

@@ -43,8 +43,8 @@ public class Main {
 			SpotifyApiSessionManager.api();
 			Calendar.getInstance();
 
-			// Start the bot with the set-by-config album types
-			Thread bot = new SpotifyDiscoveryBotCrawler(BotUtils.getSetAlbumTypes()).buildAndStart();
+			// Start the bot with the set-by-config album groups
+			Thread bot = new SpotifyDiscoveryBotCrawler(BotUtils.getSetAlbumGroups()).buildAndStart();
 			bot.join(Constants.BOT_TIMEOUT);
 			if (bot.isAlive()) {
 				bot.interrupt();

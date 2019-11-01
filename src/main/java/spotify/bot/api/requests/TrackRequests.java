@@ -13,7 +13,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-import com.wrapper.spotify.enums.AlbumType;
+import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.Paging;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
@@ -33,7 +33,7 @@ public class TrackRequests {
 	private TrackRequests() {}
 
 	/**
-	 * Get all songs IDs of the given list of albums, categorized by album type and the source album.
+	 * Get all songs IDs of the given list of albums, categorized by album group and the source album.
 	 * Appears_on might bbe treated differently
 	 * 
 	 * @param followedArtists 
@@ -46,14 +46,14 @@ public class TrackRequests {
 	 * @throws InterruptedException 
 	 * @throws Exception
 	 */
-	public static Map<AlbumType, List<AlbumTrackPair>> getSongIdsByAlbums(Map<AlbumType, List<AlbumSimplified>> albumsByAlbumType, List<String> followedArtists) throws IOException, SQLException {
-		Map<AlbumType, List<AlbumTrackPair>> tracksOfAlbumsByType = BotUtils.createAlbumTypeToListOfTMap(albumsByAlbumType.keySet());
+	public static Map<AlbumGroup, List<AlbumTrackPair>> getSongIdsByAlbums(Map<AlbumGroup, List<AlbumSimplified>> albumsByAlbumGroup, List<String> followedArtists) throws IOException, SQLException {
+		Map<AlbumGroup, List<AlbumTrackPair>> tracksOfAlbumsByGroup = BotUtils.createAlbumGroupToListOfTMap(albumsByAlbumGroup.keySet());
 		final boolean isIntelligentAppearsOnSearch = Config.getInstance().isIntelligentAppearsOnSearch();
-		albumsByAlbumType.entrySet().parallelStream().forEach(at -> {
-			AlbumType albumType = at.getKey();
-			List<AlbumSimplified> albums = at.getValue();
-			final List<AlbumTrackPair> target = tracksOfAlbumsByType.get(albumType);
-			if (AlbumType.APPEARS_ON.equals(albumType) && isIntelligentAppearsOnSearch) {
+		albumsByAlbumGroup.entrySet().parallelStream().forEach(ag -> {
+			AlbumGroup albumGroup = ag.getKey();
+			List<AlbumSimplified> albums = ag.getValue();
+			final List<AlbumTrackPair> target = tracksOfAlbumsByGroup.get(albumGroup);
+			if (AlbumGroup.APPEARS_ON.equals(albumGroup) && isIntelligentAppearsOnSearch) {
 				target.addAll(intelligentAppearsOnSearch(albums, followedArtists));
 			} else {
 				albums.parallelStream().forEach(a -> {
@@ -61,7 +61,7 @@ public class TrackRequests {
 				});
 			}
 		});
-		return tracksOfAlbumsByType;
+		return tracksOfAlbumsByGroup;
 	}
 	
 	/**
@@ -71,9 +71,9 @@ public class TrackRequests {
 	 * @return
 	 * @throws Exception
 	 */
-	public static List<AlbumTrackPair> getSongIdsByAlbums(List<AlbumSimplified> albumsByAlbumType) {
+	public static List<AlbumTrackPair> getSongIdsByAlbums(List<AlbumSimplified> albums) {
 		List<AlbumTrackPair> tracksOfAlbums = new ArrayList<>();
-		albumsByAlbumType.parallelStream().forEach(a -> {
+		albums.parallelStream().forEach(a -> {
 			AlbumTrackPair currentList = tracksOfAlbum(a);
 			tracksOfAlbums.add(currentList);
 		});

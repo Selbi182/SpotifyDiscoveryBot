@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.wrapper.spotify.enums.AlbumType;
+import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.model_objects.miscellaneous.CurrentlyPlaying;
 import com.wrapper.spotify.model_objects.specification.Paging;
 import com.wrapper.spotify.model_objects.specification.PlayHistory;
@@ -38,12 +38,12 @@ public class PlaylistRequests {
 	private PlaylistRequests() {}
 
 	/**
-	 * Timestamp all given playlists and set the new indicator depending on the added song count
+	 * Timestamp all given playlists that DON'T have any songs added and potentially remove the notifier
 	 * 
-	 * @param songsAddedPerAlbumTypes
+	 * @param songsAddedPerAlbumGroup
 	 */
-	public static void timestampPlaylistsAndSetNotifiers(Map<AlbumType, Integer> songsAddedPerAlbumTypes) {
-		songsAddedPerAlbumTypes.entrySet().forEach(sapat -> {
+	public static void timestampUnchangedPlaylistsAndCheckForObsoleteNotifiers(Map<AlbumGroup, Integer> songsAddedPerAlbumGroup) {
+		songsAddedPerAlbumGroup.entrySet().parallelStream().filter(e -> e.getValue() == 0).forEach(sapat -> {
 			timestampSinglePlaylistAndSetNotifier(sapat.getKey(), sapat.getValue());
 		});
 	}
@@ -51,13 +51,14 @@ public class PlaylistRequests {
 	/**
 	 * Timestamp the playlist's description with the last time the crawling process was initiated and include the number of added songs
 	 * 
-	 * @param songsAddedPerAlbumType
+	 * @param albumGroup
+	 * @param addedSongsCount
 	 * @throws Exception 
 	 */
-	public static void timestampSinglePlaylistAndSetNotifier(AlbumType albumType, int addedSongsCount) {
+	public static void timestampSinglePlaylistAndSetNotifier(AlbumGroup albumGroup, int addedSongsCount) {
 		try {
 			// Fetch the playlist
-			String playlistId = BotUtils.getPlaylistIdByType(albumType);
+			String playlistId = BotUtils.getPlaylistIdByGroup(albumGroup);
 			Playlist p = SpotifyApiRequest.execute(SpotifyApiSessionManager.api().getPlaylist(playlistId).build());
 			String playlistName = p.getName();
 			
@@ -69,12 +70,12 @@ public class PlaylistRequests {
 				if (!playlistName.contains(Constants.NEW_INDICATOR_TEXT)) {
 					playlistName = String.format("%s %s", playlistName, Constants.NEW_INDICATOR_TEXT);
 				}
-				SpotifyBotDatabase.getInstance().refreshUpdateStore(albumType.getType(), addedSongsCount);
+				SpotifyBotDatabase.getInstance().refreshUpdateStore(albumGroup.getGroup(), addedSongsCount);
 			} else {
 				if (playlistName.contains(Constants.NEW_INDICATOR_TEXT)) {
-					if (isIndicatorMarkedAsRead(playlistId, albumType)) {
+					if (isIndicatorMarkedAsRead(playlistId, albumGroup)) {
 						playlistName = p.getName().replaceFirst(Constants.NEW_INDICATOR_TEXT, "").trim();
-						SpotifyBotDatabase.getInstance().unsetUpdateStore(albumType.getType());
+						SpotifyBotDatabase.getInstance().unsetUpdateStore(albumGroup.getGroup());
 					}
 				}		
 			}			
@@ -89,13 +90,13 @@ public class PlaylistRequests {
 	 * and grows toward checking the actual songs the user has recently listened to to mark them as "read".
 	 * 
 	 * @param playlistId
-	 * @param albumType
+	 * @param albumGroup
 	 * @return
 	 * @throws IOException
 	 * @throws Exception
 	 */
-	private static boolean isIndicatorMarkedAsRead(String playlistId, AlbumType albumType) throws IOException, Exception {
-		UpdateStore updateStore = Config.getInstance().getUpdateStoreByType(albumType.getType());
+	private static boolean isIndicatorMarkedAsRead(String playlistId, AlbumGroup albumGroup) throws IOException, Exception {
+		UpdateStore updateStore = Config.getInstance().getUpdateStoreByGroup(albumGroup.getGroup());
 		Date lastUpdated = updateStore.getLastUpdatedTimestamp();
 		Integer lastUpdateSongCount = updateStore.getLastUpdateSongCount();
 		
@@ -139,17 +140,17 @@ public class PlaylistRequests {
 	 * @return 
 	 * @throws Exception 
 	 */
-	public static int addSongsToPlaylist(List<AlbumTrackPair> albumTrackPairs, AlbumType albumType) {
+	public static int addSongsToPlaylist(List<AlbumTrackPair> albumTrackPairs, AlbumGroup albumGroup) {
 		try {
-			String playlistId = BotUtils.getPlaylistIdByType(albumType);
-			return addSongsToPlaylistSynchronized(albumTrackPairs, playlistId);
+			String playlistId = BotUtils.getPlaylistIdByGroup(albumGroup);
+			return addSongsToPlaylistId(albumTrackPairs, playlistId);
 		} catch (Exception e) {
 			Config.logStackTrace(e);
 		}
 		return 0;
 	}
 	
-	private synchronized static int addSongsToPlaylistSynchronized(List<AlbumTrackPair> albumTrackPairs, String playlistId) throws Exception {
+	private static int addSongsToPlaylistId(List<AlbumTrackPair> albumTrackPairs, String playlistId) throws Exception {
 		circularPlaylistFitting(playlistId, albumTrackPairs.stream().mapToInt(AlbumTrackPair::trackCount).sum());
 		int songsAdded = 0;
 		if (!albumTrackPairs.isEmpty()) {
@@ -242,26 +243,26 @@ public class PlaylistRequests {
 	}
 
 	/**
-	 * Adds all releases to the set playlists. Reuse of album types will result in those releases to be added to the same playlist.
+	 * Adds all releases to the set playlists. Reuse of album groups will result in those releases to be added to the same playlist.
 	 * Playlists will get timestamped and receive a [NEW] indicator on new additions
 	 * 
-	 * @param newSongsByType
-	 * @param setAlbumTypes
+	 * @param newSongsByGroup
+	 * @param setAlbumGroups
 	 * @return
 	 */
-	public static Map<AlbumType, Integer> addAllReleasesToSetPlaylists(Map<AlbumType, List<AlbumTrackPair>> newSongsByType, List<AlbumType> setAlbumTypes) {
-		Map<AlbumType, Integer> songsAddedPerAlbumTypes = new ConcurrentHashMap<>();
-		
-		Map<AlbumType, List<AlbumTrackPair>> mergedAlbumTypesOfSongs = OfflineRequests.mergeOnIdenticalPlaylists(newSongsByType, setAlbumTypes);
-		mergedAlbumTypesOfSongs.entrySet().stream().forEach(entry -> {
-			AlbumType albumType = entry.getKey();
+	public static Map<AlbumGroup, Integer> addAllReleasesToSetPlaylists(Map<AlbumGroup, List<AlbumTrackPair>> newSongsByGroup, List<AlbumGroup> setAlbumGroups) {
+		Map<AlbumGroup, Integer> songsAddedPerAlbumGroups = new ConcurrentHashMap<>();
+		Map<AlbumGroup, List<AlbumTrackPair>> mergedAlbumGroupsOfSongs = OfflineRequests.mergeOnIdenticalPlaylists(newSongsByGroup, setAlbumGroups);
+		mergedAlbumGroupsOfSongs.entrySet().parallelStream().forEach(entry -> {
+			AlbumGroup albumGroup = entry.getKey();
 			List<AlbumTrackPair> albumTrackPairs = entry.getValue();
 			if (!albumTrackPairs.isEmpty()) {
 				List<AlbumTrackPair> sortedAlbums = OfflineRequests.sortReleases(albumTrackPairs);
-				int addedSongsCount = PlaylistRequests.addSongsToPlaylist(sortedAlbums, albumType);
-				songsAddedPerAlbumTypes.put(albumType, addedSongsCount);			
+				int addedSongsCount = PlaylistRequests.addSongsToPlaylist(sortedAlbums, albumGroup);
+				songsAddedPerAlbumGroups.put(albumGroup, addedSongsCount);
+				timestampSinglePlaylistAndSetNotifier(albumGroup, addedSongsCount);
 			}
 		});
-		return songsAddedPerAlbumTypes;
+		return songsAddedPerAlbumGroups;
 	}
 }

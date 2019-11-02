@@ -73,7 +73,7 @@ public class PlaylistRequests {
 				SpotifyBotDatabase.getInstance().refreshUpdateStore(albumGroup.getGroup(), addedSongsCount);
 			} else {
 				if (playlistName.contains(Constants.NEW_INDICATOR_TEXT)) {
-					if (isIndicatorMarkedAsRead(playlistId, albumGroup)) {
+					if (shouldIndicatorBeMarkedAsRead(playlistId, albumGroup)) {
 						playlistName = p.getName().replaceFirst(Constants.NEW_INDICATOR_TEXT, "").trim();
 						SpotifyBotDatabase.getInstance().unsetUpdateStore(albumGroup.getGroup());
 					}
@@ -95,7 +95,7 @@ public class PlaylistRequests {
 	 * @throws IOException
 	 * @throws Exception
 	 */
-	private static boolean isIndicatorMarkedAsRead(String playlistId, AlbumGroup albumGroup) throws IOException, Exception {
+	private static boolean shouldIndicatorBeMarkedAsRead(String playlistId, AlbumGroup albumGroup) throws IOException, Exception {
 		UpdateStore updateStore = Config.getInstance().getUpdateStoreByGroup(albumGroup.getGroup());
 		Date lastUpdated = updateStore.getLastUpdatedTimestamp();
 		Integer lastUpdateSongCount = updateStore.getLastUpdateSongCount();
@@ -117,19 +117,20 @@ public class PlaylistRequests {
 			return true;
 		}
 		
-		// Case 4: Currently played song ISN'T in the context of the discovery playlist, but still part of the N most recently added songs
-		// (This is usually because the song was added to the queue, as there is no direct API for it)
+		// Case 4: Currently played song is NOT in the context of the discovery playlist, but still part of the N most recently added songs
+		// (Commonly because it was added to the queue or is played from the artist's page itself)
 		PlaylistTrack[] recentlyAddedPlaylistTracks = SpotifyApiRequest.execute(SpotifyApiSessionManager.api().getPlaylistsTracks(playlistId).limit(Math.min(lastUpdateSongCount, Constants.DEFAULT_LIMIT)).build()).getItems();
 		boolean currentlyPlayingSongIsNew = Arrays.asList(recentlyAddedPlaylistTracks).stream().anyMatch(pt -> pt.getTrack().getId().equals(currentlyPlaying.getItem().getId()));
 		if (currentlyPlayingSongIsNew) {
 			return true;
 		}
-
-		// Case 5: Last resort, check the most recently played songs that were played after the playlist was updated whether any of them is in the playlist's context
-		// (This should happen super rarely)
-		PlayHistory[] playHistory = SpotifyApiRequest.execute(SpotifyApiSessionManager.api().getCurrentUsersRecentlyPlayedTracks().limit(Constants.DEFAULT_LIMIT).after(lastUpdated).build()).getItems();
-		boolean wasRecentlyPlayed = Arrays.asList(playHistory).stream().anyMatch(ph -> ph.getPlayedAt().after(lastUpdated) && ph.getContext().getUri().contains(playlistId));
-		return wasRecentlyPlayed;
+		
+		// Case 5: Last resort, check if the playlist history contains a recently added playlist track or was played from the context of the playlist
+		// (This should happen super rarely)		
+		List<PlayHistory> playHistory = Arrays.asList(SpotifyApiRequest.execute(SpotifyApiSessionManager.api().getCurrentUsersRecentlyPlayedTracks().limit(Constants.DEFAULT_LIMIT).after(lastUpdated).build()).getItems());
+		boolean newTrackWasRecentlyPlayedExternally = playHistory.stream().anyMatch(ph -> ph.getTrack().getId().equals(currentlyPlaying.getItem().getId()));
+		boolean newTrackWasRecentlyPlayedInContext = playHistory.stream().anyMatch(ph -> ph.getPlayedAt().after(lastUpdated) && ph.getContext().getUri().contains(playlistId));
+		return (newTrackWasRecentlyPlayedExternally || newTrackWasRecentlyPlayedInContext);
 	}
 	
 	/**

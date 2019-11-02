@@ -36,6 +36,7 @@ public class UserInfoRequests {
 	public static List<String> getFollowedArtistsIds() throws Exception {
 		// Try to fetch from cache first
 		List<String> cachedArtists = getCachedFollowedArtists();
+		BotUtils.removeNullStrings(cachedArtists);
 		if (cachedArtists != null && !cachedArtists.isEmpty()) {
 			Date lastUpdatedArtistCache = Config.getInstance().getUpdateStoreByGroup(Constants.US_ARTIST_CACHE).getLastUpdatedTimestamp();
 			if (lastUpdatedArtistCache != null) {
@@ -68,6 +69,7 @@ public class UserInfoRequests {
 		if (followedArtists.isEmpty()) {
 			Config.log().warning("No followed artists found!");
 		}
+		BotUtils.removeNullStrings(followedArtists);
 		return followedArtists;
 	}
 	

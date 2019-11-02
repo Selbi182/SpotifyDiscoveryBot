@@ -111,6 +111,7 @@ public class AlbumRequests {
 	public static List<AlbumSimplified> getNonCachedAlbumsOfArtists(List<String> followedArtists, List<AlbumGroup> albumGroups) throws Exception {
 		List<AlbumSimplified> allAlbums = getAlbumsOfArtists(followedArtists, albumGroups);
 		List<AlbumSimplified> filteredAlbums = SpotifyBotDatabase.getInstance().filterNonCachedAlbumsOnly(allAlbums);
+		BotUtils.removeNulls(filteredAlbums);
 		SpotifyBotDatabase.getInstance().cacheAlbumIdsAsync(filteredAlbums);
 		return filteredAlbums;
 	}

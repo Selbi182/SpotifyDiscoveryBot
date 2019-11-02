@@ -215,7 +215,7 @@ public final class BotUtils {
 				}
 			});
 			try {
-				Config.log().info(String.format("%d new songs added! [%s]", totalSongsAdded, sj.toString()));
+				Config.log().info(String.format("%d new song%s added! [%s]", totalSongsAdded, totalSongsAdded > 1 ? "s" : "", sj.toString()));
 			} catch (IOException | SQLException e) {
 				// Oh well, no info I guess
 			}			
@@ -230,5 +230,23 @@ public final class BotUtils {
 	 */
 	public static boolean isAllEmptyAlbumsOfGroups(Map<AlbumGroup, List<AlbumSimplified>> albumsByGroup) {
 		return albumsByGroup.values().stream().allMatch(l -> l.isEmpty());
+	}
+
+	/**
+	 * Remove all items from this list that are either <i>null</i> or "null" (a literal String)
+	 * 
+	 * @param followedArtists
+	 */
+	public static void removeNullStrings(Collection<String> collection) {
+		collection.removeIf(e -> e == null || e.toLowerCase().equals("null"));
+	}
+
+	/**
+	 * Remove all items from this collection that are null
+	 * 
+	 * @param collection
+	 */
+	public static void removeNulls(Collection<?> collection) {
+		collection.removeIf(e -> e == null);
 	}
 }

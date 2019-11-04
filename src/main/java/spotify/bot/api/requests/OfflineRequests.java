@@ -9,19 +9,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
-import spotify.bot.Config;
-import spotify.bot.util.AlbumTrackPair;
+import spotify.bot.config.Config;
+import spotify.bot.dto.AlbumTrackPair;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.ReleaseValidator;
 
+@Service
 public class OfflineRequests {
-	/**
-	 * Static calls only
-	 */
-	private OfflineRequests() {}
+	
+	@Autowired
+	private Config config;
 
 	/**
 	 * Sort the albums of each album group
@@ -29,7 +32,7 @@ public class OfflineRequests {
 	 * @param albumTrackPairs
 	 * @return 
 	 */
-	public static List<AlbumTrackPair> sortReleases(List<AlbumTrackPair> albumTrackPairs) {
+	public List<AlbumTrackPair> sortReleases(List<AlbumTrackPair> albumTrackPairs) {
 		Collections.sort(albumTrackPairs);
 		return albumTrackPairs;
 	}
@@ -42,7 +45,7 @@ public class OfflineRequests {
 	 * @param albumGroups 
 	 * @return
 	 */
-	public static Map<AlbumGroup, List<AlbumSimplified>> categorizeAlbumsByAlbumGroup(List<AlbumSimplified> albumsSimplified, List<AlbumGroup> albumGroups) {
+	public Map<AlbumGroup, List<AlbumSimplified>> categorizeAlbumsByAlbumGroup(List<AlbumSimplified> albumsSimplified, List<AlbumGroup> albumGroups) {
 		Map<AlbumGroup, List<AlbumSimplified>> categorized = BotUtils.createAlbumGroupToListOfTMap(albumGroups);
 		albumsSimplified.parallelStream().forEach(as -> {
 			AlbumGroup albumGroupOfAlbum = as.getAlbumGroup();
@@ -57,7 +60,7 @@ public class OfflineRequests {
 	 * @param albumsSimplifiedByGroup
 	 * @return
 	 */
-	public static Map<AlbumGroup, List<AlbumSimplified>> filterNewAlbumsOnly(Map<AlbumGroup, List<AlbumSimplified>> albumsSimplifiedByGroup, int lookbackDays) {
+	public Map<AlbumGroup, List<AlbumSimplified>> filterNewAlbumsOnly(Map<AlbumGroup, List<AlbumSimplified>> albumsSimplifiedByGroup, int lookbackDays) {
 		Map<AlbumGroup, List<AlbumSimplified>> filteredAlbums = BotUtils.createAlbumGroupToListOfTMap(albumsSimplifiedByGroup.keySet());
 		albumsSimplifiedByGroup.entrySet().stream().forEach(fa -> {
 			List<AlbumSimplified> filteredAlbumsOfGroup = fa.getValue().stream().filter(as -> ReleaseValidator.getInstance().isValidDate(as)).collect(Collectors.toList());
@@ -74,7 +77,7 @@ public class OfflineRequests {
 	 * @param albumGroups
 	 * @return
 	 */
-	public static Map<AlbumGroup, List<AlbumTrackPair>> mergeOnIdenticalPlaylists(Map<AlbumGroup, List<AlbumTrackPair>> newSongsByGroup, List<AlbumGroup> albumGroups) {
+	public Map<AlbumGroup, List<AlbumTrackPair>> mergeOnIdenticalPlaylists(Map<AlbumGroup, List<AlbumTrackPair>> newSongsByGroup, List<AlbumGroup> albumGroups) {
 		Map<String, List<AlbumGroup>> albumGroupsByPlaylistId = new HashMap<>();
 		for (AlbumGroup ag : albumGroups) {
 			String playlistId = BotUtils.getPlaylistIdByGroup(ag);
@@ -106,9 +109,9 @@ public class OfflineRequests {
 	 * @throws SQLException 
 	 * @throws IOException 
 	 */
-	public static Map<AlbumGroup, List<AlbumSimplified>> categorizeAndFilterAlbums(List<AlbumSimplified> albumsSimplified, List<AlbumGroup> albumGroups) throws IOException, SQLException {
+	public Map<AlbumGroup, List<AlbumSimplified>> categorizeAndFilterAlbums(List<AlbumSimplified> albumsSimplified, List<AlbumGroup> albumGroups) throws IOException, SQLException {
 		Map<AlbumGroup, List<AlbumSimplified>> categorizedAlbums = categorizeAlbumsByAlbumGroup(albumsSimplified, albumGroups);
-		int lookbackDays = Config.getInstance().getLookbackDays();
+		int lookbackDays = config.getLookbackDays();
 		Map<AlbumGroup, List<AlbumSimplified>> filteredAlbums = filterNewAlbumsOnly(categorizedAlbums, lookbackDays);
 		return filteredAlbums;
 	}

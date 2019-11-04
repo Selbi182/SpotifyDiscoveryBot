@@ -1,7 +1,5 @@
 package spotify.bot.util;
 
-import java.io.IOException;
-import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashSet;
@@ -10,14 +8,23 @@ import java.util.Set;
 import com.wrapper.spotify.enums.ReleaseDatePrecision;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
-import spotify.bot.Config;
+import spotify.bot.config.Config;
 
 public class ReleaseValidator {
-	private static final int DEFAULT_LOOKBACK_DAYS = 31;
-	
 	private static ReleaseValidator instance;
 	private Set<String> validDates;
 	private String validMonthDate;
+	
+	private static Config config;
+	
+	/**
+	 * Initialize the utility class's configuration
+	 * 
+	 * @param config
+	 */
+	public static void initializeUtilConfig(Config config) {
+		ReleaseValidator.config = config;
+	}
 	
 	private ReleaseValidator(int lookbackDays) {		
 		Calendar cal = Calendar.getInstance();
@@ -35,11 +42,7 @@ public class ReleaseValidator {
 	
 	public static ReleaseValidator getInstance() {
 		if (instance == null) {
-			try {
-				instance = new ReleaseValidator(Config.getInstance().getLookbackDays());
-			} catch (IOException | SQLException e) {
-				instance = new ReleaseValidator(DEFAULT_LOOKBACK_DAYS);
-			}
+			instance = new ReleaseValidator(config.getLookbackDays());
 		}
 		return instance;
 	}

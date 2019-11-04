@@ -19,14 +19,28 @@ import com.wrapper.spotify.model_objects.specification.Album;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
 
-import spotify.bot.Config;
+import spotify.bot.config.Config;
 
 public final class BotUtils {
+	
+	private static Config config;
+	
+	/**
+	 * Initialize the utility class's configuration
+	 * 
+	 * @param config
+	 */
+	public static void initializeUtilConfig(Config config) {
+		BotUtils.config = config;
+	}
+	
 	/**
 	 * Static calls only
 	 */
 	private BotUtils() {}
 
+	///////
+	
 	/**
 	 * Check if the given playlistId has been set
 	 */
@@ -43,19 +57,15 @@ public final class BotUtils {
 	 * @throws IOException 
 	 */
 	public static String getPlaylistIdByGroup(AlbumGroup albumGroup) {
-		try {
-			switch (albumGroup) {
-				case ALBUM:
-					return Config.getInstance().getPlaylistAlbums();
-				case SINGLE:
-					return Config.getInstance().getPlaylistSingles();
-				case COMPILATION:
-					return Config.getInstance().getPlaylistCompilations();
-				case APPEARS_ON:
-					return Config.getInstance().getPlaylistAppearsOn();
-			}
-		} catch (IOException | SQLException e) {
-			Config.logStackTrace(e);
+		switch (albumGroup) {
+			case ALBUM:
+				return config.getPlaylistAlbums();
+			case SINGLE:
+				return config.getPlaylistSingles();
+			case COMPILATION:
+				return config.getPlaylistCompilations();
+			case APPEARS_ON:
+				return config.getPlaylistAppearsOn();
 		}
 		return null;
 	}
@@ -198,31 +208,6 @@ public final class BotUtils {
 	}
 
 	/**
-	 * Logs the final results of the bot if any songs were added
-	 * 
-	 * @param songsAddedPerAlbumGroups
-	 * @return
-	 * @throws SQLException 
-	 * @throws IOException 
-	 */
-	public static void logResults(Map<AlbumGroup, Integer> songsAddedPerAlbumGroups) {
-		int totalSongsAdded = songsAddedPerAlbumGroups.values().stream().mapToInt(Integer::intValue).sum();
-		if (totalSongsAdded > 0) {
-			StringJoiner sj = new StringJoiner(" / ");
-			songsAddedPerAlbumGroups.entrySet().stream().forEach(sapat -> {
-				if (sapat.getValue() > 0) {
-					sj.add(sapat.getValue() + " " + sapat.getKey());						
-				}
-			});
-			try {
-				Config.log().info(String.format("%d new song%s added! [%s]", totalSongsAdded, totalSongsAdded > 1 ? "s" : "", sj.toString()));
-			} catch (IOException | SQLException e) {
-				// Oh well, no info I guess
-			}			
-		}
-	}
-
-	/**
 	 * Returns true if all album groups have empty album lists
 	 * 
 	 * @param albumsByGroup
@@ -248,5 +233,28 @@ public final class BotUtils {
 	 */
 	public static void removeNulls(Collection<?> collection) {
 		collection.removeIf(e -> e == null);
+	}
+
+
+	/**
+	 * Compiles the final results of the bot if any songs were added
+	 * 
+	 * @param songsAddedPerAlbumGroups
+	 * @return
+	 * @throws SQLException 
+	 * @throws IOException 
+	 */
+	public static String compileResultString(Map<AlbumGroup, Integer> songsAddedPerAlbumGroups) {
+		int totalSongsAdded = songsAddedPerAlbumGroups.values().stream().mapToInt(Integer::intValue).sum();
+		if (totalSongsAdded > 0) {
+			StringJoiner sj = new StringJoiner(" / ");
+			songsAddedPerAlbumGroups.entrySet().stream().forEach(sapat -> {
+				if (sapat.getValue() > 0) {
+					sj.add(sapat.getValue() + " " + sapat.getKey());						
+				}
+			});
+			return (String.format("%d new song%s added! [%s]", totalSongsAdded, totalSongsAdded > 1 ? "s" : "", sj.toString()));			
+		}
+		return null;
 	}
 }

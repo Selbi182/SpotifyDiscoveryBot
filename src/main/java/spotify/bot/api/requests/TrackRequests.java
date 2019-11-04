@@ -13,25 +13,30 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.Paging;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 import com.wrapper.spotify.requests.data.albums.GetAlbumsTracksRequest;
 
-import spotify.bot.Config;
-import spotify.bot.api.SpotifyApiRequest;
-import spotify.bot.api.SpotifyApiSessionManager;
-import spotify.bot.util.AlbumTrackPair;
+import spotify.bot.api.SpotifyApiWrapper;
+import spotify.bot.config.Config;
+import spotify.bot.dto.AlbumTrackPair;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.Constants;
 
+@Service
 public class TrackRequests {
-	/**
-	 * Static calls only
-	 */
-	private TrackRequests() {}
 
+	@Autowired
+	private SpotifyApiWrapper spotify;
+
+	@Autowired
+	private Config config;
+	
 	/**
 	 * Get all songs IDs of the given list of albums, categorized by album group and the source album.
 	 * Appears_on might bbe treated differently
@@ -46,9 +51,9 @@ public class TrackRequests {
 	 * @throws InterruptedException 
 	 * @throws Exception
 	 */
-	public static Map<AlbumGroup, List<AlbumTrackPair>> getSongIdsByAlbums(Map<AlbumGroup, List<AlbumSimplified>> albumsByAlbumGroup, List<String> followedArtists) throws IOException, SQLException {
+	public Map<AlbumGroup, List<AlbumTrackPair>> getSongIdsByAlbums(Map<AlbumGroup, List<AlbumSimplified>> albumsByAlbumGroup, List<String> followedArtists) throws IOException, SQLException {
 		Map<AlbumGroup, List<AlbumTrackPair>> tracksOfAlbumsByGroup = BotUtils.createAlbumGroupToListOfTMap(albumsByAlbumGroup.keySet());
-		final boolean isIntelligentAppearsOnSearch = Config.getInstance().isIntelligentAppearsOnSearch();
+		final boolean isIntelligentAppearsOnSearch = config.isIntelligentAppearsOnSearch();
 		albumsByAlbumGroup.entrySet().parallelStream().forEach(ag -> {
 			AlbumGroup albumGroup = ag.getKey();
 			List<AlbumSimplified> albums = ag.getValue();
@@ -71,7 +76,7 @@ public class TrackRequests {
 	 * @return
 	 * @throws Exception
 	 */
-	public static List<AlbumTrackPair> getSongIdsByAlbums(List<AlbumSimplified> albums) {
+	public List<AlbumTrackPair> getSongIdsByAlbums(List<AlbumSimplified> albums) {
 		List<AlbumTrackPair> tracksOfAlbums = new ArrayList<>();
 		albums.parallelStream().forEach(a -> {
 			AlbumTrackPair currentList = tracksOfAlbum(a);
@@ -86,15 +91,15 @@ public class TrackRequests {
 	 * @param album
 	 * @return
 	 */
-	private static AlbumTrackPair tracksOfAlbum(AlbumSimplified album) {
+	private AlbumTrackPair tracksOfAlbum(AlbumSimplified album) {
 		try {
-			List<TrackSimplified> tracksOfAlbum = SpotifyApiRequest.execute(new Callable<List<TrackSimplified>>() {
+			List<TrackSimplified> tracksOfAlbum = spotify.execute(new Callable<List<TrackSimplified>>() {
 				@Override
 				public List<TrackSimplified> call() throws Exception {
 					List<TrackSimplified> currentList = new ArrayList<>();
 					Paging<TrackSimplified> albumTracks = null;
 					do {
-						GetAlbumsTracksRequest.Builder request = SpotifyApiSessionManager.api().getAlbumsTracks(album.getId()).limit(Constants.DEFAULT_LIMIT);
+						GetAlbumsTracksRequest.Builder request = spotify.api().getAlbumsTracks(album.getId()).limit(Constants.DEFAULT_LIMIT);
 						if (albumTracks != null && albumTracks.getNext() != null) {
 							request = request.offset(albumTracks.getOffset() + Constants.DEFAULT_LIMIT);
 						}
@@ -119,7 +124,7 @@ public class TrackRequests {
 	 * @return
 	 * @throws Exception
 	 */
-	public static List<AlbumTrackPair> intelligentAppearsOnSearch(List<AlbumSimplified> appearsOnAlbums, Collection<String> followedArtistsRaw) {
+	public List<AlbumTrackPair> intelligentAppearsOnSearch(List<AlbumSimplified> appearsOnAlbums, Collection<String> followedArtistsRaw) {
 		Set<String> followedArtistsSet = new HashSet<>(followedArtistsRaw);
 		
 		List<AlbumSimplified> newAlbumCandidates = appearsOnAlbums.stream().filter((a) -> !BotUtils.isCollectionOrSampler(a)).collect(Collectors.toList()); 

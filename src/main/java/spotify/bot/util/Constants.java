@@ -1,5 +1,6 @@
 package spotify.bot.util;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 
@@ -8,9 +9,15 @@ public final class Constants {
 	 * Static calls only
 	 */
 	private Constants() {}
-	
+
+	/**
+	 * Own file location to read and write files in the same folder as the JAR
+	 */
+	public final static File OWN_LOCATION = new File(ClassLoader.getSystemClassLoader().getResource(".").getPath()).getAbsoluteFile();
+
 	// Generic
-	public static final long BOT_TIMEOUT = 10 * 60 * 1000;
+	public final static long BOT_TIMEOUT = 5 * 60 * 1000;
+	public final static int SEARCH_INTERVAL_IN_MINUTES = 10;
 	public final static int RETRY_TIMEOUT_4XX = 500;
 	public final static int RETRY_TIMEOUT_5XX = 60 * 1000;
 	public final static int PLAYLIST_ADDITION_COOLDOWN = 1000;
@@ -33,7 +40,7 @@ public final class Constants {
     public final static String COL_LOGLEVEL = "log_level";
     public final static String COL_LOG_TO_FILE = "log_to_file";
     public final static String COL_NEW_NOTIFICATION_TIMEOUT = "new_notification_timeout";
-    public static final String COL_ARTIST_CACHE_TIMEOUT = "artist_cache_timeout";
+    public final static String COL_ARTIST_CACHE_TIMEOUT = "artist_cache_timeout";
     
     public final static String TABLE_USER_CONFIG = "user_config";
     public final static String COL_ACCESS_TOKEN = "access_token";
@@ -51,7 +58,7 @@ public final class Constants {
     public final static String COL_TYPE = "type";
     public final static String COL_LAST_UPDATED_TIMESTAMP = "last_updated_timestamp";
     public final static String COL_LAST_UPDATE_SONG_COUNT = "last_update_song_count";
-	public static final String US_ARTIST_CACHE = "artist_cache";
+	public final static String US_ARTIST_CACHE = "artist_cache";
     
     // Spotify
 	public final static String SCOPES = "user-follow-read playlist-modify-private";
@@ -60,8 +67,8 @@ public final class Constants {
 	public final static int SEVERAL_ALBUMS_LIMIT = 20;
 	public final static int PLAYLIST_ADD_LIMIT = 100;
 	public final static int PLAYLIST_SIZE_LIMIT = 10000;
-	public static final String RELEASE_DATE_FORMAT_DAY = "yyyy-MM-dd";
-	public static final String RELEASE_DATE_FORMAT_MONTH = "yyyy-MM";
+	public final static String RELEASE_DATE_FORMAT_DAY = "yyyy-MM-dd";
+	public final static String RELEASE_DATE_FORMAT_MONTH = "yyyy-MM";
 	
 	// Playlist Timestamps
 	public final static String NEW_INDICATOR_TEXT = "\uD83C\uDD7D\uD83C\uDD74\uD83C\uDD86";

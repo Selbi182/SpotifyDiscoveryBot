@@ -1,4 +1,4 @@
-package spotify.bot.database;
+package spotify.bot.config;
 
 import static spotify.bot.util.Constants.DB_FILE_NAME;
 
@@ -17,28 +17,35 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
-import spotify.bot.Config;
 import spotify.bot.util.Constants;
-import spotify.main.Main;
 
-public class SpotifyBotDatabase {
+@Repository
+public class DiscoveryDatabase {
+	
+	@Autowired
+	private BotLogger log;
 
 	private final static String SINGLE_SELECT_QUERY_MASK = "SELECT * FROM %s LIMIT 1;";
 	private final static String FULL_SELECT_QUERY_MASK = "SELECT * FROM %s";
 	private final static String INSERT_QUERY_MASK = "INSERT INTO %s(%s) VALUES('%s')";
 	private final static String DELETE_QUERY_MASK = "DELETE FROM %s WHERE %s = '%s'";
-	private static final String CACHE_ALBUMS_THREAD_NAME = "Caching ALBUM IDs";
-	private static final String CACHE_ARTISTS_THREAD_NAME = "Caching ARTIST IDs";
-
-	private static SpotifyBotDatabase instance;
+	private final static String CACHE_ALBUMS_THREAD_NAME = "Caching ALBUM IDs";
+	private final static String CACHE_ARTISTS_THREAD_NAME = "Caching ARTIST IDs";
 	
-	private final String dbUrl;
+	private String dbUrl;
 	private Connection connection;
 	
-	private SpotifyBotDatabase() throws IOException, SQLException {
-		File dbFilePath = new File(Main.OWN_LOCATION, DB_FILE_NAME);
+	@PostConstruct
+	public void init() throws IOException, SQLException {
+		File dbFilePath = new File(Constants.OWN_LOCATION, DB_FILE_NAME);
 		if (!dbFilePath.canRead()) {
 			throw new IOException("Could not read .db file! Expected location: " + dbFilePath.getAbsolutePath());
 		}
@@ -47,26 +54,13 @@ public class SpotifyBotDatabase {
 		// Connect
 		connection = DriverManager.getConnection(dbUrl);
 	}
-	
-	/**
-	 * Fetch the current databse connection or instantiate it
-	 * 
-	 * @return
-	 * @throws IOException
-	 * @throws SQLException
-	 */
-	public static SpotifyBotDatabase getInstance() throws IOException, SQLException {
-		if (instance == null) {
-			instance = new SpotifyBotDatabase();
-		}
-		return instance;
-	}
-	
+
 	/**
 	 * Close the SQL connection if it's still live
 	 * 
 	 * @throws SQLException
 	 */
+	@PreDestroy
 	public void closeConnection() throws SQLException {
 		if (connection != null) {
 			connection.close();
@@ -242,7 +236,7 @@ public class SpotifyBotDatabase {
 				try {
 					storeStringsToTableColumn(albumIds, Constants.TABLE_ALBUM_CACHE, Constants.COL_ALBUM_IDS);
 				} catch (SQLException e) {
-					Config.logStackTrace(e);
+					log.stackTrace(e);
 				}
 			}
 		}, CACHE_ALBUMS_THREAD_NAME);
@@ -278,7 +272,7 @@ public class SpotifyBotDatabase {
 					}
 					refreshUpdateStore(Constants.US_ARTIST_CACHE);
 				} catch (SQLException e) {
-					Config.logStackTrace(e);
+					log.stackTrace(e);
 				}
 			}
 		}, CACHE_ARTISTS_THREAD_NAME);

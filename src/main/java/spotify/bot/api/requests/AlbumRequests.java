@@ -14,9 +14,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.google.common.collect.Lists;
 import com.wrapper.spotify.enums.AlbumGroup;
-import com.wrapper.spotify.model_objects.specification.Album;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.Paging;
 import com.wrapper.spotify.requests.data.artists.GetArtistsAlbumsRequest;
@@ -41,6 +39,23 @@ public class AlbumRequests {
 	
 	@Autowired
 	private DiscoveryDatabase database;
+
+	/**
+	 * Read all albums of the given artists and album groups and filter them by non-cached albums.
+	 * New albums will be automatically cached.
+	 * 
+	 * @param followedArtists
+	 * @param albumGroups
+	 * @return
+	 * @throws Exception
+	 */
+	public List<AlbumSimplified> getNonCachedAlbumsOfArtists(List<String> followedArtists, List<AlbumGroup> albumGroups) throws Exception {
+		List<AlbumSimplified> allAlbums = getAlbumsOfArtists(followedArtists, albumGroups);
+		List<AlbumSimplified> filteredAlbums = filterNonCachedAlbumsOnly(allAlbums);
+		BotUtils.removeNulls(filteredAlbums);
+		database.cacheAlbumIdsAsync(filteredAlbums);
+		return filteredAlbums;
+	}
 	
 	/**
 	 * Get all album IDs of the given list of artists, mapped into album group
@@ -49,7 +64,7 @@ public class AlbumRequests {
 	 * @return
 	 * @throws Exception 
 	 */
-	public List<AlbumSimplified> getAlbumsOfArtists(List<String> artists, List<AlbumGroup> albumGroups) throws Exception {
+	private List<AlbumSimplified> getAlbumsOfArtists(List<String> artists, List<AlbumGroup> albumGroups) throws Exception {
 		String albumGroupString = BotUtils.createAlbumGroupString(albumGroups);
 		List<AlbumSimplified> albums = new ArrayList<>();
 		artists.parallelStream().forEach(a -> {
@@ -88,48 +103,6 @@ public class AlbumRequests {
 			}
 		});
 		return albumsOfCurrentArtist;
-	}
-
-	/**
-	 * Convert the given list of album IDs into fully equipped Album DTOs
-	 * 
-	 * @param albumsSimplifiedByGroup
-	 * @return
-	 * @throws Exception 
-	 */
-	public Map<AlbumGroup, List<Album>> convertAlbumIdsToFullAlbums(Map<AlbumGroup, List<AlbumSimplified>> albumsSimplifiedByGroup) throws Exception {
-		Map<AlbumGroup, List<Album>> albums = BotUtils.createAlbumGroupToListOfTMap(albumsSimplifiedByGroup.keySet());
-		albumsSimplifiedByGroup.entrySet().parallelStream().forEach(as -> {
-			List<List<AlbumSimplified>> partitions = Lists.partition(new ArrayList<>(as.getValue()), Constants.SEVERAL_ALBUMS_LIMIT);
-			partitions.parallelStream().forEach(p -> {
-				try {
-					String[] ids = p.stream().map(AlbumSimplified::getId).toArray(size -> new String[size]);
-					Album[] fullAlbums = spotify.execute(spotify.api().getSeveralAlbums(ids).market(config.getMarket()).build());
-					albums.get(as.getKey()).addAll(Arrays.asList(fullAlbums));				
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			});
-		});
-		
-		return albums;
-	}
-
-	/**
-	 * Read all albums of the given artists and album groups and filter them by non-cached albums.
-	 * New albums will be automatically cached.
-	 * 
-	 * @param followedArtists
-	 * @param albumGroups
-	 * @return
-	 * @throws Exception
-	 */
-	public List<AlbumSimplified> getNonCachedAlbumsOfArtists(List<String> followedArtists, List<AlbumGroup> albumGroups) throws Exception {
-		List<AlbumSimplified> allAlbums = getAlbumsOfArtists(followedArtists, albumGroups);
-		List<AlbumSimplified> filteredAlbums = filterNonCachedAlbumsOnly(allAlbums);
-		BotUtils.removeNulls(filteredAlbums);
-		database.cacheAlbumIdsAsync(filteredAlbums);
-		return filteredAlbums;
 	}
 	
 	/**

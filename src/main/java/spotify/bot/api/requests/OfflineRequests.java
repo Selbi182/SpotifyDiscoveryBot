@@ -47,7 +47,7 @@ public class OfflineRequests {
 	 * @param albumGroups 
 	 * @return
 	 */
-	public Map<AlbumGroup, List<AlbumSimplified>> categorizeAlbumsByAlbumGroup(List<AlbumSimplified> albumsSimplified, List<AlbumGroup> albumGroups) {
+	private Map<AlbumGroup, List<AlbumSimplified>> categorizeAlbumsByAlbumGroup(List<AlbumSimplified> albumsSimplified, List<AlbumGroup> albumGroups) {
 		Map<AlbumGroup, List<AlbumSimplified>> categorized = BotUtils.createAlbumGroupToListOfTMap(albumGroups);
 		albumsSimplified.parallelStream().forEach(as -> {
 			AlbumGroup albumGroupOfAlbum = as.getAlbumGroup();
@@ -64,7 +64,7 @@ public class OfflineRequests {
 	 * @param albumsSimplifiedByGroup
 	 * @return
 	 */
-	public Map<AlbumGroup, List<AlbumSimplified>> filterNewAlbumsOnly(Map<AlbumGroup, List<AlbumSimplified>> albumsSimplifiedByGroup, int lookbackDays) {
+	private Map<AlbumGroup, List<AlbumSimplified>> filterNewAlbumsOnly(Map<AlbumGroup, List<AlbumSimplified>> albumsSimplifiedByGroup, int lookbackDays) {
 		Map<AlbumGroup, List<AlbumSimplified>> filteredAlbums = BotUtils.createAlbumGroupToListOfTMap(albumsSimplifiedByGroup.keySet());
 		albumsSimplifiedByGroup.entrySet().stream().forEach(fa -> {
 			List<AlbumSimplified> filteredAlbumsOfGroup = fa.getValue().stream().filter(as -> ReleaseValidator.getInstance().isValidDate(as)).collect(Collectors.toList());
@@ -105,7 +105,7 @@ public class OfflineRequests {
 	 * @param enabledAlbumGroups
 	 * @return
 	 */
-	public Map<AlbumGroup, List<AlbumGroup>> createPlaylistGroupsByParent(Collection<AlbumGroup> enabledAlbumGroups) {
+	private Map<AlbumGroup, List<AlbumGroup>> createPlaylistGroupsByParent(Collection<AlbumGroup> enabledAlbumGroups) {
 		Map<AlbumGroup, List<AlbumGroup>> playlistStoresByAlbumGroupParent = new HashMap<>();
 		for (AlbumGroup ag : enabledAlbumGroups) {
 			PlaylistStore ps = config.getPlaylistStoreByAlbumGroup(ag);

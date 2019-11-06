@@ -18,8 +18,6 @@ public class DBConstants {
 	public final static String COL_CLIENT_ID = "client_id";
 	public final static String COL_CLIENT_SECRET = "client_secret";
 	public final static String COL_CALLBACK_URI = "callback_uri";
-    public final static String COL_LOGLEVEL = "log_level";
-    public final static String COL_LOG_TO_FILE = "log_to_file";
     public final static String COL_NEW_NOTIFICATION_TIMEOUT = "new_notification_timeout";
     public final static String COL_ARTIST_CACHE_TIMEOUT = "artist_cache_timeout";
     public final static String COL_ARTIST_CACHE_LAST_UPDATE = "artist_cache_last_update";

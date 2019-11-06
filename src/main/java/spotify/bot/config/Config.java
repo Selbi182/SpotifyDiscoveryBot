@@ -180,7 +180,7 @@ public class Config {
 		private Date lastUpdate;
 		private Integer recentSongsAddedCount;
 
-		public PlaylistStore(AlbumGroup albumGroup) {
+		private PlaylistStore(AlbumGroup albumGroup) {
 			this.albumGroup = albumGroup;
 		}
 

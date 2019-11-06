@@ -118,7 +118,7 @@ public class DiscoveryDatabase {
 	 * @param column
 	 * @throws SQLException
 	 */
-	public synchronized void storeStringsToTableColumn(Collection<String> strings, String table, String column) throws SQLException {
+	private synchronized void storeStringsToTableColumn(Collection<String> strings, String table, String column) throws SQLException {
 		if (table != null && column != null && strings != null && !strings.isEmpty()) {
 			Statement statement = connection.createStatement();
 			for (String s : strings) {
@@ -135,7 +135,7 @@ public class DiscoveryDatabase {
 	 * @param column
 	 * @throws SQLException
 	 */
-	public synchronized void removeStringsFromTableColumn(Collection<String> stringsToRemove, String table, String column) throws SQLException {
+	private synchronized void removeStringsFromTableColumn(Collection<String> stringsToRemove, String table, String column) throws SQLException {
 		if (table != null && column != null && stringsToRemove != null && !stringsToRemove.isEmpty()) {
 			Statement statement = connection.createStatement();
 			for (String s : stringsToRemove) {
@@ -202,7 +202,7 @@ public class DiscoveryDatabase {
 	 * @param addedSongs
 	 * @throws SQLException
 	 */
-	public synchronized void refreshArtistCacheLastUpdate() throws SQLException {
+	private synchronized void refreshArtistCacheLastUpdate() throws SQLException {
 		Statement statement = connection.createStatement();
 		statement.executeUpdate(String.format("UPDATE %s SET %s = %d;",
 			DBConstants.TABLE_BOT_CONFIG,

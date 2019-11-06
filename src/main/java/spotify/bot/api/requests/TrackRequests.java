@@ -78,7 +78,7 @@ public class TrackRequests {
 	 * @return
 	 * @throws Exception
 	 */
-	public List<AlbumTrackPair> getSongIdsByAlbums(List<AlbumSimplified> albums) {
+	private List<AlbumTrackPair> getSongIdsByAlbums(List<AlbumSimplified> albums) {
 		List<AlbumTrackPair> tracksOfAlbums = new ArrayList<>();
 		albums.parallelStream().forEach(a -> {
 			AlbumTrackPair currentList = tracksOfAlbum(a);
@@ -126,7 +126,7 @@ public class TrackRequests {
 	 * @return
 	 * @throws Exception
 	 */
-	public List<AlbumTrackPair> intelligentAppearsOnSearch(List<AlbumSimplified> appearsOnAlbums, Collection<String> followedArtistsRaw) {
+	private List<AlbumTrackPair> intelligentAppearsOnSearch(List<AlbumSimplified> appearsOnAlbums, Collection<String> followedArtistsRaw) {
 		Set<String> followedArtistsSet = new HashSet<>(followedArtistsRaw);
 		
 		List<AlbumSimplified> newAlbumCandidates = appearsOnAlbums.stream().filter((a) -> !BotUtils.isCollectionOrSampler(a)).collect(Collectors.toList()); 

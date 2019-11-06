@@ -17,8 +17,6 @@ public final class Constants {
 	public final static File WORKSPACE_LOCATION = Paths.get(".").toFile();
 
 	// Generic
-	public final static long BOT_TIMEOUT = 5 * 60 * 1000;
-	public final static int SEARCH_INTERVAL_IN_MINUTES = 15;
 	public final static int RETRY_TIMEOUT_4XX = 500;
 	public final static int RETRY_TIMEOUT_5XX = 60 * 1000;
 	public final static int PLAYLIST_ADDITION_COOLDOWN = 1000;

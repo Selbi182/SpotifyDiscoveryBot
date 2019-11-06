@@ -58,7 +58,7 @@ public class PlaylistSongsRequests {
 	 * @return 
 	 * @throws Exception 
 	 */
-	public int addSongsToPlaylist(List<AlbumTrackPair> albumTrackPairs, AlbumGroup albumGroup) {
+	private int addSongsToPlaylist(List<AlbumTrackPair> albumTrackPairs, AlbumGroup albumGroup) {
 		try {
 			String playlistId = BotUtils.getPlaylistIdByGroup(albumGroup);
 			return addSongsToPlaylistId(albumTrackPairs, playlistId);

@@ -15,7 +15,6 @@ import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import com.wrapper.spotify.enums.AlbumGroup;
-import com.wrapper.spotify.model_objects.specification.Album;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
 
@@ -32,7 +31,7 @@ public final class BotUtils {
 	 * 
 	 * @param config
 	 */
-	public static void initializeUtilConfig(Config config) {
+	static void initializeUtilConfig(Config config) {
 		BotUtils.config = config;
 	}
 	
@@ -53,33 +52,6 @@ public final class BotUtils {
 	 */
 	public static String getPlaylistIdByGroup(AlbumGroup albumGroup) {
 		return config.getPlaylistStoreByAlbumGroup(albumGroup).getPlaylistId();
-	}
-	
-	/**
-	 * Returns true if ag least one of tha arguments equates to null
-	 * 
-	 * @param objects
-	 * @return
-	 */
-	public static boolean anyNotNull(Object... objects) {
-		for (Object o : objects) {
-			if (o == null) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/**
-	 * Wait for every given thread to finish and exit
-	 * 
-	 * @param threads
-	 * @throws InterruptedException
-	 */
-	public static void joinAll(Thread... threads) throws InterruptedException {
-		for (Thread t : threads) {
-			t.join();
-		}
 	}
 
 	/**
@@ -112,21 +84,6 @@ public final class BotUtils {
 			}
 		}
 		return setAlbumGroups;
-	}
-
-	/**
-	 * Takes a map of album groups with albums and puts them all into a single key
-	 * 
-	 * @param albumsByAlbumGroup
-	 * @param appearsOn
-	 */
-	public static Map<AlbumGroup, List<Album>> flattenToSingleAlbumGroup(Map<AlbumGroup, List<Album>> albumsByAlbumGroup, AlbumGroup newSoloAlbumGroup) {
-		Map<AlbumGroup, List<Album>> flattened = new HashMap<>();
-		flattened.put(newSoloAlbumGroup, new ArrayList<>());
-		albumsByAlbumGroup.values().parallelStream().forEach(abat -> {
-			flattened.get(newSoloAlbumGroup).addAll(abat);
-		});
-		return flattened;
 	}
 
 	/**

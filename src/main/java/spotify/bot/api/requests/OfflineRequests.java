@@ -24,7 +24,7 @@ import spotify.bot.util.ReleaseValidator;
 
 @Service
 public class OfflineRequests {
-	
+
 	@Autowired
 	private Config config;
 
@@ -32,19 +32,19 @@ public class OfflineRequests {
 	 * Sort the albums of each album group
 	 * 
 	 * @param albumTrackPairs
-	 * @return 
+	 * @return
 	 */
 	public List<AlbumTrackPair> sortReleases(List<AlbumTrackPair> albumTrackPairs) {
 		Collections.sort(albumTrackPairs);
 		return albumTrackPairs;
 	}
-	
+
 	/**
-	 * Categorizes the given list of albums into a map of their respective album GROUPS
-	 * (aka the return context of the simplified album object) 
+	 * Categorizes the given list of albums into a map of their respective album
+	 * GROUPS (aka the return context of the simplified album object)
 	 * 
 	 * @param albumsSimplified
-	 * @param albumGroups 
+	 * @param albumGroups
 	 * @return
 	 */
 	private Map<AlbumGroup, List<AlbumSimplified>> categorizeAlbumsByAlbumGroup(List<AlbumSimplified> albumsSimplified, List<AlbumGroup> albumGroups) {
@@ -52,12 +52,12 @@ public class OfflineRequests {
 		albumsSimplified.parallelStream().forEach(as -> {
 			AlbumGroup albumGroupOfAlbum = as.getAlbumGroup();
 			if (albumGroupOfAlbum != null) {
-				categorized.get(albumGroupOfAlbum).add(as);				
+				categorized.get(albumGroupOfAlbum).add(as);
 			}
 		});
 		return categorized;
 	}
-	
+
 	/**
 	 * Filter out all albums not released within the lookbackDays range
 	 * 
@@ -74,7 +74,8 @@ public class OfflineRequests {
 	}
 
 	/**
-	 * Returns a rearranged view of the given map, depending on whether any album groups point to the same target playlist.
+	 * Returns a rearranged view of the given map, depending on whether any album
+	 * groups point to the same target playlist.
 	 * 
 	 * @param newSongsByGroup
 	 * @param albumGroups
@@ -86,7 +87,7 @@ public class OfflineRequests {
 			// Each album group has its own set playlist, no merging required
 			return newSongsByGroup;
 		}
-		
+
 		Map<AlbumGroup, List<AlbumTrackPair>> mergedAlbumGroups = new HashMap<>();
 		for (Map.Entry<AlbumGroup, List<AlbumGroup>> playlistGroup : groupedPlaylistStores.entrySet()) {
 			AlbumGroup parentAlbumGroup = playlistGroup.getKey();
@@ -98,7 +99,7 @@ public class OfflineRequests {
 		}
 		return mergedAlbumGroups;
 	}
-	
+
 	/**
 	 * Create a merged view of all playlist stores by their parent album group
 	 * 
@@ -124,15 +125,16 @@ public class OfflineRequests {
 	}
 
 	/**
-	 * Categorize the list of given albums by album group and filter them by new albums only
-	 * (aka. those which weren't previously cached but still too old, such as re-releases)
+	 * Categorize the list of given albums by album group and filter them by new
+	 * albums only (aka. those which weren't previously cached but still too old,
+	 * such as re-releases)
 	 * 
 	 * @param albumsSimplified
 	 * @param albumGroups
 	 * @param lookbackDays
 	 * @return
-	 * @throws SQLException 
-	 * @throws IOException 
+	 * @throws SQLException
+	 * @throws IOException
 	 */
 	public Map<AlbumGroup, List<AlbumSimplified>> categorizeAndFilterAlbums(List<AlbumSimplified> albumsSimplified, List<AlbumGroup> albumGroups) throws IOException, SQLException {
 		Map<AlbumGroup, List<AlbumSimplified>> categorizedAlbums = categorizeAlbumsByAlbumGroup(albumsSimplified, albumGroups);

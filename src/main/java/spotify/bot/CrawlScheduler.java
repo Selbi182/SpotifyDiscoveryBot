@@ -25,14 +25,16 @@ import spotify.bot.util.Constants;
 @Component
 @EnableScheduling
 public class CrawlScheduler {
-	
+
 	/**
-	 * Cron job representing "every 15 minutes, starting at the 1st minute of an hour at exactly 0 seconds".
+	 * Cron job representing "every 15 minutes, starting at the 1st minute of an
+	 * hour at exactly 0 seconds".
 	 */
 	private final static String CRAWL_CRON = "0 " + Constants.CRAWL_OFFSET + "/" + Constants.CRAWL_INTERVAL + " * * * *";
-	
+
 	/**
-	 * Cron job representing "every 10 seconds starting at the 5th second of a minute"
+	 * Cron job representing "every 10 seconds starting at the 5th second of a
+	 * minute"
 	 */
 	private final static String CLEAR_NOTIFIER_CRON = Constants.CLEAR_NOTIFIER_OFFSET + "/" + Constants.CLEAR_NOTIFIER_INTERVAL + " * * * * *";
 
@@ -46,7 +48,8 @@ public class CrawlScheduler {
 	private BotLogger log;
 
 	/**
-	 * Run the scheduler every nth minute, starting at minute :01 to offset Spotify's timezone deviation.<br/>
+	 * Run the scheduler every nth minute, starting at minute :01 to offset
+	 * Spotify's timezone deviation.<br/>
 	 * Can be manually refreshed at: http://localhost:8080/refresh<br/>
 	 * <br/>
 	 * Possible ResponseEntities:
@@ -63,9 +66,9 @@ public class CrawlScheduler {
 	 */
 	@EventListener(ApplicationReadyEvent.class)
 	@Scheduled(cron = CRAWL_CRON)
-	@RequestMapping("/refresh")
+	@RequestMapping("/crawl")
 	public ResponseEntity<String> runScheduler() throws Exception {
-		if (crawler.isBusy()) {
+		if (!crawler.isReady()) {
 			return new ResponseEntity<String>("Previous crawling process is still ongoing...", HttpStatus.CONFLICT);
 		}
 		Map<AlbumGroup, Integer> results = crawler.runCrawler();
@@ -78,14 +81,15 @@ public class CrawlScheduler {
 	}
 
 	/**
-	 * Periodic task running every 10 seconds to remove the [NEW] indicator where applicable. Will only run while crawler is idle.
+	 * Periodic task running every 10 seconds to remove the [NEW] indicator where
+	 * applicable. Will only run while crawler is idle.
 	 * 
 	 * @return
 	 */
 	@Scheduled(cron = CLEAR_NOTIFIER_CRON)
 	@RequestMapping("/clear-notifiers")
 	public ResponseEntity<String> clearNewIndicatorScheduler() throws Exception {
-		if (crawler.isBusy()) {
+		if (!crawler.isReady()) {
 			return new ResponseEntity<String>("Can't clear indicators now, crawler is in progress...", HttpStatus.CONFLICT);
 		}
 		playlistInfoRequests.clearObsoleteNotifiers();

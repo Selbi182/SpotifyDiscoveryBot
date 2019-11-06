@@ -4,19 +4,17 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.wrapper.spotify.enums.ModelObjectType;
 import com.wrapper.spotify.model_objects.specification.Artist;
-import com.wrapper.spotify.model_objects.specification.PagingCursorbased;
-import com.wrapper.spotify.requests.data.follow.GetUsersFollowedArtistsRequest;
 
+import spotify.bot.api.SpotifyCall;
 import spotify.bot.api.SpotifyApiWrapper;
 import spotify.bot.config.BotLogger;
 import spotify.bot.config.Config;
@@ -36,10 +34,10 @@ public class UserInfoRequests {
 
 	@Autowired
 	private BotLogger log;
-	
+
 	@Autowired
 	private DiscoveryDatabase database;
-	
+
 	/**
 	 * Get all the user's followed artists
 	 * 
@@ -57,35 +55,20 @@ public class UserInfoRequests {
 				if (BotUtils.isTimeoutActive(lastUpdatedArtistCache, artistCacheTimeout)) {
 					return cachedArtists;
 				}
-			}			
-		}
-		
-		// If cache is outdated, fetch fresh dataset and update cache
-		List<String> followedArtists = spotify.execute(new Callable<List<String>>() {
-			@Override
-			public List<String> call() throws Exception {
-				List<String> followedArtists = new ArrayList<>();
-				PagingCursorbased<Artist> artists = null;
-				do {
-					GetUsersFollowedArtistsRequest.Builder request = spotify.api().getUsersFollowedArtists(ModelObjectType.ARTIST).limit(Constants.DEFAULT_LIMIT);
-					if (artists != null && artists.getNext() != null) {
-						String after = artists.getCursors()[0].getAfter();
-						request = request.after(after);
-					}
-					artists = request.build().execute();
-					Arrays.asList(artists.getItems()).stream().forEach(a -> followedArtists.add(a.getId()));
-				} while (artists.getNext() != null);
-				database.updateFollowedArtistsCacheAsync(followedArtists, cachedArtists);
-				return followedArtists;
 			}
-		});
-		if (followedArtists.isEmpty()) {
+		}
+
+		// If cache is outdated, fetch fresh dataset and update cache
+		List<Artist> followedArtists = SpotifyCall.executePaging(spotify.api().getUsersFollowedArtists(ModelObjectType.ARTIST).limit(Constants.DEFAULT_LIMIT));
+		List<String> followedArtistIds = followedArtists.stream().map(Artist::getId).collect(Collectors.toList());
+		if (followedArtistIds.isEmpty()) {
 			log.warning("No followed artists found!");
 		}
-		BotUtils.removeNullStrings(followedArtists);
-		return followedArtists;
+		BotUtils.removeNullStrings(followedArtistIds);
+		database.updateFollowedArtistsCacheAsync(followedArtistIds, cachedArtists);
+		return followedArtistIds;
 	}
-	
+
 	private List<String> getCachedFollowedArtists() throws IOException, SQLException {
 		ResultSet rs = database.fullTable(DBConstants.TABLE_ARTIST_CACHE);
 		List<String> cachedArtists = new ArrayList<>();

@@ -9,10 +9,10 @@ import spotify.bot.config.Config;
 
 @Configuration
 public class StaticContextInitializer {
-	
+
 	@Autowired
 	private Config config;
-	
+
 	@PostConstruct
 	public void injectStaticConfigContext() {
 		BotUtils.initializeUtilConfig(config);

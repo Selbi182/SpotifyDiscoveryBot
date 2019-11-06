@@ -1,188 +1,155 @@
 package spotify.bot.api;
 
+import java.awt.Desktop;
+import java.awt.HeadlessException;
 import java.io.IOException;
 import java.net.URI;
 import java.sql.SQLException;
-import java.util.Scanner;
-import java.util.concurrent.Callable;
-
-import javax.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.SpotifyHttpManager;
-import com.wrapper.spotify.exceptions.SpotifyWebApiException;
-import com.wrapper.spotify.exceptions.detailed.BadGatewayException;
 import com.wrapper.spotify.exceptions.detailed.BadRequestException;
-import com.wrapper.spotify.exceptions.detailed.InternalServerErrorException;
-import com.wrapper.spotify.exceptions.detailed.NotFoundException;
-import com.wrapper.spotify.exceptions.detailed.TooManyRequestsException;
 import com.wrapper.spotify.exceptions.detailed.UnauthorizedException;
 import com.wrapper.spotify.model_objects.credentials.AuthorizationCodeCredentials;
-import com.wrapper.spotify.requests.IRequest;
 
 import spotify.bot.config.BotLogger;
 import spotify.bot.config.Config;
 import spotify.bot.util.Constants;
 
+@RestController
 @Configuration
 public class SpotifyApiWrapper {
-	
+
 	@Autowired
 	private Config config;
-	
+
 	@Autowired
 	private BotLogger log;
-	
+
+	@Autowired
+	ApplicationEventPublisher applicationEventPublisher;
+
 	private SpotifyApi spotifyApi;
 
-	@PostConstruct
-	public void init() {
+	///////////////////////
+
+	/**
+	 * Get the current SpotifyApi instance
+	 * 
+	 * @return
+	 * @throws SQLException
+	 * @throws IOException
+	 */
+	public SpotifyApi api() {
+		if (spotifyApi == null) {
+			createSpotifyApiInstance();
+		}
+		return spotifyApi;
+	}
+
+	///////////////////////
+
+	/**
+	 * Create a fresh API instance
+	 */
+	private void createSpotifyApiInstance() {
 		try {
-			// Set tokens, if preexisting
-			api().setAccessToken(config.getAccessToken());
-			api().setRefreshToken(config.getRefreshToken());
-			
-			// Try to login with the stored access tokens or re-authenticate
+			spotifyApi = new SpotifyApi.Builder()
+				.setClientId(config.getClientId())
+				.setClientSecret(config.getClientSecret())
+				.setRedirectUri(SpotifyHttpManager.makeUri(config.getCallbackUri()))
+				.build();
+
+			// Get stored tokens
+			spotifyApi.setAccessToken(config.getAccessToken());
+			spotifyApi.setRefreshToken(config.getRefreshToken());
+
+			// Try to login with the stored tokens or re-authenticate
 			try {
 				refreshAccessToken();
-			} catch (UnauthorizedException | BadRequestException | NullPointerException e) {
-				log.warning("Access token expired or is invalid, please sign in again under this URL:");
+			} catch (IOException | SQLException | BadRequestException e) {
 				authenticate();
 			}
 		} catch (Exception e) {
 			log.stackTrace(e);
 		}
 	}
-	
-	/**
-	 * Get the current SpotifyApi instance
-	 * 
-	 * @return
-	 */
-	public SpotifyApi api() {
-		try {
-			if (spotifyApi == null) {
-				spotifyApi = new SpotifyApi.Builder()
-					.setClientId(config.getClientId())
-					.setClientSecret(config.getClientSecret())
-					.setRedirectUri(SpotifyHttpManager.makeUri(config.getCallbackUri()))
-					.build();
-			}
-		} catch (Exception e) {
-			log.stackTrace(e);
-		}
-		return spotifyApi;
-	}
-	
-	///////////////////////
-	
 
 	/**
-	 * Executes a greedy API request, meaning that on potential <i>429 Too many
-	 * requests</i> errors the request will be retried until it succeeds. Any
-	 * attempts will be delayed by the response body's given <code>retryAfter</code>
-	 * parameter, in seconds.
-	 * 
-	 * @param request
-	 * @return
-	 * @throws Exception 
-	 */
-	public <T> T execute(IRequest<T> request) {
-		try {
-			return execute(new Callable<T>() {
-				@Override
-				public T call() throws Exception {
-					return request.execute();
-				}
-			});			
-		} catch (Exception e) {
-			log.stackTrace(e);
-			return null;
-		}
-	}
-
-	/**
-	 * Executes a greedy API request, wrapped in a <code>Callable</code>, meaning
-	 * that on potential <i>429 Too many requests</i> errors the request will be
-	 * retried until it succeeds. Any attempts will be delayed by the response
-	 * body's given <code>retryAfter</code> parameter, in seconds. 5xx errors will be
-	 * given a fixed one-minute retry timeout.
-	 * 
-	 * @param request
-	 * @return
-	 * @throws Exception 
-	 * @throws SpotifyWebApiException
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	public <T> T execute(Callable<T> callable) {
-		try {
-			while (true) {
-				try {
-					T t = callable.call();
-					return t;
-				} catch (TooManyRequestsException e) {
-					int timeout = e.getRetryAfter() + 1;
-					Thread.sleep(timeout * Constants.RETRY_TIMEOUT_4XX);
-				} catch (InternalServerErrorException | BadGatewayException | NotFoundException e) {
-					Thread.sleep(Constants.RETRY_TIMEOUT_5XX);
-				}
-			}			
-		} catch (Exception e) {
-			log.stackTrace(e);
-			return null;
-		}
-	}
-	
-	///////////////////////
-	
-	/**
-	 * Authentication process (WIP: user needs to manually copy-paste both the URI as well as the return code)
+	 * Authentication process
 	 * 
 	 * @throws Exception
 	 */
 	private void authenticate() throws Exception {
-		URI uri = execute(api().authorizationCodeUri().scope(Constants.SCOPES).build());
-		log.info(uri.toString());
+		URI uri = SpotifyCall.execute(spotifyApi.authorizationCodeUri().scope(Constants.SCOPES));
+		try {
+			if (!Desktop.isDesktopSupported()) {
+				throw new HeadlessException();
+			}
+			Desktop.getDesktop().browse(uri);
+		} catch (IOException | HeadlessException e) {
+			log.warning("Couldn't open browser window. Plase login at this URL:");
+			log.warning(uri.toString());
+		}
+	}
 
-		Scanner scanner = new Scanner(System.in);
-		String code = scanner.nextLine().replace(api().getRedirectURI().toString() + "?code=", "").trim();
-		scanner.close();
-
-		AuthorizationCodeCredentials acc = execute(api().authorizationCode(code).build());
-		api().setAccessToken(acc.getAccessToken());
-		api().setRefreshToken(acc.getRefreshToken());
-
-		updateTokens();
+	/**
+	 * Callback receiver for logins
+	 * 
+	 * @param code
+	 * @return
+	 * @throws Exception
+	 */
+	@RequestMapping("/login-callback")
+	private ResponseEntity<String> loginCallback(@RequestParam String code) throws Exception {
+		try {
+			AuthorizationCodeCredentials acc = SpotifyCall.execute(spotifyApi.authorizationCode(code));
+			updateTokens(acc);
+			return new ResponseEntity<String>("Successfully logged in!", HttpStatus.OK);
+		} catch (BadRequestException e) {
+			return new ResponseEntity<String>("Response code is invalid!", HttpStatus.BAD_REQUEST);
+		}
 	}
 
 	/**
 	 * Refresh the access token
-	 * @throws SQLException 
-	 * @throws IOException 
+	 * 
+	 * @throws UnauthorizedException
 	 * 
 	 * @throws Exception
 	 */
-	private void refreshAccessToken() throws IOException, SQLException, BadRequestException, UnauthorizedException {
-		if (api().getAccessToken() == null || api().getRefreshToken() == null) {
-			throw new BadRequestException("Tokens aren't set");
-		}
-		
-		AuthorizationCodeCredentials acc = execute(api().authorizationCodeRefresh().build());
-		api().setAccessToken(acc.getAccessToken());
-		updateTokens();
+	public void refreshAccessToken() throws Exception {
+		AuthorizationCodeCredentials acc = SpotifyCall.execute(spotifyApi.authorizationCodeRefresh());
+		updateTokens(acc);
 	}
 
 	/**
-	 * Store the access and refresh tokens in the INI file
+	 * Store the access and refresh tokens in the database
 	 * 
 	 * @throws IOException
-	 * @throws SQLException 
+	 * @throws SQLException
 	 */
-	private void updateTokens() throws IOException, SQLException {
-		config.updateTokens(api().getAccessToken(), api().getRefreshToken());
+	private void updateTokens(AuthorizationCodeCredentials acc) throws IOException, SQLException {
+		String accessToken = spotifyApi.getAccessToken();
+		if (acc.getAccessToken() != null) {
+			accessToken = acc.getAccessToken();
+		}
+		String refreshToken = spotifyApi.getRefreshToken();
+		if (acc.getRefreshToken() != null) {
+			refreshToken = acc.getRefreshToken();
+		}
+
+		spotifyApi.setAccessToken(accessToken);
+		spotifyApi.setRefreshToken(refreshToken);
+		config.updateTokens(accessToken, refreshToken);
 	}
 }

@@ -27,7 +27,7 @@ import spotify.bot.util.Constants;
 
 @Repository
 public class DiscoveryDatabase {
-	
+
 	@Autowired
 	private BotLogger log;
 
@@ -37,10 +37,10 @@ public class DiscoveryDatabase {
 	private final static String DELETE_QUERY_MASK = "DELETE FROM %s WHERE %s = '%s'";
 	private final static String CACHE_ALBUMS_THREAD_NAME = "Caching ALBUM IDs";
 	private final static String CACHE_ARTISTS_THREAD_NAME = "Caching ARTIST IDs";
-	
+
 	private String dbUrl;
 	private Connection connection;
-	
+
 	@PostConstruct
 	public void init() throws IOException, SQLException {
 		File dbFilePath = new File(Constants.WORKSPACE_LOCATION, DBConstants.DB_FILE_NAME);
@@ -48,7 +48,7 @@ public class DiscoveryDatabase {
 			throw new IOException("Could not read .db file! Expected location: " + dbFilePath.getAbsolutePath());
 		}
 		this.dbUrl = DBConstants.DB_URL_PREFIX + dbFilePath.getAbsolutePath();
-		
+
 		// Connect
 		connection = DriverManager.getConnection(dbUrl);
 	}
@@ -64,14 +64,14 @@ public class DiscoveryDatabase {
 			connection.close();
 		}
 	}
-	
+
 	//////////////
-	
+
 	/**
 	 * Fetch the single-row result set of the given table
 	 * 
-	 * @throws IOException 
-	 * @throws SQLException 
+	 * @throws IOException
+	 * @throws SQLException
 	 */
 	public ResultSet singleRow(String tableName) throws SQLException, IOException {
 		Statement statement = connection.createStatement();
@@ -81,22 +81,22 @@ public class DiscoveryDatabase {
 		}
 		return rs;
 	}
-	
+
 	/**
 	 * Fetch an entire table result set
 	 * 
 	 * @param tableName
 	 * @return
-	 * @throws SQLException 
+	 * @throws SQLException
 	 */
 	public ResultSet fullTable(String tableName) throws SQLException {
 		Statement statement = connection.createStatement();
 		ResultSet rs = statement.executeQuery(String.format(FULL_SELECT_QUERY_MASK, tableName));
 		return rs;
 	}
-	
+
 	////////////////
-	
+
 	/**
 	 * Update every given column's value in the given table by a new value
 	 * 
@@ -143,7 +143,7 @@ public class DiscoveryDatabase {
 			}
 		}
 	}
-	
+
 	/**
 	 * Unset the given recent addition info of the given playlist store
 	 * 
@@ -156,14 +156,12 @@ public class DiscoveryDatabase {
 			DBConstants.TABLE_PLAYLIST_STORE,
 			DBConstants.COL_LAST_UPDATE,
 			DBConstants.COL_ALBUM_GROUP,
-			albumGroupString.toUpperCase()
-		));
+			albumGroupString.toUpperCase()));
 		statement.executeUpdate(String.format("UPDATE %s SET %s = null WHERE %s = '%s';",
 			DBConstants.TABLE_PLAYLIST_STORE,
 			DBConstants.COL_RECENT_SONGS_ADDED_COUNT,
 			DBConstants.COL_ALBUM_GROUP,
-			albumGroupString.toUpperCase()
-		));
+			albumGroupString.toUpperCase()));
 	}
 
 	/**
@@ -181,8 +179,7 @@ public class DiscoveryDatabase {
 				DBConstants.COL_LAST_UPDATE,
 				BotUtils.currentTime(),
 				DBConstants.COL_ALBUM_GROUP,
-				albumGroupString.toUpperCase()
-			));
+				albumGroupString.toUpperCase()));
 		}
 		if (addedSongsCount != null) {
 			statement.executeUpdate(String.format("UPDATE %s SET %s = %d WHERE %s = '%s';",
@@ -190,11 +187,10 @@ public class DiscoveryDatabase {
 				DBConstants.COL_RECENT_SONGS_ADDED_COUNT,
 				addedSongsCount,
 				DBConstants.COL_ALBUM_GROUP,
-				albumGroupString.toUpperCase()
-			));
+				albumGroupString.toUpperCase()));
 		}
 	}
-	
+
 	/**
 	 * Update the update store's given timestamp and set the song count
 	 * 
@@ -207,15 +203,14 @@ public class DiscoveryDatabase {
 		statement.executeUpdate(String.format("UPDATE %s SET %s = %d;",
 			DBConstants.TABLE_BOT_CONFIG,
 			DBConstants.COL_ARTIST_CACHE_LAST_UPDATE,
-			BotUtils.currentTime()
-		));
-	}	
-	
+			BotUtils.currentTime()));
+	}
+
 	/**
 	 * Cache the album IDs of the given list of albums in a separate thread
 	 * 
 	 * @param albumsSimplified
-	 * @throws SQLException 
+	 * @throws SQLException
 	 */
 	public synchronized void cacheAlbumIdsAsync(List<AlbumSimplified> albumsSimplified) throws SQLException {
 		Thread t = new Thread(new Runnable() {
@@ -231,7 +226,7 @@ public class DiscoveryDatabase {
 		}, CACHE_ALBUMS_THREAD_NAME);
 		t.start();
 	}
-	
+
 	/**
 	 * Cache the artist IDs in a separate thread
 	 * 
@@ -257,7 +252,7 @@ public class DiscoveryDatabase {
 						removedArtists.removeAll(followedArtists);
 						if (!removedArtists.isEmpty()) {
 							removeStringsFromTableColumn(removedArtists, DBConstants.TABLE_ARTIST_CACHE, DBConstants.COL_ARTIST_IDS);
-						}			
+						}
 					}
 					refreshArtistCacheLastUpdate();
 				} catch (SQLException e) {

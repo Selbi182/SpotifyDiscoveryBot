@@ -23,9 +23,16 @@ import spotify.bot.config.Config.PlaylistStore;
 import spotify.bot.dto.AlbumTrackPair;
 
 public final class BotUtils {
+
+	/**
+	 * Utility class
+	 */
+	private BotUtils() {}
 	
+	///////
+
 	private static Config config;
-	
+
 	/**
 	 * Initialize the utility class's configuration
 	 * 
@@ -35,27 +42,24 @@ public final class BotUtils {
 		BotUtils.config = config;
 	}
 	
-	/**
-	 * Static calls only
-	 */
-	private BotUtils() {}
-
 	///////
 
 	/**
-	 * Returns the stored playlist ID by the given album group. Should the same ID be set for multiple playlists,
-	 * the album group is returned hierarchically: ALBUM > SINGLE > COMPILATION > APPEARS_ON
+	 * Returns the stored playlist ID by the given album group. Should the same ID
+	 * be set for multiple playlists, the album group is returned hierarchically:
+	 * ALBUM > SINGLE > COMPILATION > APPEARS_ON
 	 * 
 	 * @param albumGroup
 	 * @return
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	public static String getPlaylistIdByGroup(AlbumGroup albumGroup) {
 		return config.getPlaylistStoreByAlbumGroup(albumGroup).getPlaylistId();
 	}
 
 	/**
-	 * Check if the given old date is still within the allowed timeout threshold in hours
+	 * Check if the given old date is still within the allowed timeout threshold in
+	 * hours
 	 * 
 	 * @param oldDate
 	 * @param timeout
@@ -87,7 +91,8 @@ public final class BotUtils {
 	}
 
 	/**
-	 * Returns true if the album group is set to Compilation or the artist is "Various Artists"
+	 * Returns true if the album group is set to Compilation or the artist is
+	 * "Various Artists"
 	 * 
 	 * @param a
 	 * @return
@@ -100,7 +105,8 @@ public final class BotUtils {
 	}
 
 	/**
-	 * Checks if ag least a single artist of the subset is part of the given artist superset
+	 * Checks if ag least a single artist of the subset is part of the given artist
+	 * superset
 	 * 
 	 * @param followedArtists
 	 * @param artists
@@ -110,10 +116,10 @@ public final class BotUtils {
 		Set<String> artistSubsetIds = Arrays.asList(artistSubset).stream().map(ArtistSimplified::getId).collect(Collectors.toSet());
 		return artistSuperset.stream().anyMatch(a -> artistSubsetIds.contains(a));
 	}
-	
+
 	/**
 	 * Creates a concurrent generic map with some List T as the values
-	 *  
+	 * 
 	 * @param albumGroups
 	 * @return
 	 */
@@ -124,7 +130,7 @@ public final class BotUtils {
 		}
 		return albumGroupToList;
 	}
-	
+
 	/**
 	 * Creates a concurrent generic map with 0-set integers as the values
 	 * 
@@ -138,7 +144,7 @@ public final class BotUtils {
 		});
 		return albumGroupToInteger;
 	}
-	
+
 	/**
 	 * Creates the comma-delimited, lowercase String of album groups to search for
 	 * 
@@ -162,7 +168,8 @@ public final class BotUtils {
 	}
 
 	/**
-	 * Remove all items from this list that are either <i>null</i> or "null" (a literal String)
+	 * Remove all items from this list that are either <i>null</i> or "null" (a
+	 * literal String)
 	 * 
 	 * @param followedArtists
 	 */
@@ -179,25 +186,26 @@ public final class BotUtils {
 		collection.removeIf(e -> e == null);
 	}
 
-
 	/**
 	 * Compiles the final results of the bot if any songs were added
 	 * 
 	 * @param songsAddedPerAlbumGroups
 	 * @return
-	 * @throws SQLException 
-	 * @throws IOException 
+	 * @throws SQLException
+	 * @throws IOException
 	 */
 	public static String compileResultString(Map<AlbumGroup, Integer> songsAddedPerAlbumGroups) {
-		int totalSongsAdded = songsAddedPerAlbumGroups.values().stream().mapToInt(Integer::intValue).sum();
-		if (totalSongsAdded > 0) {
-			StringJoiner sj = new StringJoiner(" / ");
-			songsAddedPerAlbumGroups.entrySet().stream().forEach(sapat -> {
-				if (sapat.getValue() > 0) {
-					sj.add(sapat.getValue() + " " + sapat.getKey());						
-				}
-			});
-			return (String.format("%d new song%s added! [%s]", totalSongsAdded, totalSongsAdded > 1 ? "s" : "", sj.toString()));			
+		if (songsAddedPerAlbumGroups != null) {
+			int totalSongsAdded = songsAddedPerAlbumGroups.values().stream().mapToInt(Integer::intValue).sum();
+			if (totalSongsAdded > 0) {
+				StringJoiner sj = new StringJoiner(" / ");
+				songsAddedPerAlbumGroups.entrySet().stream().forEach(sapat -> {
+					if (sapat.getValue() > 0) {
+						sj.add(sapat.getValue() + " " + sapat.getKey());
+					}
+				});
+				return (String.format("%d new song%s added! [%s]", totalSongsAdded, totalSongsAdded > 1 ? "s" : "", sj.toString()));
+			}
 		}
 		return null;
 	}

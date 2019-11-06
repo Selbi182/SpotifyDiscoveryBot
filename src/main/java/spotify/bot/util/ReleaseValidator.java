@@ -14,9 +14,9 @@ public class ReleaseValidator {
 	private static ReleaseValidator instance;
 	private Set<String> validDates;
 	private String validMonthDate;
-	
+
 	private static Config config;
-	
+
 	/**
 	 * Initialize the utility class's configuration
 	 * 
@@ -25,13 +25,13 @@ public class ReleaseValidator {
 	public static void initializeUtilConfig(Config config) {
 		ReleaseValidator.config = config;
 	}
-	
-	private ReleaseValidator(int lookbackDays) {		
+
+	private ReleaseValidator(int lookbackDays) {
 		Calendar cal = Calendar.getInstance();
-		
+
 		SimpleDateFormat monthPrecision = new SimpleDateFormat(Constants.RELEASE_DATE_FORMAT_MONTH);
 		this.validMonthDate = monthPrecision.format(cal.getTime());
-				
+
 		SimpleDateFormat datePrecision = new SimpleDateFormat(Constants.RELEASE_DATE_FORMAT_DAY);
 		this.validDates = new HashSet<>();
 		for (int i = 0; i < lookbackDays; i++) {
@@ -39,16 +39,17 @@ public class ReleaseValidator {
 			cal.add(Calendar.DAY_OF_MONTH, -1);
 		}
 	}
-	
+
 	public static ReleaseValidator getInstance() {
 		if (instance == null) {
 			instance = new ReleaseValidator(config.getLookbackDays());
 		}
 		return instance;
 	}
-	
+
 	/**
-	 * Returns true if the album's given release date is within the previously specified lookbackDays range
+	 * Returns true if the album's given release date is within the previously
+	 * specified lookbackDays range
 	 * 
 	 * @param a
 	 * @return

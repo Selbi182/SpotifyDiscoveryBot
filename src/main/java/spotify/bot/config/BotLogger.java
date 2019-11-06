@@ -38,9 +38,9 @@ public class BotLogger {
 	 * @param string
 	 */
 	public void warning(String message) {
-		log.warn(message);		
+		log.warn(message);
 	}
-	
+
 	/**
 	 * Log an error
 	 * 

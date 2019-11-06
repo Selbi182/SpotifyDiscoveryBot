@@ -23,7 +23,7 @@ public class Config {
 
 	@Autowired
 	private DiscoveryDatabase database;
-	
+
 	// [BotConfig]
 	private String clientId;
 	private String clientSecret;
@@ -39,28 +39,28 @@ public class Config {
 	private CountryCode market;
 	private int lookbackDays;
 	private boolean circularPlaylistFitting;
-	
+
 	// [PlaylistStore]
 	private Map<AlbumGroup, PlaylistStore> playlistStore;
-	
+
 	////////////////
 
 	public Config() {
 		playlistStore = new HashMap<>();
 	}
-	
+
 	/**
 	 * Sets up or refreshes the configuration for the Spotify bot from the database
 	 * 
 	 * @throws IOException
-	 * @throws SQLException 
+	 * @throws SQLException
 	 */
 	@PostConstruct
 	public void init() throws SQLException, IOException {
 		// Read and set config
 		ResultSet dbBotConfig = database.singleRow(DBConstants.TABLE_BOT_CONFIG);
 		ResultSet dbUserConfig = database.singleRow(DBConstants.TABLE_USER_CONFIG);
-		
+
 		// Set bot config
 		clientId = dbBotConfig.getString(DBConstants.COL_CLIENT_ID);
 		clientSecret = dbBotConfig.getString(DBConstants.COL_CLIENT_SECRET);
@@ -68,7 +68,7 @@ public class Config {
 		newNotificationTimeout = dbBotConfig.getInt(DBConstants.COL_NEW_NOTIFICATION_TIMEOUT);
 		artistCacheTimeout = dbBotConfig.getInt(DBConstants.COL_ARTIST_CACHE_TIMEOUT);
 		artistCacheLastUpdated = dbBotConfig.getDate(DBConstants.COL_ARTIST_CACHE_LAST_UPDATE);
-		
+
 		// Set user config
 		accessToken = dbUserConfig.getString(DBConstants.COL_ACCESS_TOKEN);
 		refreshToken = dbUserConfig.getString(DBConstants.COL_REFRESH_TOKEN);
@@ -76,14 +76,15 @@ public class Config {
 		market = CountryCode.valueOf(dbUserConfig.getString(DBConstants.COL_MARKET));
 		lookbackDays = dbUserConfig.getInt(DBConstants.COL_LOOKBACK_DAYS);
 		circularPlaylistFitting = dbUserConfig.getBoolean(DBConstants.COL_CIRCULAR_PLAYLIST_FITTING);
-		
+
 		// Set playlist store
 		refreshUpdateStore();
 	}
-	
+
 	/**
 	 * Refresh the localized update with the data from the database
-	 * @throws SQLException 
+	 * 
+	 * @throws SQLException
 	 */
 	public void refreshUpdateStore() throws SQLException {
 		ResultSet dbPlaylistStore = database.fullTable(DBConstants.TABLE_PLAYLIST_STORE);
@@ -93,22 +94,22 @@ public class Config {
 			ps.setPlaylistId(dbPlaylistStore.getString(DBConstants.COL_PLAYLIST_ID));
 			String parentAlbumGroupString = dbPlaylistStore.getString(DBConstants.CPL_PARENT_ALBUM_GROUP);
 			if (parentAlbumGroupString != null) {
-				ps.setParentAlbumGroup(AlbumGroup.valueOf(parentAlbumGroupString));				
+				ps.setParentAlbumGroup(AlbumGroup.valueOf(parentAlbumGroupString));
 			}
 			ps.setLastUpdate(dbPlaylistStore.getDate(DBConstants.COL_LAST_UPDATE));
 			ps.setRecentSongsAddedCount(dbPlaylistStore.getInt(DBConstants.COL_RECENT_SONGS_ADDED_COUNT));
-			playlistStore.put(albumGroup, ps);	
+			playlistStore.put(albumGroup, ps);
 		}
 	}
 
 	/**
 	 * Update the access and refresh tokens, both in the config object as well as
-	 * the ini file
+	 * the database
 	 * 
 	 * @param accessToken
 	 * @param refreshToken
 	 * @throws IOException
-	 * @throws SQLException 
+	 * @throws SQLException
 	 */
 	public void updateTokens(String accessToken, String refreshToken) throws IOException, SQLException {
 		this.accessToken = accessToken;
@@ -162,15 +163,15 @@ public class Config {
 	public int getArtistCacheTimeout() {
 		return artistCacheTimeout;
 	}
-	
+
 	public Date getArtistCacheLastUpdated() {
 		return artistCacheLastUpdated;
 	}
-	
+
 	public PlaylistStore getPlaylistStoreByAlbumGroup(AlbumGroup ag) {
 		return playlistStore.get(ag);
 	}
-	
+
 	///////////////////
 
 	public class PlaylistStore {
@@ -222,7 +223,12 @@ public class Config {
 
 		@Override
 		public String toString() {
-			return "PlaylistStore [albumGroup=" + albumGroup + ", playlistId=" + playlistId + ", parentAlbumGroup=" + parentAlbumGroup + ", lastUpdated=" + lastUpdate + ", recentSongsAddedCount=" + recentSongsAddedCount + "]";
+			return "PlaylistStore [albumGroup=" + albumGroup
+				+ ", playlistId=" + playlistId
+				+ ", parentAlbumGroup=" + parentAlbumGroup
+				+ ", lastUpdated=" + lastUpdate
+				+ ", recentSongsAddedCount=" + recentSongsAddedCount
+				+ "]";
 		}
 
 	}

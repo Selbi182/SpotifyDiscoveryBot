@@ -77,13 +77,13 @@ public class PlaylistInfoRequests {
 				String playlistId = ps.getPlaylistId();
 				Playlist p = spotify.execute(spotify.api().getPlaylist(playlistId).build());
 				String playlistName = p.getName();
-				//if (playlistName.contains(Constants.NEW_INDICATOR_TEXT)) {
+				if (playlistName.contains(Constants.NEW_INDICATOR_TEXT)) {
 					if (shouldIndicatorBeMarkedAsRead(ps)) {
 						playlistName = p.getName().replace(Constants.NEW_INDICATOR_TEXT, "").trim();
 						spotify.execute(spotify.api().changePlaylistsDetails(playlistId).name(playlistName).build());
 						database.unsetPlaylistStore(ps.getAlbumGroup().getGroup());
 					}
-				//}
+				}
 			}
 		}
 	}

@@ -156,13 +156,13 @@ public class DiscoveryDatabase {
 			DBConstants.TABLE_PLAYLIST_STORE,
 			DBConstants.COL_LAST_UPDATE,
 			DBConstants.COL_ALBUM_GROUP,
-			albumGroupString
+			albumGroupString.toUpperCase()
 		));
 		statement.executeUpdate(String.format("UPDATE %s SET %s = null WHERE %s = '%s';",
 			DBConstants.TABLE_PLAYLIST_STORE,
-			DBConstants.COL_LAST_UPDATE,
+			DBConstants.COL_RECENT_SONGS_ADDED_COUNT,
 			DBConstants.COL_ALBUM_GROUP,
-			albumGroupString
+			albumGroupString.toUpperCase()
 		));
 	}
 

@@ -1,10 +1,15 @@
 package spotify.bot.api.requests;
 
+import java.io.IOException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,7 +23,8 @@ import com.wrapper.spotify.requests.data.artists.GetArtistsAlbumsRequest;
 
 import spotify.bot.api.SpotifyApiWrapper;
 import spotify.bot.config.Config;
-import spotify.bot.config.DiscoveryDatabase;
+import spotify.bot.database.DBConstants;
+import spotify.bot.database.DiscoveryDatabase;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.Constants;
 
@@ -120,9 +126,36 @@ public class AlbumRequests {
 	 */
 	public List<AlbumSimplified> getNonCachedAlbumsOfArtists(List<String> followedArtists, List<AlbumGroup> albumGroups) throws Exception {
 		List<AlbumSimplified> allAlbums = getAlbumsOfArtists(followedArtists, albumGroups);
-		List<AlbumSimplified> filteredAlbums = database.filterNonCachedAlbumsOnly(allAlbums);
+		List<AlbumSimplified> filteredAlbums = filterNonCachedAlbumsOnly(allAlbums);
 		BotUtils.removeNulls(filteredAlbums);
 		database.cacheAlbumIdsAsync(filteredAlbums);
 		return filteredAlbums;
 	}
+	
+	/**
+	 * Filter out all album IDs not currently present in the database
+	 * 
+	 * @param albumsSimplified
+	 * @return
+	 * @throws SQLException 
+	 */
+	private List<AlbumSimplified> filterNonCachedAlbumsOnly(List<AlbumSimplified> albumsSimplified) throws IOException, SQLException {
+		// Organize every album by their ID
+		Map<String, AlbumSimplified> filteredAlbums = new HashMap<>();
+		for (AlbumSimplified as : albumsSimplified) {
+			if (as != null) {				
+				filteredAlbums.put(as.getId(), as);
+			}
+		}
+		
+		// Get the cached albums and remove those from the above map
+		ResultSet rs = database.fullTable(DBConstants.TABLE_ALBUM_CACHE);
+		while (rs.next()) {
+			filteredAlbums.remove(rs.getString(DBConstants.COL_ALBUM_IDS));
+		}
+		
+		// Return the leftover albums
+		return filteredAlbums.values().stream().collect(Collectors.toList());
+	}
+
 }

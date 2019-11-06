@@ -3,6 +3,7 @@ package spotify.bot.api.requests;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -16,6 +17,7 @@ import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
 import spotify.bot.config.Config;
+import spotify.bot.config.Config.PlaylistStore;
 import spotify.bot.dto.AlbumTrackPair;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.ReleaseValidator;
@@ -49,7 +51,9 @@ public class OfflineRequests {
 		Map<AlbumGroup, List<AlbumSimplified>> categorized = BotUtils.createAlbumGroupToListOfTMap(albumGroups);
 		albumsSimplified.parallelStream().forEach(as -> {
 			AlbumGroup albumGroupOfAlbum = as.getAlbumGroup();
-			categorized.get(albumGroupOfAlbum).add(as);
+			if (albumGroupOfAlbum != null) {
+				categorized.get(albumGroupOfAlbum).add(as);				
+			}
 		});
 		return categorized;
 	}
@@ -71,36 +75,57 @@ public class OfflineRequests {
 
 	/**
 	 * Returns a rearranged view of the given map, depending on whether any album groups point to the same target playlist.
-	 * The dominance is ordered as follows: ALBUM > SINGLE > COMPILATION > APPEARS_ON
 	 * 
 	 * @param newSongsByGroup
 	 * @param albumGroups
 	 * @return
 	 */
-	public Map<AlbumGroup, List<AlbumTrackPair>> mergeOnIdenticalPlaylists(Map<AlbumGroup, List<AlbumTrackPair>> newSongsByGroup, List<AlbumGroup> albumGroups) {
-		Map<String, List<AlbumGroup>> albumGroupsByPlaylistId = new HashMap<>();
-		for (AlbumGroup ag : albumGroups) {
-			String playlistId = BotUtils.getPlaylistIdByGroup(ag);
-			if (!albumGroupsByPlaylistId.containsKey(playlistId)) {
-				albumGroupsByPlaylistId.put(playlistId, new ArrayList<>());
-			}
-			albumGroupsByPlaylistId.get(playlistId).add(ag);
-		}
-		if (albumGroupsByPlaylistId.size() == albumGroups.size()) {
+	public Map<AlbumGroup, List<AlbumTrackPair>> groupTracksToParentAlbumGroup(Map<AlbumGroup, List<AlbumTrackPair>> newSongsByGroup, List<AlbumGroup> albumGroups) {
+		Map<AlbumGroup, List<AlbumGroup>> groupedPlaylistStores = createPlaylistGroupsByParent(albumGroups);
+		if (groupedPlaylistStores.size() == albumGroups.size()) {
+			// Each album group has its own set playlist, no merging required
 			return newSongsByGroup;
 		}
 		
-		Map<AlbumGroup, List<AlbumTrackPair>> mergedAlbumGroups = BotUtils.createAlbumGroupToListOfTMap(albumGroups);
-		for (List<AlbumGroup> group : albumGroupsByPlaylistId.values()) {
-			for (AlbumGroup ag : group) {
-				mergedAlbumGroups.get(group.get(0)).addAll(newSongsByGroup.get(ag));
+		Map<AlbumGroup, List<AlbumTrackPair>> mergedAlbumGroups = new HashMap<>();
+		for (Map.Entry<AlbumGroup, List<AlbumGroup>> playlistGroup : groupedPlaylistStores.entrySet()) {
+			AlbumGroup parentAlbumGroup = playlistGroup.getKey();
+			List<AlbumTrackPair> mergedAlbumTrackPairs = new ArrayList<>();
+			for (AlbumGroup childAlbumGroup : playlistGroup.getValue()) {
+				mergedAlbumTrackPairs.addAll(newSongsByGroup.get(childAlbumGroup));
 			}
+			mergedAlbumGroups.put(parentAlbumGroup, mergedAlbumTrackPairs);
 		}
 		return mergedAlbumGroups;
+	}
+	
+	/**
+	 * Create a merged view of all playlist stores by their parent album group
+	 * 
+	 * @param enabledAlbumGroups
+	 * @return
+	 */
+	public Map<AlbumGroup, List<AlbumGroup>> createPlaylistGroupsByParent(Collection<AlbumGroup> enabledAlbumGroups) {
+		Map<AlbumGroup, List<AlbumGroup>> playlistStoresByAlbumGroupParent = new HashMap<>();
+		for (AlbumGroup ag : enabledAlbumGroups) {
+			PlaylistStore ps = config.getPlaylistStoreByAlbumGroup(ag);
+			if (ps != null && ps.getParentAlbumGroup() == null) {
+				playlistStoresByAlbumGroupParent.put(ag, new ArrayList<>());
+				playlistStoresByAlbumGroupParent.get(ag).add(ag);
+			}
+		}
+		for (AlbumGroup ag : enabledAlbumGroups) {
+			PlaylistStore ps = config.getPlaylistStoreByAlbumGroup(ag);
+			if (ps != null && ps.getParentAlbumGroup() != null) {
+				playlistStoresByAlbumGroupParent.get(ps.getParentAlbumGroup()).add(ag);
+			}
+		}
+		return playlistStoresByAlbumGroupParent;
 	}
 
 	/**
 	 * Categorize the list of given albums by album group and filter them by new albums only
+	 * (aka. those which weren't previously cached but still too old, such as re-releases)
 	 * 
 	 * @param albumsSimplified
 	 * @param albumGroups

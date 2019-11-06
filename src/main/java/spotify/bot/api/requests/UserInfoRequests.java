@@ -20,7 +20,8 @@ import com.wrapper.spotify.requests.data.follow.GetUsersFollowedArtistsRequest;
 import spotify.bot.api.SpotifyApiWrapper;
 import spotify.bot.config.BotLogger;
 import spotify.bot.config.Config;
-import spotify.bot.config.DiscoveryDatabase;
+import spotify.bot.database.DBConstants;
+import spotify.bot.database.DiscoveryDatabase;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.Constants;
 
@@ -50,7 +51,7 @@ public class UserInfoRequests {
 		List<String> cachedArtists = getCachedFollowedArtists();
 		BotUtils.removeNullStrings(cachedArtists);
 		if (cachedArtists != null && !cachedArtists.isEmpty()) {
-			Date lastUpdatedArtistCache = config.getUpdateStoreByGroup(Constants.US_ARTIST_CACHE).getLastUpdatedTimestamp();
+			Date lastUpdatedArtistCache = config.getArtistCacheLastUpdated();
 			if (lastUpdatedArtistCache != null) {
 				int artistCacheTimeout = config.getArtistCacheTimeout();
 				if (BotUtils.isTimeoutActive(lastUpdatedArtistCache, artistCacheTimeout)) {
@@ -86,10 +87,10 @@ public class UserInfoRequests {
 	}
 	
 	private List<String> getCachedFollowedArtists() throws IOException, SQLException {
-		ResultSet rs = database.fullTable(Constants.TABLE_ARTIST_CACHE);
+		ResultSet rs = database.fullTable(DBConstants.TABLE_ARTIST_CACHE);
 		List<String> cachedArtists = new ArrayList<>();
 		while (rs.next()) {
-			cachedArtists.add(rs.getString(Constants.COL_ARTIST_IDS));
+			cachedArtists.add(rs.getString(DBConstants.COL_ARTIST_IDS));
 		}
 		return cachedArtists;
 	}

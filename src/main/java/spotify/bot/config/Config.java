@@ -13,8 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 
 import com.neovisionaries.i18n.CountryCode;
+import com.wrapper.spotify.enums.AlbumGroup;
 
-import spotify.bot.util.Constants;
+import spotify.bot.database.DBConstants;
+import spotify.bot.database.DiscoveryDatabase;
 
 @Configuration
 public class Config {
@@ -28,26 +30,27 @@ public class Config {
 	private String callbackUri;
 	private int newNotificationTimeout;
 	private int artistCacheTimeout;
+	private Date artistCacheLastUpdated;
 
 	// [UserConfig]
 	private String accessToken;
 	private String refreshToken;
-	private String playlistAlbums;
-	private String playlistSingles;
-	private String playlistCompilations;
-	private String playlistAppearsOn;
 	private boolean intelligentAppearsOnSearch;
 	private CountryCode market;
 	private int lookbackDays;
 	private boolean circularPlaylistFitting;
 	
-	// [TimestampStore]
-	private Map<String, UpdateStore> updateStoreMap;
+	// [PlaylistStore]
+	private Map<AlbumGroup, PlaylistStore> playlistStore;
 	
 	////////////////
 
+	public Config() {
+		playlistStore = new HashMap<>();
+	}
+	
 	/**
-	 * Sets up the configuration for the Spotify bot
+	 * Sets up or refreshes the configuration for the Spotify bot from the database
 	 * 
 	 * @throws IOException
 	 * @throws SQLException 
@@ -55,36 +58,46 @@ public class Config {
 	@PostConstruct
 	public void init() throws SQLException, IOException {
 		// Read and set config
-		ResultSet botConfig = database.singleRow(Constants.TABLE_BOT_CONFIG);
-		ResultSet userConfig = database.singleRow(Constants.TABLE_USER_CONFIG);
-		ResultSet updateStore = database.fullTable(Constants.TABLE_UPDATE_STORE);
+		ResultSet dbBotConfig = database.singleRow(DBConstants.TABLE_BOT_CONFIG);
+		ResultSet dbUserConfig = database.singleRow(DBConstants.TABLE_USER_CONFIG);
 		
 		// Set bot config
-		clientId = botConfig.getString(Constants.COL_CLIENT_ID);
-		clientSecret = botConfig.getString(Constants.COL_CLIENT_SECRET);
-		callbackUri = botConfig.getString(Constants.COL_CALLBACK_URI);
-		newNotificationTimeout = botConfig.getInt(Constants.COL_NEW_NOTIFICATION_TIMEOUT);
-		artistCacheTimeout = botConfig.getInt(Constants.COL_ARTIST_CACHE_TIMEOUT);
+		clientId = dbBotConfig.getString(DBConstants.COL_CLIENT_ID);
+		clientSecret = dbBotConfig.getString(DBConstants.COL_CLIENT_SECRET);
+		callbackUri = dbBotConfig.getString(DBConstants.COL_CALLBACK_URI);
+		newNotificationTimeout = dbBotConfig.getInt(DBConstants.COL_NEW_NOTIFICATION_TIMEOUT);
+		artistCacheTimeout = dbBotConfig.getInt(DBConstants.COL_ARTIST_CACHE_TIMEOUT);
+		artistCacheLastUpdated = dbBotConfig.getDate(DBConstants.COL_ARTIST_CACHE_LAST_UPDATE);
 		
 		// Set user config
-		accessToken = userConfig.getString(Constants.COL_ACCESS_TOKEN);
-		refreshToken = userConfig.getString(Constants.COL_REFRESH_TOKEN);
-		playlistAlbums = userConfig.getString(Constants.COL_PLAYLIST_ALBUMS);
-		playlistSingles = userConfig.getString(Constants.COL_PLAYLIST_SINGLES);
-		playlistCompilations = userConfig.getString(Constants.COL_PLAYLIST_COMPILATIONS);
-		playlistAppearsOn = userConfig.getString(Constants.COL_PLAYLIST_APPEARS_ON);
-		intelligentAppearsOnSearch = userConfig.getBoolean(Constants.COL_INTELLIGENT_APPEARS_ON_SEARCH);
-		market = CountryCode.valueOf(userConfig.getString(Constants.COL_MARKET));
-		lookbackDays = userConfig.getInt(Constants.COL_LOOKBACK_DAYS);
-		circularPlaylistFitting = userConfig.getBoolean(Constants.COL_CIRCULAR_PLAYLIST_FITTING);
+		accessToken = dbUserConfig.getString(DBConstants.COL_ACCESS_TOKEN);
+		refreshToken = dbUserConfig.getString(DBConstants.COL_REFRESH_TOKEN);
+		intelligentAppearsOnSearch = dbUserConfig.getBoolean(DBConstants.COL_INTELLIGENT_APPEARS_ON_SEARCH);
+		market = CountryCode.valueOf(dbUserConfig.getString(DBConstants.COL_MARKET));
+		lookbackDays = dbUserConfig.getInt(DBConstants.COL_LOOKBACK_DAYS);
+		circularPlaylistFitting = dbUserConfig.getBoolean(DBConstants.COL_CIRCULAR_PLAYLIST_FITTING);
 		
-		// Set update store
-		updateStoreMap = new HashMap<>();
-		while (updateStore.next()) {
-			Date lastUpdated = updateStore.getDate(Constants.COL_LAST_UPDATED_TIMESTAMP);
-			Integer lastUpdateSongCount = updateStore.getInt(Constants.COL_LAST_UPDATE_SONG_COUNT);
-			UpdateStore us = new UpdateStore(lastUpdated, lastUpdateSongCount);
-			updateStoreMap.put(updateStore.getString(Constants.COL_TYPE), us);	
+		// Set playlist store
+		refreshUpdateStore();
+	}
+	
+	/**
+	 * Refresh the localized update with the data from the database
+	 * @throws SQLException 
+	 */
+	public void refreshUpdateStore() throws SQLException {
+		ResultSet dbPlaylistStore = database.fullTable(DBConstants.TABLE_PLAYLIST_STORE);
+		while (dbPlaylistStore.next()) {
+			AlbumGroup albumGroup = AlbumGroup.valueOf(dbPlaylistStore.getString(DBConstants.COL_ALBUM_GROUP));
+			PlaylistStore ps = new PlaylistStore(albumGroup);
+			ps.setPlaylistId(dbPlaylistStore.getString(DBConstants.COL_PLAYLIST_ID));
+			String parentAlbumGroupString = dbPlaylistStore.getString(DBConstants.CPL_PARENT_ALBUM_GROUP);
+			if (parentAlbumGroupString != null) {
+				ps.setParentAlbumGroup(AlbumGroup.valueOf(parentAlbumGroupString));				
+			}
+			ps.setLastUpdate(dbPlaylistStore.getDate(DBConstants.COL_LAST_UPDATE));
+			ps.setRecentSongsAddedCount(dbPlaylistStore.getInt(DBConstants.COL_RECENT_SONGS_ADDED_COUNT));
+			playlistStore.put(albumGroup, ps);	
 		}
 	}
 
@@ -100,8 +113,8 @@ public class Config {
 	public void updateTokens(String accessToken, String refreshToken) throws IOException, SQLException {
 		this.accessToken = accessToken;
 		this.refreshToken = refreshToken;
-		database.updateColumnInTable(Constants.TABLE_USER_CONFIG, Constants.COL_ACCESS_TOKEN, accessToken);
-		database.updateColumnInTable(Constants.TABLE_USER_CONFIG, Constants.COL_REFRESH_TOKEN, refreshToken);
+		database.updateColumnInTable(DBConstants.TABLE_USER_CONFIG, DBConstants.COL_ACCESS_TOKEN, accessToken);
+		database.updateColumnInTable(DBConstants.TABLE_USER_CONFIG, DBConstants.COL_REFRESH_TOKEN, refreshToken);
 	}
 
 	////////////////////
@@ -138,22 +151,6 @@ public class Config {
 		return refreshToken;
 	}
 
-	public String getPlaylistAlbums() {
-		return playlistAlbums;
-	}
-
-	public String getPlaylistSingles() {
-		return playlistSingles;
-	}
-
-	public String getPlaylistCompilations() {
-		return playlistCompilations;
-	}
-
-	public String getPlaylistAppearsOn() {
-		return playlistAppearsOn;
-	}
-
 	public int getNewNotificationTimeout() {
 		return newNotificationTimeout;
 	}
@@ -165,37 +162,68 @@ public class Config {
 	public int getArtistCacheTimeout() {
 		return artistCacheTimeout;
 	}
-
-	public UpdateStore getUpdateStoreByGroup(String group) {
-		return updateStoreMap.get(group);
+	
+	public Date getArtistCacheLastUpdated() {
+		return artistCacheLastUpdated;
 	}
-
+	
+	public PlaylistStore getPlaylistStoreByAlbumGroup(AlbumGroup ag) {
+		return playlistStore.get(ag);
+	}
 	
 	///////////////////
-	
-	public class UpdateStore {
-		private Date lastUpdatedTimestamp;
-		private Integer lastUpdateSongCount;
 
-		public UpdateStore(Date lastUpdatedTimestamp, Integer lastUpdateSongCount) {
-			this.lastUpdatedTimestamp = lastUpdatedTimestamp;
-			this.lastUpdateSongCount = lastUpdateSongCount;
+	public class PlaylistStore {
+		private final AlbumGroup albumGroup;
+		private String playlistId;
+		private AlbumGroup parentAlbumGroup;
+		private Date lastUpdate;
+		private Integer recentSongsAddedCount;
+
+		public PlaylistStore(AlbumGroup albumGroup) {
+			this.albumGroup = albumGroup;
 		}
 
-		public Date getLastUpdatedTimestamp() {
-			return lastUpdatedTimestamp;
+		public AlbumGroup getAlbumGroup() {
+			return albumGroup;
 		}
 
-		public void setLastUpdatedTimestamp(Date lastUpdatedTimestamp) {
-			this.lastUpdatedTimestamp = lastUpdatedTimestamp;
+		public String getPlaylistId() {
+			return playlistId;
 		}
 
-		public Integer getLastUpdateSongCount() {
-			return lastUpdateSongCount;
+		public void setPlaylistId(String playlistId) {
+			this.playlistId = playlistId;
 		}
 
-		public void setLastUpdateSongCount(Integer lastUpdateSongCount) {
-			this.lastUpdateSongCount = lastUpdateSongCount;
+		public AlbumGroup getParentAlbumGroup() {
+			return parentAlbumGroup;
 		}
+
+		public void setParentAlbumGroup(AlbumGroup parentAlbumGroup) {
+			this.parentAlbumGroup = parentAlbumGroup;
+		}
+
+		public Date getLastUpdate() {
+			return lastUpdate;
+		}
+
+		public void setLastUpdate(Date lastUpdate) {
+			this.lastUpdate = lastUpdate;
+		}
+
+		public Integer getRecentSongsAddedCount() {
+			return recentSongsAddedCount;
+		}
+
+		public void setRecentSongsAddedCount(Integer recentSongsAddedCount) {
+			this.recentSongsAddedCount = recentSongsAddedCount;
+		}
+
+		@Override
+		public String toString() {
+			return "PlaylistStore [albumGroup=" + albumGroup + ", playlistId=" + playlistId + ", parentAlbumGroup=" + parentAlbumGroup + ", lastUpdated=" + lastUpdate + ", recentSongsAddedCount=" + recentSongsAddedCount + "]";
+		}
+
 	}
 }

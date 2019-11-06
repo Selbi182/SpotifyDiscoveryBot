@@ -57,13 +57,15 @@ public class TrackRequests {
 		albumsByAlbumGroup.entrySet().parallelStream().forEach(ag -> {
 			AlbumGroup albumGroup = ag.getKey();
 			List<AlbumSimplified> albums = ag.getValue();
-			final List<AlbumTrackPair> target = tracksOfAlbumsByGroup.get(albumGroup);
-			if (AlbumGroup.APPEARS_ON.equals(albumGroup) && isIntelligentAppearsOnSearch) {
-				target.addAll(intelligentAppearsOnSearch(albums, followedArtists));
-			} else {
-				albums.parallelStream().forEach(a -> {
-					target.add(tracksOfAlbum(a));
-				});
+			if (!albums.isEmpty()) {
+				final List<AlbumTrackPair> target = tracksOfAlbumsByGroup.get(albumGroup);
+				if (AlbumGroup.APPEARS_ON.equals(albumGroup) && isIntelligentAppearsOnSearch) {
+					target.addAll(intelligentAppearsOnSearch(albums, followedArtists));
+				} else {
+					albums.parallelStream().forEach(a -> {
+						target.add(tracksOfAlbum(a));
+					});
+				}				
 			}
 		});
 		return tracksOfAlbumsByGroup;

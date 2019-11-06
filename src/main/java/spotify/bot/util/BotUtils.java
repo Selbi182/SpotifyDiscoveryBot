@@ -7,11 +7,11 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import com.wrapper.spotify.enums.AlbumGroup;
@@ -20,6 +20,8 @@ import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
 
 import spotify.bot.config.Config;
+import spotify.bot.config.Config.PlaylistStore;
+import spotify.bot.dto.AlbumTrackPair;
 
 public final class BotUtils {
 	
@@ -40,13 +42,6 @@ public final class BotUtils {
 	private BotUtils() {}
 
 	///////
-	
-	/**
-	 * Check if the given playlistId has been set
-	 */
-	public static boolean isPlaylistSet(String playlistId) {
-		return playlistId != null && !playlistId.trim().isEmpty();
-	}
 
 	/**
 	 * Returns the stored playlist ID by the given album group. Should the same ID be set for multiple playlists,
@@ -57,17 +52,7 @@ public final class BotUtils {
 	 * @throws IOException 
 	 */
 	public static String getPlaylistIdByGroup(AlbumGroup albumGroup) {
-		switch (albumGroup) {
-			case ALBUM:
-				return config.getPlaylistAlbums();
-			case SINGLE:
-				return config.getPlaylistSingles();
-			case COMPILATION:
-				return config.getPlaylistCompilations();
-			case APPEARS_ON:
-				return config.getPlaylistAppearsOn();
-		}
-		return null;
+		return config.getPlaylistStoreByAlbumGroup(albumGroup).getPlaylistId();
 	}
 	
 	/**
@@ -119,9 +104,11 @@ public final class BotUtils {
 	public static List<AlbumGroup> getSetAlbumGroups() {
 		List<AlbumGroup> setAlbumGroups = new ArrayList<>();
 		for (AlbumGroup ag : AlbumGroup.values()) {
-			String playlistId = BotUtils.getPlaylistIdByGroup(ag);			
-			if (BotUtils.isPlaylistSet(playlistId)) {
-				setAlbumGroups.add(ag);
+			PlaylistStore ps = config.getPlaylistStoreByAlbumGroup(ag);
+			if (ps != null) {
+				if ((ps.getPlaylistId() != null && !ps.getPlaylistId().trim().isEmpty()) || ps.getParentAlbumGroup() != null) {
+					setAlbumGroups.add(ag);
+				}
 			}
 		}
 		return setAlbumGroups;
@@ -134,7 +121,7 @@ public final class BotUtils {
 	 * @param appearsOn
 	 */
 	public static Map<AlbumGroup, List<Album>> flattenToSingleAlbumGroup(Map<AlbumGroup, List<Album>> albumsByAlbumGroup, AlbumGroup newSoloAlbumGroup) {
-		Map<AlbumGroup, List<Album>> flattened = new ConcurrentHashMap<>();
+		Map<AlbumGroup, List<Album>> flattened = new HashMap<>();
 		flattened.put(newSoloAlbumGroup, new ArrayList<>());
 		albumsByAlbumGroup.values().parallelStream().forEach(abat -> {
 			flattened.get(newSoloAlbumGroup).addAll(abat);
@@ -174,10 +161,10 @@ public final class BotUtils {
 	 * @return
 	 */
 	public static <T> Map<AlbumGroup, List<T>> createAlbumGroupToListOfTMap(Collection<AlbumGroup> albumGroups) {
-		Map<AlbumGroup, List<T>> albumGroupToList = new ConcurrentHashMap<>();
-		albumGroups.stream().forEach(ag -> {
+		Map<AlbumGroup, List<T>> albumGroupToList = new HashMap<>();
+		for (AlbumGroup ag : albumGroups) {
 			albumGroupToList.put(ag, new ArrayList<>());
-		});
+		}
 		return albumGroupToList;
 	}
 	
@@ -188,7 +175,7 @@ public final class BotUtils {
 	 * @return
 	 */
 	public static Map<AlbumGroup, Integer> createAlbumGroupToIntegerMap(Collection<AlbumGroup> albumGroups) {
-		Map<AlbumGroup, Integer> albumGroupToInteger = new ConcurrentHashMap<>();
+		Map<AlbumGroup, Integer> albumGroupToInteger = new HashMap<>();
 		albumGroups.stream().forEach(ag -> {
 			albumGroupToInteger.put(ag, 0);
 		});
@@ -256,5 +243,28 @@ public final class BotUtils {
 			return (String.format("%d new song%s added! [%s]", totalSongsAdded, totalSongsAdded > 1 ? "s" : "", sj.toString()));			
 		}
 		return null;
+	}
+
+	/**
+	 * Return the current time as unix timestamp
+	 * 
+	 * @return
+	 */
+	public static long currentTime() {
+		Calendar cal = Calendar.getInstance();
+		return cal.getTimeInMillis();
+	}
+
+	/**
+	 * Write the song count per album group into the target map
+	 * 
+	 * @param newSongsMap
+	 * @param targetCountMap
+	 */
+	public static void writeSongAdditionResults(Map<AlbumGroup, List<AlbumTrackPair>> newSongsMap, Map<AlbumGroup, Integer> targetCountMap) {
+		for (Map.Entry<AlbumGroup, List<AlbumTrackPair>> entry : newSongsMap.entrySet()) {
+			int totalSongsOfGroup = entry.getValue().stream().mapToInt(atp -> atp.getTracks().size()).sum();
+			targetCountMap.put(entry.getKey(), totalSongsOfGroup);
+		}
 	}
 }

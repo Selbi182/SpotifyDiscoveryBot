@@ -1,6 +1,4 @@
-package spotify.bot.config;
-
-import static spotify.bot.util.Constants.DB_FILE_NAME;
+package spotify.bot.database;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,9 +10,7 @@ import java.sql.Statement;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -25,6 +21,8 @@ import org.springframework.stereotype.Repository;
 
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
+import spotify.bot.config.BotLogger;
+import spotify.bot.util.BotUtils;
 import spotify.bot.util.Constants;
 
 @Repository
@@ -45,11 +43,11 @@ public class DiscoveryDatabase {
 	
 	@PostConstruct
 	public void init() throws IOException, SQLException {
-		File dbFilePath = new File(Constants.OWN_LOCATION, DB_FILE_NAME);
+		File dbFilePath = new File(Constants.WORKSPACE_LOCATION, DBConstants.DB_FILE_NAME);
 		if (!dbFilePath.canRead()) {
 			throw new IOException("Could not read .db file! Expected location: " + dbFilePath.getAbsolutePath());
 		}
-		this.dbUrl = Constants.DB_URL_PREFIX + dbFilePath.getAbsolutePath();
+		this.dbUrl = DBConstants.DB_URL_PREFIX + dbFilePath.getAbsolutePath();
 		
 		// Connect
 		connection = DriverManager.getConnection(dbUrl);
@@ -66,6 +64,8 @@ public class DiscoveryDatabase {
 			connection.close();
 		}
 	}
+	
+	//////////////
 	
 	/**
 	 * Fetch the single-row result set of the given table
@@ -95,25 +95,8 @@ public class DiscoveryDatabase {
 		return rs;
 	}
 	
-	/**
-	 * Filter out all album IDs not currently present in the database
-	 * 
-	 * @param albumsSimplified
-	 * @return
-	 * @throws SQLException 
-	 */
-	public List<AlbumSimplified> filterNonCachedAlbumsOnly(List<AlbumSimplified> albumsSimplified) throws IOException, SQLException {
-		ResultSet rs = fullTable(Constants.TABLE_ALBUM_CACHE);
-		Map<String, AlbumSimplified> filteredAlbums = new ConcurrentHashMap<>();
-		for (AlbumSimplified as : albumsSimplified) {
-			filteredAlbums.put(as.getId(), as);
-		}
-		while (rs.next()) {
-			filteredAlbums.remove(rs.getString(Constants.COL_ALBUM_IDS));
-		}
-		return filteredAlbums.values().stream().collect(Collectors.toList());
-	}
-
+	////////////////
+	
 	/**
 	 * Update every given column's value in the given table by a new value
 	 * 
@@ -162,36 +145,54 @@ public class DiscoveryDatabase {
 	}
 	
 	/**
-	 * Unset the given timestamp column to the current date
+	 * Unset the given recent addition info of the given playlist store
 	 * 
-	 * @param column
+	 * @param albumGroupString
 	 * @throws SQLException
 	 */
-	public synchronized void unsetUpdateStore(String group) throws SQLException {
+	public synchronized void unsetPlaylistStore(String albumGroupString) throws SQLException {
 		Statement statement = connection.createStatement();
 		statement.executeUpdate(String.format("UPDATE %s SET %s = null WHERE %s = '%s';",
-			Constants.TABLE_UPDATE_STORE,
-			Constants.COL_LAST_UPDATED_TIMESTAMP,
-			Constants.COL_TYPE,
-			group
+			DBConstants.TABLE_PLAYLIST_STORE,
+			DBConstants.COL_LAST_UPDATE,
+			DBConstants.COL_ALBUM_GROUP,
+			albumGroupString
 		));
 		statement.executeUpdate(String.format("UPDATE %s SET %s = null WHERE %s = '%s';",
-			Constants.TABLE_UPDATE_STORE,
-			Constants.COL_LAST_UPDATED_TIMESTAMP,
-			Constants.COL_TYPE,
-			group
+			DBConstants.TABLE_PLAYLIST_STORE,
+			DBConstants.COL_LAST_UPDATE,
+			DBConstants.COL_ALBUM_GROUP,
+			albumGroupString
 		));
 	}
 
 	/**
-	 * Update the update store's given timestamp and unset the song count
+	 * Update the playlist store's given timestamp and unset the song count
 	 * 
-	 * @param group
+	 * @param albumGroupString
+	 * @param addedSongsCount
 	 * @throws SQLException
 	 */
-	public synchronized void refreshUpdateStore(String group) throws SQLException {
-		unsetUpdateStore(group);
-		refreshUpdateStore(group, null);
+	public synchronized void refreshPlaylistStore(String albumGroupString, Integer addedSongsCount) throws SQLException {
+		Statement statement = connection.createStatement();
+		if (albumGroupString != null) {
+			statement.executeUpdate(String.format("UPDATE %s SET %s = %d WHERE %s = '%s';",
+				DBConstants.TABLE_PLAYLIST_STORE,
+				DBConstants.COL_LAST_UPDATE,
+				BotUtils.currentTime(),
+				DBConstants.COL_ALBUM_GROUP,
+				albumGroupString.toUpperCase()
+			));
+		}
+		if (addedSongsCount != null) {
+			statement.executeUpdate(String.format("UPDATE %s SET %s = %d WHERE %s = '%s';",
+				DBConstants.TABLE_PLAYLIST_STORE,
+				DBConstants.COL_RECENT_SONGS_ADDED_COUNT,
+				addedSongsCount,
+				DBConstants.COL_ALBUM_GROUP,
+				albumGroupString.toUpperCase()
+			));
+		}
 	}
 	
 	/**
@@ -201,40 +202,28 @@ public class DiscoveryDatabase {
 	 * @param addedSongs
 	 * @throws SQLException
 	 */
-	public synchronized void refreshUpdateStore(String group, Integer addedSongs) throws SQLException {
+	public synchronized void refreshArtistCacheLastUpdate() throws SQLException {
 		Statement statement = connection.createStatement();
-		if (group != null) {
-			statement.executeUpdate(String.format("UPDATE %s SET %s = strftime('%%s', 'now') * 1000 WHERE %s = '%s';",
-				Constants.TABLE_UPDATE_STORE,
-				Constants.COL_LAST_UPDATED_TIMESTAMP,
-				Constants.COL_TYPE,
-				group
-			));
-		}
-		if (addedSongs != null) {
-			statement.executeUpdate(String.format("UPDATE %s SET %s = %d WHERE %s = '%s';",
-				Constants.TABLE_UPDATE_STORE,
-				Constants.COL_LAST_UPDATE_SONG_COUNT,
-				addedSongs,
-				Constants.COL_TYPE,
-				group
-			));
-		}
-	}
-
+		statement.executeUpdate(String.format("UPDATE %s SET %s = %d;",
+			DBConstants.TABLE_BOT_CONFIG,
+			DBConstants.COL_ARTIST_CACHE_LAST_UPDATE,
+			BotUtils.currentTime()
+		));
+	}	
+	
 	/**
 	 * Cache the album IDs of the given list of albums in a separate thread
 	 * 
 	 * @param albumsSimplified
 	 * @throws SQLException 
 	 */
-	public void cacheAlbumIdsAsync(List<AlbumSimplified> albumsSimplified) throws SQLException {
+	public synchronized void cacheAlbumIdsAsync(List<AlbumSimplified> albumsSimplified) throws SQLException {
 		Thread t = new Thread(new Runnable() {
 			@Override
 			public void run() {
 				List<String> albumIds = albumsSimplified.stream().map(AlbumSimplified::getId).collect(Collectors.toList());
 				try {
-					storeStringsToTableColumn(albumIds, Constants.TABLE_ALBUM_CACHE, Constants.COL_ALBUM_IDS);
+					storeStringsToTableColumn(albumIds, DBConstants.TABLE_ALBUM_CACHE, DBConstants.COL_ALBUM_IDS);
 				} catch (SQLException e) {
 					log.stackTrace(e);
 				}
@@ -251,26 +240,26 @@ public class DiscoveryDatabase {
 	 * @throws SQLException
 	 * @throws IOException
 	 */
-	public void updateFollowedArtistsCacheAsync(List<String> followedArtists, List<String> cachedArtists) throws SQLException, IOException {
+	public synchronized void updateFollowedArtistsCacheAsync(List<String> followedArtists, List<String> cachedArtists) throws SQLException, IOException {
 		Thread t = new Thread(new Runnable() {
 			@Override
 			public void run() {
 				try {
 					if (cachedArtists == null || cachedArtists.isEmpty()) {
-						storeStringsToTableColumn(followedArtists, Constants.TABLE_ARTIST_CACHE, Constants.COL_ARTIST_IDS);
+						storeStringsToTableColumn(followedArtists, DBConstants.TABLE_ARTIST_CACHE, DBConstants.COL_ARTIST_IDS);
 					} else {
 						Set<String> addedArtists = new HashSet<>(followedArtists);
 						addedArtists.removeAll(cachedArtists);
 						if (!addedArtists.isEmpty()) {
-							storeStringsToTableColumn(addedArtists, Constants.TABLE_ARTIST_CACHE, Constants.COL_ARTIST_IDS);
+							storeStringsToTableColumn(addedArtists, DBConstants.TABLE_ARTIST_CACHE, DBConstants.COL_ARTIST_IDS);
 						}
 						Set<String> removedArtists = new HashSet<>(cachedArtists);
 						removedArtists.removeAll(followedArtists);
 						if (!removedArtists.isEmpty()) {
-							removeStringsFromTableColumn(removedArtists, Constants.TABLE_ARTIST_CACHE, Constants.COL_ARTIST_IDS);
+							removeStringsFromTableColumn(removedArtists, DBConstants.TABLE_ARTIST_CACHE, DBConstants.COL_ARTIST_IDS);
 						}			
 					}
-					refreshUpdateStore(Constants.US_ARTIST_CACHE);
+					refreshArtistCacheLastUpdate();
 				} catch (SQLException e) {
 					log.stackTrace(e);
 				}

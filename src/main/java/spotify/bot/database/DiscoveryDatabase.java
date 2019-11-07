@@ -42,15 +42,24 @@ public class DiscoveryDatabase {
 	private Connection connection;
 
 	@PostConstruct
-	public void init() throws IOException, SQLException {
+	public void setDatabaseUrl() throws IOException, SQLException {
 		File dbFilePath = new File(Constants.WORKSPACE_LOCATION, DBConstants.DB_FILE_NAME);
 		if (!dbFilePath.canRead()) {
 			throw new IOException("Could not read .db file! Expected location: " + dbFilePath.getAbsolutePath());
 		}
 		this.dbUrl = DBConstants.DB_URL_PREFIX + dbFilePath.getAbsolutePath();
+	}
 
-		// Connect
-		connection = DriverManager.getConnection(dbUrl);
+	/**
+	 * Returns the Database connection instance. May create a new one if not already set
+	 * 
+	 * @throws SQLException
+	 */
+	private Connection getConnectionInstance() throws SQLException {
+		if (connection == null || connection.isClosed()) {
+			connection = DriverManager.getConnection(dbUrl);			
+		}
+		return connection;
 	}
 
 	/**
@@ -64,7 +73,17 @@ public class DiscoveryDatabase {
 			connection.close();
 		}
 	}
-
+	
+	/**
+	 * Creates a new Database statement. May create a new database instance.
+	 * 
+	 * @return
+	 * @throws SQLException
+	 */
+	private Statement createStatement() throws SQLException {
+		return getConnectionInstance().createStatement();
+	}
+	
 	//////////////
 
 	/**
@@ -74,8 +93,7 @@ public class DiscoveryDatabase {
 	 * @throws SQLException
 	 */
 	public ResultSet singleRow(String tableName) throws SQLException, IOException {
-		Statement statement = connection.createStatement();
-		ResultSet rs = statement.executeQuery(String.format(SINGLE_SELECT_QUERY_MASK, tableName));
+		ResultSet rs = createStatement().executeQuery(String.format(SINGLE_SELECT_QUERY_MASK, tableName));
 		if (!rs.next()) {
 			throw new SQLException("Table " + tableName + " not found or empty!");
 		}
@@ -90,8 +108,7 @@ public class DiscoveryDatabase {
 	 * @throws SQLException
 	 */
 	public ResultSet fullTable(String tableName) throws SQLException {
-		Statement statement = connection.createStatement();
-		ResultSet rs = statement.executeQuery(String.format(FULL_SELECT_QUERY_MASK, tableName));
+		ResultSet rs = createStatement().executeQuery(String.format(FULL_SELECT_QUERY_MASK, tableName));
 		return rs;
 	}
 
@@ -106,8 +123,7 @@ public class DiscoveryDatabase {
 	 * @throws SQLException
 	 */
 	public synchronized void updateColumnInTable(String table, String column, String newValue) throws SQLException {
-		Statement statement = connection.createStatement();
-		statement.executeUpdate(String.format("UPDATE %s SET %s = '%s';", table, column, newValue));
+		createStatement().executeUpdate(String.format("UPDATE %s SET %s = '%s';", table, column, newValue));
 	}
 
 	/**
@@ -120,9 +136,8 @@ public class DiscoveryDatabase {
 	 */
 	private synchronized void storeStringsToTableColumn(Collection<String> strings, String table, String column) throws SQLException {
 		if (table != null && column != null && strings != null && !strings.isEmpty()) {
-			Statement statement = connection.createStatement();
 			for (String s : strings) {
-				statement.executeUpdate(String.format(INSERT_QUERY_MASK, table, column, s));
+				createStatement().executeUpdate(String.format(INSERT_QUERY_MASK, table, column, s));
 			}
 		}
 	}
@@ -137,9 +152,8 @@ public class DiscoveryDatabase {
 	 */
 	private synchronized void removeStringsFromTableColumn(Collection<String> stringsToRemove, String table, String column) throws SQLException {
 		if (table != null && column != null && stringsToRemove != null && !stringsToRemove.isEmpty()) {
-			Statement statement = connection.createStatement();
 			for (String s : stringsToRemove) {
-				statement.execute(String.format(DELETE_QUERY_MASK, table, column, s));
+				createStatement().execute(String.format(DELETE_QUERY_MASK, table, column, s));
 			}
 		}
 	}
@@ -151,13 +165,12 @@ public class DiscoveryDatabase {
 	 * @throws SQLException
 	 */
 	public synchronized void unsetPlaylistStore(String albumGroupString) throws SQLException {
-		Statement statement = connection.createStatement();
-		statement.executeUpdate(String.format("UPDATE %s SET %s = null WHERE %s = '%s';",
+		createStatement().executeUpdate(String.format("UPDATE %s SET %s = null WHERE %s = '%s';",
 			DBConstants.TABLE_PLAYLIST_STORE,
 			DBConstants.COL_LAST_UPDATE,
 			DBConstants.COL_ALBUM_GROUP,
 			albumGroupString.toUpperCase()));
-		statement.executeUpdate(String.format("UPDATE %s SET %s = null WHERE %s = '%s';",
+		createStatement().executeUpdate(String.format("UPDATE %s SET %s = null WHERE %s = '%s';",
 			DBConstants.TABLE_PLAYLIST_STORE,
 			DBConstants.COL_RECENT_SONGS_ADDED_COUNT,
 			DBConstants.COL_ALBUM_GROUP,
@@ -172,9 +185,8 @@ public class DiscoveryDatabase {
 	 * @throws SQLException
 	 */
 	public synchronized void refreshPlaylistStore(String albumGroupString, Integer addedSongsCount) throws SQLException {
-		Statement statement = connection.createStatement();
 		if (albumGroupString != null) {
-			statement.executeUpdate(String.format("UPDATE %s SET %s = %d WHERE %s = '%s';",
+			createStatement().executeUpdate(String.format("UPDATE %s SET %s = %d WHERE %s = '%s';",
 				DBConstants.TABLE_PLAYLIST_STORE,
 				DBConstants.COL_LAST_UPDATE,
 				BotUtils.currentTime(),
@@ -182,7 +194,7 @@ public class DiscoveryDatabase {
 				albumGroupString.toUpperCase()));
 		}
 		if (addedSongsCount != null) {
-			statement.executeUpdate(String.format("UPDATE %s SET %s = %d WHERE %s = '%s';",
+			createStatement().executeUpdate(String.format("UPDATE %s SET %s = %d WHERE %s = '%s';",
 				DBConstants.TABLE_PLAYLIST_STORE,
 				DBConstants.COL_RECENT_SONGS_ADDED_COUNT,
 				addedSongsCount,
@@ -199,8 +211,7 @@ public class DiscoveryDatabase {
 	 * @throws SQLException
 	 */
 	private synchronized void refreshArtistCacheLastUpdate() throws SQLException {
-		Statement statement = connection.createStatement();
-		statement.executeUpdate(String.format("UPDATE %s SET %s = %d;",
+		createStatement().executeUpdate(String.format("UPDATE %s SET %s = %d;",
 			DBConstants.TABLE_BOT_CONFIG,
 			DBConstants.COL_ARTIST_CACHE_LAST_UPDATE,
 			BotUtils.currentTime()));

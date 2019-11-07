@@ -8,6 +8,7 @@ import java.sql.SQLException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,8 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.SpotifyHttpManager;
+import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.exceptions.detailed.BadRequestException;
-import com.wrapper.spotify.exceptions.detailed.UnauthorizedException;
 import com.wrapper.spotify.model_objects.credentials.AuthorizationCodeCredentials;
 
 import spotify.bot.config.BotLogger;
@@ -38,20 +39,38 @@ public class SpotifyApiWrapper {
 	@Autowired
 	ApplicationEventPublisher applicationEventPublisher;
 
+	@Autowired
 	private SpotifyApi spotifyApi;
-
+	
 	///////////////////////
 
 	/**
 	 * Get the current SpotifyApi instance
 	 * 
 	 * @return
-	 * @throws SQLException
-	 * @throws IOException
+	 * @throws InterruptedException 
+	 * @throws SpotifyWebApiException 
+	 * @throws IOException 
 	 */
-	public SpotifyApi api() {
-		if (spotifyApi == null) {
-			createSpotifyApiInstance();
+	@Bean
+	SpotifyApi createNewSpotifyApi() throws SpotifyWebApiException, InterruptedException, IOException {
+		SpotifyApi spotifyApi = new SpotifyApi.Builder()
+			.setClientId(config.getClientId())
+			.setClientSecret(config.getClientSecret())
+			.setRedirectUri(SpotifyHttpManager.makeUri(config.getCallbackUri()))
+			.build();
+
+		// Get stored tokens
+		spotifyApi.setAccessToken(config.getAccessToken());
+		spotifyApi.setRefreshToken(config.getRefreshToken());
+
+		this.spotifyApi = spotifyApi;
+		
+		// Try to login with the stored tokens or re-authenticate
+		try {
+			refreshTokens();
+		} catch (IOException | SQLException | BadRequestException e) {
+			authenticate();
 		}
 		return spotifyApi;
 	}
@@ -59,37 +78,14 @@ public class SpotifyApiWrapper {
 	///////////////////////
 
 	/**
-	 * Create a fresh API instance
-	 */
-	private void createSpotifyApiInstance() {
-		try {
-			spotifyApi = new SpotifyApi.Builder()
-				.setClientId(config.getClientId())
-				.setClientSecret(config.getClientSecret())
-				.setRedirectUri(SpotifyHttpManager.makeUri(config.getCallbackUri()))
-				.build();
-
-			// Get stored tokens
-			spotifyApi.setAccessToken(config.getAccessToken());
-			spotifyApi.setRefreshToken(config.getRefreshToken());
-
-			// Try to login with the stored tokens or re-authenticate
-			try {
-				refreshAccessToken();
-			} catch (IOException | SQLException | BadRequestException e) {
-				authenticate();
-			}
-		} catch (Exception e) {
-			log.stackTrace(e);
-		}
-	}
-
-	/**
 	 * Authentication process
+	 * @throws InterruptedException 
+	 * @throws IOException 
+	 * @throws SpotifyWebApiException 
 	 * 
 	 * @throws Exception
 	 */
-	private void authenticate() throws Exception {
+	private void authenticate() throws SpotifyWebApiException, IOException, InterruptedException {
 		URI uri = SpotifyCall.execute(spotifyApi.authorizationCodeUri().scope(Constants.SCOPES));
 		try {
 			if (!Desktop.isDesktopSupported()) {
@@ -119,19 +115,20 @@ public class SpotifyApiWrapper {
 			return new ResponseEntity<String>("Response code is invalid!", HttpStatus.BAD_REQUEST);
 		}
 	}
-
+	
 	/**
 	 * Refresh the access token
 	 * 
-	 * @throws UnauthorizedException
-	 * 
-	 * @throws Exception
+	 * @throws InterruptedException 
+	 * @throws IOException 
+	 * @throws SpotifyWebApiException 
+	 * @throws SQLException 
 	 */
-	public void refreshAccessToken() throws Exception {
+	public void refreshTokens() throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
 		AuthorizationCodeCredentials acc = SpotifyCall.execute(spotifyApi.authorizationCodeRefresh());
 		updateTokens(acc);
 	}
-
+	
 	/**
 	 * Store the access and refresh tokens in the database
 	 * 

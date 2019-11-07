@@ -11,11 +11,11 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.enums.ModelObjectType;
 import com.wrapper.spotify.model_objects.specification.Artist;
 
 import spotify.bot.api.SpotifyCall;
-import spotify.bot.api.SpotifyApiWrapper;
 import spotify.bot.config.BotLogger;
 import spotify.bot.config.Config;
 import spotify.bot.database.DBConstants;
@@ -27,7 +27,7 @@ import spotify.bot.util.Constants;
 public class UserInfoRequests {
 
 	@Autowired
-	private SpotifyApiWrapper spotify;
+	private SpotifyApi spotifyApi;
 
 	@Autowired
 	private Config config;
@@ -59,12 +59,12 @@ public class UserInfoRequests {
 		}
 
 		// If cache is outdated, fetch fresh dataset and update cache
-		List<Artist> followedArtists = SpotifyCall.executePaging(spotify.api().getUsersFollowedArtists(ModelObjectType.ARTIST).limit(Constants.DEFAULT_LIMIT));
+		List<Artist> followedArtists = SpotifyCall.executePaging(spotifyApi.getUsersFollowedArtists(ModelObjectType.ARTIST).limit(Constants.DEFAULT_LIMIT));
 		List<String> followedArtistIds = followedArtists.stream().map(Artist::getId).collect(Collectors.toList());
+		BotUtils.removeNullStrings(followedArtistIds);
 		if (followedArtistIds.isEmpty()) {
 			log.warning("No followed artists found!");
 		}
-		BotUtils.removeNullStrings(followedArtistIds);
 		database.updateFollowedArtistsCacheAsync(followedArtistIds, cachedArtists);
 		return followedArtistIds;
 	}

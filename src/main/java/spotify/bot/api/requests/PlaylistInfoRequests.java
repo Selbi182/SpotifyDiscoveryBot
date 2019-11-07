@@ -9,13 +9,13 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.model_objects.miscellaneous.CurrentlyPlaying;
 import com.wrapper.spotify.model_objects.specification.Playlist;
 import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
 
 import spotify.bot.api.SpotifyCall;
-import spotify.bot.api.SpotifyApiWrapper;
 import spotify.bot.config.Config;
 import spotify.bot.config.Config.PlaylistStore;
 import spotify.bot.database.DiscoveryDatabase;
@@ -26,7 +26,7 @@ import spotify.bot.util.Constants;
 public class PlaylistInfoRequests {
 
 	@Autowired
-	private SpotifyApiWrapper spotify;
+	private SpotifyApi spotifyApi;
 
 	@Autowired
 	private Config config;
@@ -44,11 +44,11 @@ public class PlaylistInfoRequests {
 	public void showNotifier(AlbumGroup albumGroup) throws Exception {
 		String playlistId = BotUtils.getPlaylistIdByGroup(albumGroup);
 		if (playlistId != null) {
-			Playlist p = SpotifyCall.execute(spotify.api().getPlaylist(playlistId));
+			Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
 			String playlistName = p.getName();
 			if (!playlistName.contains(Constants.NEW_INDICATOR_TEXT)) {
 				playlistName = playlistName + " " + Constants.NEW_INDICATOR_TEXT;
-				SpotifyCall.execute(spotify.api().changePlaylistsDetails(playlistId).name(playlistName));
+				SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).name(playlistName));
 			}
 		}
 	}
@@ -64,7 +64,7 @@ public class PlaylistInfoRequests {
 			String playlistId = BotUtils.getPlaylistIdByGroup(ag);
 			if (playlistId != null) {
 				String newDescription = String.format("Last Search: %s", Constants.DESCRIPTION_TIMESTAMP_FORMAT.format(Calendar.getInstance().getTime()));
-				SpotifyCall.execute(spotify.api().changePlaylistsDetails(playlistId).description(newDescription));
+				SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).description(newDescription));
 			}
 		}
 	}
@@ -79,12 +79,12 @@ public class PlaylistInfoRequests {
 			PlaylistStore ps = config.getPlaylistStoreByAlbumGroup(ag);
 			if (ps.getParentAlbumGroup() == null && ps.getLastUpdate() != null && ps.getRecentSongsAddedCount() != null) {
 				String playlistId = ps.getPlaylistId();
-				Playlist p = SpotifyCall.execute(spotify.api().getPlaylist(playlistId));
+				Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
 				String playlistName = p.getName();
 				if (playlistName.contains(Constants.NEW_INDICATOR_TEXT)) {
 					if (shouldIndicatorBeMarkedAsRead(ps)) {
 						playlistName = p.getName().replace(Constants.NEW_INDICATOR_TEXT, "").trim();
-						SpotifyCall.execute(spotify.api().changePlaylistsDetails(playlistId).name(playlistName));
+						SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).name(playlistName));
 						database.unsetPlaylistStore(ps.getAlbumGroup().getGroup());
 					}
 				}
@@ -118,8 +118,11 @@ public class PlaylistInfoRequests {
 		// Check if the currently played song is part of the n<=50 most recently added
 		// songs
 		String playlistId = playlistStore.getPlaylistId();
-		CurrentlyPlaying currentlyPlaying = SpotifyCall.execute(spotify.api().getUsersCurrentlyPlayingTrack());
-		PlaylistTrack[] recentlyAddedPlaylistTracks = SpotifyCall.execute(spotify.api().getPlaylistsTracks(playlistId).limit(Math.min(lastUpdateSongCount, Constants.DEFAULT_LIMIT))).getItems();
+		CurrentlyPlaying currentlyPlaying = SpotifyCall.execute(spotifyApi.getUsersCurrentlyPlayingTrack());
+		if (currentlyPlaying == null) {
+			return false;
+		}
+		PlaylistTrack[] recentlyAddedPlaylistTracks = SpotifyCall.execute(spotifyApi.getPlaylistsTracks(playlistId).limit(Math.min(lastUpdateSongCount, Constants.DEFAULT_LIMIT))).getItems();
 		boolean currentlyPlayingSongIsNew = Arrays.asList(recentlyAddedPlaylistTracks).stream().anyMatch(pt -> pt.getTrack().getId().equals(currentlyPlaying.getItem().getId()));
 		return currentlyPlayingSongIsNew;
 	}

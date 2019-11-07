@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
-import spotify.bot.api.SpotifyApiWrapper;
 import spotify.bot.api.requests.AlbumRequests;
 import spotify.bot.api.requests.OfflineRequests;
 import spotify.bot.api.requests.PlaylistInfoRequests;
@@ -17,7 +16,6 @@ import spotify.bot.api.requests.PlaylistSongsRequests;
 import spotify.bot.api.requests.TrackRequests;
 import spotify.bot.api.requests.UserInfoRequests;
 import spotify.bot.config.BotLogger;
-import spotify.bot.config.Config;
 import spotify.bot.dto.AlbumTrackPair;
 import spotify.bot.util.BotUtils;
 
@@ -27,10 +25,7 @@ public class SpotifyDiscoveryBotCrawler {
 	private boolean isBusy;
 
 	@Autowired
-	private Config config;
-	
-	@Autowired
-	private SpotifyApiWrapper spotifyApiWrapper;
+	private CrawlFinalizer crawlFinalizer;
 
 	@Autowired
 	private BotLogger log;
@@ -68,8 +63,7 @@ public class SpotifyDiscoveryBotCrawler {
 			log.stackTrace(e);
 			return null;
 		} finally {
-			spotifyApiWrapper.refreshAccessToken();
-			config.refreshUpdateStore();
+			crawlFinalizer.finalizeCrawl();
 			isBusy = false;
 		}
 	}

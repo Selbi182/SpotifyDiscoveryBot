@@ -12,11 +12,11 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
 import spotify.bot.api.SpotifyCall;
-import spotify.bot.api.SpotifyApiWrapper;
 import spotify.bot.config.Config;
 import spotify.bot.database.DBConstants;
 import spotify.bot.database.DiscoveryDatabase;
@@ -32,7 +32,7 @@ public class AlbumRequests {
 	private Config config;
 
 	@Autowired
-	private SpotifyApiWrapper spotify;
+	private SpotifyApi spotifyApi;
 
 	@Autowired
 	private DiscoveryDatabase database;
@@ -85,7 +85,7 @@ public class AlbumRequests {
 	 * @throws Exception
 	 */
 	private List<AlbumSimplified> getAlbumIdsOfSingleArtist(String artistId, String albumGroups) throws Exception {
-		List<AlbumSimplified> albumsOfCurrentArtist = SpotifyCall.executePaging(spotify.api()
+		List<AlbumSimplified> albumsOfCurrentArtist = SpotifyCall.executePaging(spotifyApi
 			.getArtistsAlbums(artistId)
 			.market(config.getMarket())
 			.limit(Constants.DEFAULT_LIMIT)

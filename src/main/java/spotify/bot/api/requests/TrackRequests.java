@@ -14,12 +14,12 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
 import spotify.bot.api.SpotifyCall;
-import spotify.bot.api.SpotifyApiWrapper;
 import spotify.bot.config.BotLogger;
 import spotify.bot.config.Config;
 import spotify.bot.dto.AlbumTrackPair;
@@ -30,7 +30,7 @@ import spotify.bot.util.Constants;
 public class TrackRequests {
 
 	@Autowired
-	private SpotifyApiWrapper spotify;
+	private SpotifyApi spotifyApi;
 
 	@Autowired
 	private Config config;
@@ -96,7 +96,7 @@ public class TrackRequests {
 	 */
 	private AlbumTrackPair tracksOfAlbum(AlbumSimplified album) {
 		try {
-			List<TrackSimplified> tracksOfAlbum = SpotifyCall.executePaging(spotify.api().getAlbumsTracks(album.getId()).limit(Constants.DEFAULT_LIMIT));
+			List<TrackSimplified> tracksOfAlbum = SpotifyCall.executePaging(spotifyApi.getAlbumsTracks(album.getId()).limit(Constants.DEFAULT_LIMIT));
 			return new AlbumTrackPair(album, tracksOfAlbum);
 		} catch (Exception e) {
 			log.stackTrace(e);

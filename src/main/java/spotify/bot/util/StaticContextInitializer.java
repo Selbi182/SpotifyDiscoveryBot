@@ -16,6 +16,5 @@ public class StaticContextInitializer {
 	@PostConstruct
 	public void injectStaticConfigContext() {
 		BotUtils.initializeUtilConfig(config);
-		ReleaseValidator.initializeUtilConfig(config);
 	}
 }

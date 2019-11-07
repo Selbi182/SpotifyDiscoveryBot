@@ -10,13 +10,13 @@ import org.springframework.stereotype.Service;
 import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.model_objects.specification.Playlist;
 import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
 import spotify.bot.api.SpotifyCall;
-import spotify.bot.api.SpotifyApiWrapper;
 import spotify.bot.config.BotLogger;
 import spotify.bot.config.Config;
 import spotify.bot.database.DiscoveryDatabase;
@@ -28,7 +28,7 @@ import spotify.bot.util.Constants;
 public class PlaylistSongsRequests {
 
 	@Autowired
-	private SpotifyApiWrapper spotify;
+	private SpotifyApi spotifyApi;
 
 	@Autowired
 	private Config config;
@@ -74,7 +74,7 @@ public class PlaylistSongsRequests {
 					for (TrackSimplified s : partition) {
 						json.add(Constants.TRACK_PREFIX + s.getId());
 					}
-					SpotifyCall.execute(spotify.api().addTracksToPlaylist(playlistId, json).position(0));
+					SpotifyCall.execute(spotifyApi.addTracksToPlaylist(playlistId, json).position(0));
 					songsAdded += partition.size();
 					Thread.sleep(Constants.PLAYLIST_ADDITION_COOLDOWN);
 				}
@@ -93,7 +93,7 @@ public class PlaylistSongsRequests {
 	 * @throws Exception
 	 */
 	private void circularPlaylistFitting(String playlistId, int songsToAddCount) throws Exception {
-		Playlist p = SpotifyCall.execute(spotify.api().getPlaylist(playlistId));
+		Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
 
 		final int currentPlaylistCount = p.getTracks().getTotal();
 		if (currentPlaylistCount + songsToAddCount > Constants.PLAYLIST_SIZE_LIMIT) {
@@ -124,7 +124,7 @@ public class PlaylistSongsRequests {
 		int songsToDeleteCount = repeat ? Constants.PLAYLIST_ADD_LIMIT : totalSongsToDeleteCount;
 		final int offset = currentPlaylistCount - songsToDeleteCount;
 
-		List<PlaylistTrack> tracksToDelete = SpotifyCall.executePaging(spotify.api().getPlaylistsTracks(playlistId).offset(offset).limit(Constants.PLAYLIST_ADD_LIMIT));
+		List<PlaylistTrack> tracksToDelete = SpotifyCall.executePaging(spotifyApi.getPlaylistsTracks(playlistId).offset(offset).limit(Constants.PLAYLIST_ADD_LIMIT));
 
 		JsonArray json = new JsonArray();
 		for (int i = 0; i < tracksToDelete.size(); i++) {
@@ -136,7 +136,7 @@ public class PlaylistSongsRequests {
 			json.add(object);
 		}
 
-		SpotifyCall.execute(spotify.api().removeTracksFromPlaylist(playlistId, json));
+		SpotifyCall.execute(spotifyApi.removeTracksFromPlaylist(playlistId, json));
 
 		// Repeat if more than 100 songs have to be added/deleted (should rarely happen,
 		// so a recursion will be slow, but it'll do the job)

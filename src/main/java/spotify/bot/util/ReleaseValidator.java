@@ -5,28 +5,26 @@ import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.annotation.PostConstruct;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import com.wrapper.spotify.enums.ReleaseDatePrecision;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
 import spotify.bot.config.Config;
 
+@Component
 public class ReleaseValidator {
-	private static ReleaseValidator instance;
 	private Set<String> validDates;
 	private String validMonthDate;
 
-	private static Config config;
+	@Autowired
+	private Config config;
 
-	/**
-	 * Initialize the utility class's configuration
-	 * 
-	 * @param config
-	 */
-	public static void initializeUtilConfig(Config config) {
-		ReleaseValidator.config = config;
-	}
-
-	private ReleaseValidator(int lookbackDays) {
+	@PostConstruct
+	public void calculateValidDates() {
 		Calendar cal = Calendar.getInstance();
 
 		SimpleDateFormat monthPrecision = new SimpleDateFormat(Constants.RELEASE_DATE_FORMAT_MONTH);
@@ -34,17 +32,10 @@ public class ReleaseValidator {
 
 		SimpleDateFormat datePrecision = new SimpleDateFormat(Constants.RELEASE_DATE_FORMAT_DAY);
 		this.validDates = new HashSet<>();
-		for (int i = 0; i < lookbackDays; i++) {
+		for (int i = 0; i < config.getLookbackDays(); i++) {
 			validDates.add(datePrecision.format(cal.getTime()));
 			cal.add(Calendar.DAY_OF_MONTH, -1);
 		}
-	}
-
-	public static ReleaseValidator getInstance() {
-		if (instance == null) {
-			instance = new ReleaseValidator(config.getLookbackDays());
-		}
-		return instance;
 	}
 
 	/**
@@ -56,6 +47,7 @@ public class ReleaseValidator {
 	 */
 	public boolean isValidDate(AlbumSimplified a) {
 		if (a != null) {
+			
 			if (a.getReleaseDatePrecision().equals(ReleaseDatePrecision.DAY)) {
 				return validDates.contains(a.getReleaseDate());
 			} else if (a.getReleaseDatePrecision().equals(ReleaseDatePrecision.MONTH)) {

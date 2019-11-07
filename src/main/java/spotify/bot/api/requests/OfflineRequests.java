@@ -27,6 +27,9 @@ public class OfflineRequests {
 
 	@Autowired
 	private Config config;
+	
+	@Autowired
+	private ReleaseValidator releaseValidator;
 
 	/**
 	 * Sort the albums of each album group
@@ -67,7 +70,7 @@ public class OfflineRequests {
 	private Map<AlbumGroup, List<AlbumSimplified>> filterNewAlbumsOnly(Map<AlbumGroup, List<AlbumSimplified>> albumsSimplifiedByGroup, int lookbackDays) {
 		Map<AlbumGroup, List<AlbumSimplified>> filteredAlbums = BotUtils.createAlbumGroupToListOfTMap(albumsSimplifiedByGroup.keySet());
 		albumsSimplifiedByGroup.entrySet().stream().forEach(fa -> {
-			List<AlbumSimplified> filteredAlbumsOfGroup = fa.getValue().stream().filter(as -> ReleaseValidator.getInstance().isValidDate(as)).collect(Collectors.toList());
+			List<AlbumSimplified> filteredAlbumsOfGroup = fa.getValue().stream().filter(as -> releaseValidator.isValidDate(as)).collect(Collectors.toList());
 			filteredAlbums.get(fa.getKey()).addAll(filteredAlbumsOfGroup);
 		});
 		return filteredAlbums;

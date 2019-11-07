@@ -27,7 +27,7 @@ public class OfflineRequests {
 
 	@Autowired
 	private Config config;
-	
+
 	@Autowired
 	private ReleaseValidator releaseValidator;
 

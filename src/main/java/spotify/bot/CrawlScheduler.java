@@ -3,8 +3,6 @@ package spotify.bot;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -18,7 +16,6 @@ import com.wrapper.spotify.enums.AlbumGroup;
 import spotify.bot.config.BotLogger;
 import spotify.bot.crawler.SpotifyDiscoveryBotCrawler;
 import spotify.bot.util.BotUtils;
-import spotify.bot.util.Constants;
 
 @RestController
 @Component
@@ -29,13 +26,13 @@ public class CrawlScheduler {
 	 * Cron job representing "every 15 minutes, starting at the 1st minute of an
 	 * hour at exactly 0 seconds".
 	 */
-	private final static String CRAWL_CRON = "0 " + Constants.CRAWL_OFFSET + "/" + Constants.CRAWL_INTERVAL + " * * * *";
+	private final static String CRAWL_CRON = "0 1/15 * * * *";
 
 	/**
 	 * Cron job representing "every 10 seconds starting at the 5th second of a
 	 * minute"
 	 */
-	private final static String CLEAR_NOTIFIER_CRON = Constants.CLEAR_NOTIFIER_OFFSET + "/" + Constants.CLEAR_NOTIFIER_INTERVAL + " * * * * *";
+	private final static String CLEAR_NOTIFIER_CRON = "5/10 * * * * *";
 
 	@Autowired
 	private SpotifyDiscoveryBotCrawler crawler;
@@ -60,18 +57,17 @@ public class CrawlScheduler {
 	 * @throws Exception
 	 *             should anything whatsoever go wrong lol
 	 */
-	@EventListener(ApplicationReadyEvent.class)
 	@Scheduled(cron = CRAWL_CRON)
 	@RequestMapping("/crawl")
 	public ResponseEntity<String> runScheduler() throws Exception {
 		if (!crawler.isReady()) {
-			return new ResponseEntity<String>("Previous crawling process is still ongoing...", HttpStatus.CONFLICT);
+			return new ResponseEntity<>("Crawler isn't ready!", HttpStatus.CONFLICT);
 		}
 		Map<AlbumGroup, Integer> results = crawler.runCrawler();
 		String response = BotUtils.compileResultString(results);
 		if (response != null) {
 			log.info(response);
-			return new ResponseEntity<String>(response, HttpStatus.CREATED);
+			return new ResponseEntity<>(response, HttpStatus.CREATED);
 		}
 		return new ResponseEntity<>(HttpStatus.NO_CONTENT);
 	}
@@ -86,7 +82,7 @@ public class CrawlScheduler {
 	@RequestMapping("/clear-notifiers")
 	public ResponseEntity<String> clearNewIndicatorScheduler() throws Exception {
 		if (!crawler.isReady()) {
-			return new ResponseEntity<String>("Can't clear indicators now, crawler is in progress...", HttpStatus.CONFLICT);
+			return new ResponseEntity<>("Can't clear [NEW] indicators now, as crawler is currently in progress...", HttpStatus.CONFLICT);
 		}
 		crawler.clearObsoleteNotifiers();
 		return new ResponseEntity<>(HttpStatus.NO_CONTENT);

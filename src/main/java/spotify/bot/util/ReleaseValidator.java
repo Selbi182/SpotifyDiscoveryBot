@@ -47,7 +47,7 @@ public class ReleaseValidator {
 	 */
 	public boolean isValidDate(AlbumSimplified a) {
 		if (a != null) {
-			
+
 			if (a.getReleaseDatePrecision().equals(ReleaseDatePrecision.DAY)) {
 				return validDates.contains(a.getReleaseDate());
 			} else if (a.getReleaseDatePrecision().equals(ReleaseDatePrecision.MONTH)) {

@@ -23,7 +23,7 @@ public class SpotifyCall {
 	 * Utility class
 	 */
 	private SpotifyCall() {}
-	
+
 	/**
 	 * Executes a single "greedy" Spotify Web API request, meaning that on potential
 	 * <i>429 Too many requests</i> errors the request will be retried ad-infinitum

@@ -29,13 +29,13 @@ public class SpotifyApiAuthorization {
 
 	@Autowired
 	private SpotifyApi spotifyApi;
-	
+
 	@Autowired
 	private Config config;
-	
+
 	@Autowired
 	private BotLogger log;
-	
+
 	/**
 	 * Log in to Spotify
 	 * 
@@ -50,20 +50,21 @@ public class SpotifyApiAuthorization {
 			authenticate();
 		}
 	}
-	
+
 	/**
 	 * Log-in lock
 	 */
 	private static Object lock = new Object();
-	
+
 	///////////////////////
-	
+
 	/**
 	 * Authentication process
-	 * @param api 
-	 * @throws InterruptedException 
-	 * @throws IOException 
-	 * @throws SpotifyWebApiException 
+	 * 
+	 * @param api
+	 * @throws InterruptedException
+	 * @throws IOException
+	 * @throws SpotifyWebApiException
 	 * 
 	 * @throws Exception
 	 */
@@ -78,8 +79,8 @@ public class SpotifyApiAuthorization {
 			log.warning("Couldn't open browser window. Plase login at this URL:");
 			log.warning(uri.toString());
 		}
-		synchronized(lock) {
-			lock.wait();			
+		synchronized (lock) {
+			lock.wait();
 		}
 	}
 
@@ -103,21 +104,22 @@ public class SpotifyApiAuthorization {
 			return new ResponseEntity<String>("Response code is invalid!", HttpStatus.BAD_REQUEST);
 		}
 	}
-	
+
 	/**
 	 * Refresh the access token
-	 * @param api 
 	 * 
-	 * @throws InterruptedException 
-	 * @throws IOException 
-	 * @throws SpotifyWebApiException 
-	 * @throws SQLException 
+	 * @param api
+	 * 
+	 * @throws InterruptedException
+	 * @throws IOException
+	 * @throws SpotifyWebApiException
+	 * @throws SQLException
 	 */
 	private void authorizationCodeRefresh() throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
 		AuthorizationCodeCredentials acc = SpotifyCall.execute(spotifyApi.authorizationCodeRefresh());
 		updateTokens(acc);
 	}
-	
+
 	/**
 	 * Store the access and refresh tokens in the database
 	 * 

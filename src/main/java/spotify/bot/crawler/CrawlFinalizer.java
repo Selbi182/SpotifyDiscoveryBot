@@ -20,10 +20,10 @@ public class CrawlFinalizer {
 
 	@Autowired
 	private SpotifyApiAuthorization spotifyApiAuthorization;
-	
+
 	@Autowired
 	private DiscoveryDatabase discoveryDatabase;
-	
+
 	public void finalizeResources() throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
 		config.refreshUpdateStore();
 		spotifyApiAuthorization.login();

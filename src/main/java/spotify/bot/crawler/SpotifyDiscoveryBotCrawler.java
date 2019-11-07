@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import com.wrapper.spotify.enums.AlbumGroup;
@@ -24,11 +26,11 @@ import spotify.bot.util.BotUtils;
 @Component
 public class SpotifyDiscoveryBotCrawler {
 
-	private boolean isBusy;
-	
+	private boolean ready;
+
 	@Autowired
 	private SpotifyApiAuthorization spotifyApiAuthorization;
-	
+
 	@Autowired
 	private CrawlFinalizer crawlFinalizer;
 
@@ -54,6 +56,13 @@ public class SpotifyDiscoveryBotCrawler {
 	private UserInfoRequests userInfoRequests;
 
 	/**
+	 * Spring-visible constructor to set the initial ready-state to false
+	 */
+	SpotifyDiscoveryBotCrawler() {
+		setReady(false);
+	}
+
+	/**
 	 * Run the Spotify New Discovery crawler!
 	 * 
 	 * @return a result map containing the number of added songs by album type
@@ -61,39 +70,84 @@ public class SpotifyDiscoveryBotCrawler {
 	 *             if just about anything at all goes wrong lol
 	 */
 	public Map<AlbumGroup, Integer> runCrawler() throws Exception {
-		isBusy = true;
-		try {
-			return crawl();
-		} catch (UnauthorizedException e) {
-			spotifyApiAuthorization.login();
-			return runCrawler();
-		} catch (Exception e) {
-			log.stackTrace(e);
-			return null;
-		} finally {
-			crawlFinalizer.finalizeResources();
-			isBusy = false;
+		if (isReady()) {
+			setReady(false);
+			try {
+				return crawl();
+			} catch (UnauthorizedException e) {
+				spotifyApiAuthorization.login();
+				return runCrawler();
+			} catch (Exception e) {
+				log.stackTrace(e);
+			} finally {
+				crawlFinalizer.finalizeResources();
+				setReady(true);
+			}
 		}
+		return null;
 	}
-		
+
 	/**
-	 * Clears obsolete [NEW] notifiers from playlists where applicable
+	 * Clears obsolete [NEW] notifiers from playlists where applicable. This method
+	 * cannot require the lock.
 	 * 
 	 * @throws Exception
 	 */
 	public void clearObsoleteNotifiers() throws Exception {
-		try {
-			playlistInfoRequests.clearObsoleteNotifiers();
-		} catch (UnauthorizedException e) {
-			spotifyApiAuthorization.login();
-			clearObsoleteNotifiers();
-		} catch (Exception e) {
-			log.stackTrace(e);
-		} finally {
-			crawlFinalizer.finalizeResources();
+		if (isReady()) {
+			try {
+				playlistInfoRequests.clearObsoleteNotifiers();
+			} catch (UnauthorizedException e) {
+				spotifyApiAuthorization.login();
+				clearObsoleteNotifiers();
+			} catch (Exception e) {
+				log.stackTrace(e);
+			} finally {
+				crawlFinalizer.finalizeResources();
+			}
 		}
 	}
-	
+
+	/**
+	 * Event that will be fired once the Spring application has fully booted. It
+	 * will automatically initiate the first crawling iteration.
+	 * 
+	 * @throws Exception
+	 */
+	@EventListener(ApplicationReadyEvent.class)
+	private void firstCrawlAndEnableReadyState() throws Exception {
+		log.info("Executing initial crawl iteration...");
+		long time = System.currentTimeMillis();
+		{
+			Map<AlbumGroup, Integer> results = crawl();
+			String response = BotUtils.compileResultString(results);
+			if (response != null) {
+				log.info(response);
+			}
+		}
+		log.info("Initial crawl iteration successfully finished in: " + (System.currentTimeMillis() - time) + "ms");
+		setReady(true);
+	}
+
+	/**
+	 * Indicate whether or not the crawler is currently available
+	 * 
+	 * @return
+	 */
+	public boolean isReady() {
+		return ready;
+	}
+
+	/**
+	 * Set ready state
+	 * 
+	 * @param ready
+	 *            the new ready state
+	 */
+	private void setReady(boolean ready) {
+		this.ready = ready;
+	}
+
 	///////////////////
 
 	/**
@@ -137,14 +191,5 @@ public class SpotifyDiscoveryBotCrawler {
 		}
 		playlistInfoRequests.timestampPlaylists(albumGroups);
 		return additionResults;
-	}
-
-	/**
-	 * Indicate whether or not the crawler is currently available
-	 * 
-	 * @return
-	 */
-	public boolean isReady() {
-		return !isBusy;
 	}
 }

@@ -28,7 +28,7 @@ public final class BotUtils {
 	 * Utility class
 	 */
 	private BotUtils() {}
-	
+
 	///////
 
 	private static Config config;
@@ -41,7 +41,7 @@ public final class BotUtils {
 	static void initializeUtilConfig(Config config) {
 		BotUtils.config = config;
 	}
-	
+
 	///////
 
 	/**

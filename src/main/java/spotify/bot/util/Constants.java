@@ -1,7 +1,5 @@
 package spotify.bot.util;
 
-import java.io.File;
-import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 
@@ -11,11 +9,6 @@ public final class Constants {
 	 * Utility class
 	 */
 	private Constants() {}
-
-	/**
-	 * Own file location to read and write files in the same folder as the JAR
-	 */
-	public final static File WORKSPACE_LOCATION = Paths.get(".").toFile();
 
 	// Generic
 	public final static int RETRY_TIMEOUT_4XX = 500;
@@ -36,10 +29,4 @@ public final class Constants {
 	// Playlist Timestamps
 	public final static String NEW_INDICATOR_TEXT = "\uD83C\uDD7D\uD83C\uDD74\uD83C\uDD86";
 	public final static SimpleDateFormat DESCRIPTION_TIMESTAMP_FORMAT = new SimpleDateFormat("MMMMM d, yyyy \u2014 HH:mm", Locale.ENGLISH);
-
-	// Scheduler Time Settings
-	public final static int CRAWL_INTERVAL = 15;
-	public final static int CRAWL_OFFSET = 1;
-	public final static int CLEAR_NOTIFIER_OFFSET = 5;
-	public final static int CLEAR_NOTIFIER_INTERVAL = 10;
 }

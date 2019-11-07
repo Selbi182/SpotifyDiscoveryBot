@@ -17,14 +17,14 @@ public class SpotifyApiWrapper {
 
 	@Autowired
 	private Config config;
-	
+
 	/**
 	 * Get the current SpotifyApi instance
 	 * 
 	 * @return
-	 * @throws InterruptedException 
-	 * @throws SpotifyWebApiException 
-	 * @throws IOException 
+	 * @throws InterruptedException
+	 * @throws SpotifyWebApiException
+	 * @throws IOException
 	 */
 	@Bean
 	SpotifyApi spotifyApi() throws SpotifyWebApiException, InterruptedException, IOException {

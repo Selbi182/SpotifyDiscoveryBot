@@ -2,6 +2,7 @@ package spotify.bot.database;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -23,10 +24,12 @@ import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
 import spotify.bot.config.BotLogger;
 import spotify.bot.util.BotUtils;
-import spotify.bot.util.Constants;
 
 @Repository
 public class DiscoveryDatabase {
+
+	private final static File WORKSPACE_LOCATION = Paths.get(".").toFile();
+	private final static File SELF_LOCATION = new File(DiscoveryDatabase.class.getProtectionDomain().getCodeSource().getLocation().getFile());
 
 	@Autowired
 	private BotLogger log;
@@ -43,21 +46,26 @@ public class DiscoveryDatabase {
 
 	@PostConstruct
 	public void setDatabaseUrl() throws IOException, SQLException {
-		File dbFilePath = new File(Constants.WORKSPACE_LOCATION, DBConstants.DB_FILE_NAME);
+		File dbFilePath = new File(WORKSPACE_LOCATION, DBConstants.DB_FILE_NAME);
 		if (!dbFilePath.canRead()) {
-			throw new IOException("Could not read .db file! Expected location: " + dbFilePath.getAbsolutePath());
+			dbFilePath = new File(SELF_LOCATION, DBConstants.DB_FILE_NAME);
+			if (!dbFilePath.canRead()) {
+				throw new IOException("Could not read .db file! Expected location was: " + dbFilePath.getAbsolutePath());
+			}
 		}
 		this.dbUrl = DBConstants.DB_URL_PREFIX + dbFilePath.getAbsolutePath();
+		log.info("Using SQLite database located at: " + dbFilePath.getAbsolutePath());
 	}
 
 	/**
-	 * Returns the Database connection instance. May create a new one if not already set
+	 * Returns the Database connection instance. May create a new one if not already
+	 * set
 	 * 
 	 * @throws SQLException
 	 */
 	private Connection getConnectionInstance() throws SQLException {
 		if (connection == null || connection.isClosed()) {
-			connection = DriverManager.getConnection(dbUrl);			
+			connection = DriverManager.getConnection(dbUrl);
 		}
 		return connection;
 	}
@@ -73,7 +81,7 @@ public class DiscoveryDatabase {
 			connection.close();
 		}
 	}
-	
+
 	/**
 	 * Creates a new Database statement. May create a new database instance.
 	 * 
@@ -83,7 +91,7 @@ public class DiscoveryDatabase {
 	private Statement createStatement() throws SQLException {
 		return getConnectionInstance().createStatement();
 	}
-	
+
 	//////////////
 
 	/**

@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.wrapper.spotify.enums.AlbumGroup;
 
-import spotify.bot.api.requests.PlaylistInfoRequests;
 import spotify.bot.config.BotLogger;
 import spotify.bot.crawler.SpotifyDiscoveryBotCrawler;
 import spotify.bot.util.BotUtils;
@@ -40,9 +39,6 @@ public class CrawlScheduler {
 
 	@Autowired
 	private SpotifyDiscoveryBotCrawler crawler;
-
-	@Autowired
-	private PlaylistInfoRequests playlistInfoRequests;
 
 	@Autowired
 	private BotLogger log;
@@ -92,7 +88,7 @@ public class CrawlScheduler {
 		if (!crawler.isReady()) {
 			return new ResponseEntity<String>("Can't clear indicators now, crawler is in progress...", HttpStatus.CONFLICT);
 		}
-		playlistInfoRequests.clearObsoleteNotifiers();
+		crawler.clearObsoleteNotifiers();
 		return new ResponseEntity<>(HttpStatus.NO_CONTENT);
 	}
 }

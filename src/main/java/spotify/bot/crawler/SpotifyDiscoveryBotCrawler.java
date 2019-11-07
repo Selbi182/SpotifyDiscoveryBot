@@ -71,10 +71,30 @@ public class SpotifyDiscoveryBotCrawler {
 			log.stackTrace(e);
 			return null;
 		} finally {
-			crawlFinalizer.finalizeCrawl();
+			crawlFinalizer.finalizeResources();
 			isBusy = false;
 		}
 	}
+		
+	/**
+	 * Clears obsolete [NEW] notifiers from playlists where applicable
+	 * 
+	 * @throws Exception
+	 */
+	public void clearObsoleteNotifiers() throws Exception {
+		try {
+			playlistInfoRequests.clearObsoleteNotifiers();
+		} catch (UnauthorizedException e) {
+			spotifyApiAuthorization.login();
+			clearObsoleteNotifiers();
+		} catch (Exception e) {
+			log.stackTrace(e);
+		} finally {
+			crawlFinalizer.finalizeResources();
+		}
+	}
+	
+	///////////////////
 
 	/**
 	 * This is the main crawler logic.<br/>

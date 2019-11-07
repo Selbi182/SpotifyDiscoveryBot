@@ -36,4 +36,5 @@ bin/
 
 # Spotify Bot
 templates/READY
+./database.db
 database.db

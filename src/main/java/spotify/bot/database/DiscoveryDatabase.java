@@ -2,7 +2,6 @@ package spotify.bot.database;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -22,14 +21,14 @@ import org.springframework.stereotype.Repository;
 
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
+import spotify.Main;
 import spotify.bot.config.BotLogger;
 import spotify.bot.util.BotUtils;
 
 @Repository
 public class DiscoveryDatabase {
 
-	private final static File WORKSPACE_LOCATION = Paths.get(".").toFile();
-	private final static File SELF_LOCATION = new File(DiscoveryDatabase.class.getProtectionDomain().getCodeSource().getLocation().getFile());
+	private final static File WORKSPACE_LOCATION = new File(".");
 
 	@Autowired
 	private BotLogger log;
@@ -46,15 +45,24 @@ public class DiscoveryDatabase {
 
 	@PostConstruct
 	public void setDatabaseUrl() throws IOException, SQLException {
-		File dbFilePath = new File(WORKSPACE_LOCATION, DBConstants.DB_FILE_NAME);
-		if (!dbFilePath.canRead()) {
-			dbFilePath = new File(SELF_LOCATION, DBConstants.DB_FILE_NAME);
-			if (!dbFilePath.canRead()) {
-				throw new IOException("Could not read .db file! Expected location was: " + dbFilePath.getAbsolutePath());
+		File setDbFilePath = null;
+
+		File alternateDatabaseFilepath = Main.getAlternateDatabaseFilePath();
+		if (alternateDatabaseFilepath != null && !alternateDatabaseFilepath.canRead()) {
+			throw new IOException("Could not access alternate SQLite database file! Set location: " + alternateDatabaseFilepath.getAbsolutePath());
+		} else if (alternateDatabaseFilepath != null && alternateDatabaseFilepath.canRead() && alternateDatabaseFilepath.getName().endsWith(".db")) {
+			setDbFilePath = alternateDatabaseFilepath;
+		} else {
+			File workingDirectoryDatabaseFilepath = new File(WORKSPACE_LOCATION, DBConstants.DB_FILE_NAME);
+			if (workingDirectoryDatabaseFilepath == null || !workingDirectoryDatabaseFilepath.canRead() || !workingDirectoryDatabaseFilepath.getName().endsWith(".db")) {
+				throw new IOException(String.format("Could not find SQLite database file! Generated location was: WORKDIR[%s] or ALTERNATE[%s]",
+					workingDirectoryDatabaseFilepath.getAbsolutePath(),
+					alternateDatabaseFilepath.getAbsolutePath()));
 			}
+			setDbFilePath = workingDirectoryDatabaseFilepath;
 		}
-		this.dbUrl = DBConstants.DB_URL_PREFIX + dbFilePath.getAbsolutePath();
-		log.info("Using SQLite database located at: " + dbFilePath.getAbsolutePath());
+		this.dbUrl = DBConstants.DB_URL_PREFIX + setDbFilePath.getAbsolutePath();
+		log.info("Using SQLite database located at: " + setDbFilePath.getAbsolutePath());
 	}
 
 	/**

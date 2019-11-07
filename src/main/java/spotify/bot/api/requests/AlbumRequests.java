@@ -65,13 +65,8 @@ public class AlbumRequests {
 		String albumGroupString = BotUtils.createAlbumGroupString(albumGroups);
 		List<AlbumSimplified> albums = new ArrayList<>();
 		for (String a : artists) {
-			List<AlbumSimplified> albumsOfCurrentArtist;
-			try {
-				albumsOfCurrentArtist = getAlbumIdsOfSingleArtist(a, albumGroupString);
-				albums.addAll(albumsOfCurrentArtist);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+			List<AlbumSimplified> albumsOfCurrentArtist = getAlbumIdsOfSingleArtist(a, albumGroupString);
+			albums.addAll(albumsOfCurrentArtist);
 		}
 		return albums;
 	}

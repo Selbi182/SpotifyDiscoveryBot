@@ -7,8 +7,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.wrapper.spotify.enums.AlbumGroup;
+import com.wrapper.spotify.exceptions.detailed.UnauthorizedException;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
+import spotify.bot.api.SpotifyApiAuthorization;
 import spotify.bot.api.requests.AlbumRequests;
 import spotify.bot.api.requests.OfflineRequests;
 import spotify.bot.api.requests.PlaylistInfoRequests;
@@ -23,7 +25,10 @@ import spotify.bot.util.BotUtils;
 public class SpotifyDiscoveryBotCrawler {
 
 	private boolean isBusy;
-
+	
+	@Autowired
+	private SpotifyApiAuthorization spotifyApiAuthorization;
+	
 	@Autowired
 	private CrawlFinalizer crawlFinalizer;
 
@@ -59,6 +64,9 @@ public class SpotifyDiscoveryBotCrawler {
 		isBusy = true;
 		try {
 			return crawl();
+		} catch (UnauthorizedException e) {
+			spotifyApiAuthorization.login();
+			return runCrawler();
 		} catch (Exception e) {
 			log.stackTrace(e);
 			return null;

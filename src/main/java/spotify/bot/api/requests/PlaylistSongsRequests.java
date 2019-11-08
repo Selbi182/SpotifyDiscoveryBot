@@ -27,6 +27,8 @@ import spotify.bot.util.Constants;
 @Service
 public class PlaylistSongsRequests {
 
+	private static final int TOP_OF_PLAYLIST = 0;
+
 	@Autowired
 	private SpotifyApi spotifyApi;
 
@@ -74,7 +76,7 @@ public class PlaylistSongsRequests {
 					for (TrackSimplified s : partition) {
 						json.add(Constants.TRACK_PREFIX + s.getId());
 					}
-					SpotifyCall.execute(spotifyApi.addTracksToPlaylist(playlistId, json).position(0));
+					SpotifyCall.execute(spotifyApi.addTracksToPlaylist(playlistId, json).position(TOP_OF_PLAYLIST));
 					songsAdded += partition.size();
 					Thread.sleep(Constants.PLAYLIST_ADDITION_COOLDOWN);
 				}

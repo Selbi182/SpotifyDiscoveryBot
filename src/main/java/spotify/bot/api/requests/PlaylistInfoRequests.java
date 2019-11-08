@@ -27,6 +27,9 @@ public class PlaylistInfoRequests {
 
 	@Autowired
 	private SpotifyApi spotifyApi;
+	
+	@Autowired
+	private SpotifyApi nonCachingSpotifyApi;
 
 	@Autowired
 	private Config config;
@@ -122,7 +125,8 @@ public class PlaylistInfoRequests {
 		if (currentlyPlaying == null) {
 			return false;
 		}
-		PlaylistTrack[] recentlyAddedPlaylistTracks = SpotifyCall.execute(spotifyApi.getPlaylistsTracks(playlistId).limit(Math.min(lastUpdateSongCount, Constants.DEFAULT_LIMIT))).getItems();
+		int tracksToFetch = Math.min(lastUpdateSongCount, Constants.DEFAULT_LIMIT);
+		PlaylistTrack[] recentlyAddedPlaylistTracks = SpotifyCall.execute(nonCachingSpotifyApi.getPlaylistsTracks(playlistId).limit(tracksToFetch)).getItems();
 		boolean currentlyPlayingSongIsNew = Arrays.asList(recentlyAddedPlaylistTracks).stream().anyMatch(pt -> pt.getTrack().getId().equals(currentlyPlaying.getItem().getId()));
 		return currentlyPlayingSongIsNew;
 	}

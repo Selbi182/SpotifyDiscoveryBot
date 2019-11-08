@@ -32,7 +32,7 @@ public class AlbumRequests {
 	private Config config;
 
 	@Autowired
-	private SpotifyApi spotifyApi;
+	private SpotifyApi nonCachingSpotifyApi;
 
 	@Autowired
 	private DiscoveryDatabase database;
@@ -80,7 +80,7 @@ public class AlbumRequests {
 	 * @throws Exception
 	 */
 	private List<AlbumSimplified> getAlbumIdsOfSingleArtist(String artistId, String albumGroups) throws Exception {
-		List<AlbumSimplified> albumsOfCurrentArtist = SpotifyCall.executePaging(spotifyApi
+		List<AlbumSimplified> albumsOfCurrentArtist = SpotifyCall.executePaging(nonCachingSpotifyApi
 			.getArtistsAlbums(artistId)
 			.market(config.getMarket())
 			.limit(Constants.DEFAULT_LIMIT)

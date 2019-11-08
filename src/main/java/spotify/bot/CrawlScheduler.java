@@ -23,10 +23,9 @@ import spotify.bot.util.BotUtils;
 public class CrawlScheduler {
 
 	/**
-	 * Cron job representing "every 15 minutes, starting at the 1st minute of an
-	 * hour at exactly 0 seconds".
+	 * Cron job representing "at every 10th second after every 20 minutes".
 	 */
-	private final static String CRAWL_CRON = "0 1/15 * * * *";
+	private final static String CRAWL_CRON = "10 */20 * * * *";
 
 	/**
 	 * Cron job representing "every 10 seconds starting at the 5th second of a

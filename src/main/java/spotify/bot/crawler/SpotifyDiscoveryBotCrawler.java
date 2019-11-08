@@ -119,14 +119,14 @@ public class SpotifyDiscoveryBotCrawler {
 		log.info("Executing initial crawl iteration...");
 		long time = System.currentTimeMillis();
 		{
-			Map<AlbumGroup, Integer> results = crawl();
+			setReady(true);
+			Map<AlbumGroup, Integer> results = runCrawler();
 			String response = BotUtils.compileResultString(results);
 			if (response != null) {
 				log.info(response);
 			}
 		}
 		log.info("Initial crawl iteration successfully finished in: " + (System.currentTimeMillis() - time) + "ms");
-		setReady(true);
 	}
 
 	/**
@@ -184,8 +184,10 @@ public class SpotifyDiscoveryBotCrawler {
 				Map<AlbumGroup, List<AlbumSimplified>> newAlbums = offlineRequests.categorizeAndFilterAlbums(nonCachedAlbums, albumGroups);
 				if (!BotUtils.isAllEmptyAlbumsOfGroups(newAlbums)) {
 					Map<AlbumGroup, List<AlbumTrackPair>> newSongs = trackRequests.getSongIdsByAlbums(newAlbums, followedArtists);
-					playlistSongsRequests.addAllReleasesToSetPlaylists(newSongs, albumGroups);
-					BotUtils.writeSongAdditionResults(newSongs, additionResults);
+					if (!BotUtils.isAllEmptyAlbumsOfGroups(newSongs)) {
+						playlistSongsRequests.addAllReleasesToSetPlaylists(newSongs, albumGroups);
+						BotUtils.writeSongAdditionResults(newSongs, additionResults);						
+					}
 				}
 			}
 		}

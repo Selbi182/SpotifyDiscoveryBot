@@ -158,13 +158,13 @@ public final class BotUtils {
 	}
 
 	/**
-	 * Returns true if all album groups have empty album lists
+	 * Returns true if all album groups have empty lists
 	 * 
-	 * @param albumsByGroup
+	 * @param listsByGroup
 	 * @return
 	 */
-	public static boolean isAllEmptyAlbumsOfGroups(Map<AlbumGroup, List<AlbumSimplified>> albumsByGroup) {
-		return albumsByGroup.values().stream().allMatch(l -> l.isEmpty());
+	public static <T> boolean isAllEmptyAlbumsOfGroups(Map<AlbumGroup, List<T>> listsByGroup) {
+		return listsByGroup.values().stream().allMatch(List::isEmpty);
 	}
 
 	/**

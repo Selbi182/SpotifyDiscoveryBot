@@ -17,11 +17,9 @@ import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
 import spotify.bot.api.SpotifyCall;
-import spotify.bot.config.BotLogger;
 import spotify.bot.config.Config;
-import spotify.bot.database.DiscoveryDatabase;
-import spotify.bot.dto.AlbumTrackPair;
-import spotify.bot.util.BotUtils;
+import spotify.bot.util.AlbumTrackPair;
+import spotify.bot.util.BotLogger;
 import spotify.bot.util.Constants;
 
 @Service
@@ -34,9 +32,6 @@ public class PlaylistSongsRequests {
 
 	@Autowired
 	private Config config;
-
-	@Autowired
-	private DiscoveryDatabase database;
 
 	@Autowired
 	private BotLogger log;
@@ -58,7 +53,7 @@ public class PlaylistSongsRequests {
 	 */
 	private int addSongsToPlaylist(List<AlbumTrackPair> albumTrackPairs, AlbumGroup albumGroup) {
 		try {
-			String playlistId = BotUtils.getPlaylistIdByGroup(albumGroup);
+			String playlistId = config.getPlaylistIdByGroup(albumGroup);
 			return addSongsToPlaylistId(albumTrackPairs, playlistId);
 		} catch (Exception e) {
 			log.stackTrace(e);
@@ -99,7 +94,7 @@ public class PlaylistSongsRequests {
 
 		final int currentPlaylistCount = p.getTracks().getTotal();
 		if (currentPlaylistCount + songsToAddCount > Constants.PLAYLIST_SIZE_LIMIT) {
-			if (!config.isCircularPlaylistFitting()) {
+			if (!config.getUserConfig().isCircularPlaylistFitting()) {
 				log.error(p.getName() + " is full! Maximum capacity is " + Constants.PLAYLIST_SIZE_LIMIT + ". Enable circularPlaylistFitting or flush the playlist for new songs.");
 				return;
 			}
@@ -164,7 +159,7 @@ public class PlaylistSongsRequests {
 			if (!albumTrackPairs.isEmpty()) {
 				List<AlbumTrackPair> sortedAlbums = offlineRequests.sortReleases(albumTrackPairs);
 				int addedSongsCount = addSongsToPlaylist(sortedAlbums, albumGroup);
-				database.refreshPlaylistStore(albumGroup.getGroup(), addedSongsCount);
+				config.refreshPlaylistStore(albumGroup, addedSongsCount);
 				playlistInfoRequests.showNotifier(albumGroup);
 			}
 		}

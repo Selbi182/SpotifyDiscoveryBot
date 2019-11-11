@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.wrapper.spotify.enums.AlbumGroup;
 
-import spotify.bot.config.BotLogger;
 import spotify.bot.crawler.SpotifyDiscoveryBotCrawler;
+import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
 
 @RestController
@@ -46,9 +46,11 @@ public class CrawlScheduler {
 	 * <br/>
 	 * Possible ResponseEntities:
 	 * <ul>
+	 * <li>200 (OK): No new songs found</li>
 	 * <li>201 (CREATED): New songs were added!</li>
-	 * <li>204 (NO CONTENT): No new songs found</li>
-	 * <li>409 (CONFLICT): A previous crawling instance is still in progress</li>
+	 * <li>409 (CONFLICT): The crawler is not currently ready, either because it's
+	 * still booting or because a previous crawling instance is still in progress;
+	 * request will be ignored</li>
 	 * </ul>
 	 * 
 	 * @return a ResponseEntity defining the result of the crawling process
@@ -62,13 +64,15 @@ public class CrawlScheduler {
 		if (!crawler.isReady()) {
 			return new ResponseEntity<>("Crawler isn't ready!", HttpStatus.CONFLICT);
 		}
+		long time = System.currentTimeMillis();
 		Map<AlbumGroup, Integer> results = crawler.runCrawler();
+		log.info(String.valueOf(System.currentTimeMillis() - time));
 		String response = BotUtils.compileResultString(results);
 		if (response != null) {
 			log.info(response);
 			return new ResponseEntity<>(response, HttpStatus.CREATED);
 		}
-		return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+		return new ResponseEntity<>("No new releases found.", HttpStatus.OK);
 	}
 
 	/**

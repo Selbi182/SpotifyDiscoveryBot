@@ -3,6 +3,7 @@ package spotify.bot.api.requests;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -20,9 +21,9 @@ import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
 import spotify.bot.api.SpotifyCall;
-import spotify.bot.config.BotLogger;
 import spotify.bot.config.Config;
-import spotify.bot.dto.AlbumTrackPair;
+import spotify.bot.util.AlbumTrackPair;
+import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.Constants;
 
@@ -54,7 +55,7 @@ public class TrackRequests {
 	 */
 	public Map<AlbumGroup, List<AlbumTrackPair>> getSongIdsByAlbums(Map<AlbumGroup, List<AlbumSimplified>> albumsByAlbumGroup, List<String> followedArtists) throws IOException, SQLException {
 		Map<AlbumGroup, List<AlbumTrackPair>> tracksOfAlbumsByGroup = BotUtils.createAlbumGroupToListOfTMap(albumsByAlbumGroup.keySet());
-		final boolean isIntelligentAppearsOnSearch = config.isIntelligentAppearsOnSearch();
+		final boolean isIntelligentAppearsOnSearch = config.getUserConfig().isIntelligentAppearsOnSearch();
 		albumsByAlbumGroup.entrySet().parallelStream().forEach(ag -> {
 			AlbumGroup albumGroup = ag.getKey();
 			List<AlbumSimplified> albums = ag.getValue();
@@ -117,7 +118,7 @@ public class TrackRequests {
 	private List<AlbumTrackPair> intelligentAppearsOnSearch(List<AlbumSimplified> appearsOnAlbums, Collection<String> followedArtistsRaw) {
 		Set<String> followedArtistsSet = new HashSet<>(followedArtistsRaw);
 
-		List<AlbumSimplified> newAlbumCandidates = appearsOnAlbums.stream().filter((a) -> !BotUtils.isCollectionOrSampler(a)).collect(Collectors.toList());
+		List<AlbumSimplified> newAlbumCandidates = appearsOnAlbums.stream().filter((a) -> !isCollectionOrSampler(a)).collect(Collectors.toList());
 		newAlbumCandidates = newAlbumCandidates.stream().filter(a -> !BotUtils.containsFeaturedArtist(followedArtistsSet, a.getArtists())).collect(Collectors.toList());
 		List<AlbumTrackPair> songsByAlbums = getSongIdsByAlbums(newAlbumCandidates);
 		List<AlbumTrackPair> filteredTracks = new ArrayList<>();
@@ -128,5 +129,19 @@ public class TrackRequests {
 			filteredTracks.add(new AlbumTrackPair(albumTrackPair.getAlbum(), selectedSongs));
 		});
 		return filteredTracks;
+	}
+
+	/**
+	 * Returns true if the album group is set to Compilation or the artist is
+	 * "Various Artists"
+	 * 
+	 * @param a
+	 * @return
+	 */
+	private boolean isCollectionOrSampler(AlbumSimplified a) {
+		if (!a.getAlbumGroup().equals(AlbumGroup.COMPILATION)) {
+			return Arrays.asList(a.getArtists()).stream().anyMatch(as -> as.getName().equals(Constants.VARIOUS_ARTISTS));
+		}
+		return true;
 	}
 }

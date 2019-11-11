@@ -15,12 +15,7 @@ import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import com.wrapper.spotify.enums.AlbumGroup;
-import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
-
-import spotify.bot.config.Config;
-import spotify.bot.config.Config.PlaylistStore;
-import spotify.bot.dto.AlbumTrackPair;
 
 public final class BotUtils {
 
@@ -30,33 +25,7 @@ public final class BotUtils {
 	private BotUtils() {}
 
 	///////
-
-	private static Config config;
-
-	/**
-	 * Initialize the utility class's configuration
-	 * 
-	 * @param config
-	 */
-	static void initializeUtilConfig(Config config) {
-		BotUtils.config = config;
-	}
-
-	///////
-
-	/**
-	 * Returns the stored playlist ID by the given album group. Should the same ID
-	 * be set for multiple playlists, the album group is returned hierarchically:
-	 * ALBUM > SINGLE > COMPILATION > APPEARS_ON
-	 * 
-	 * @param albumGroup
-	 * @return
-	 * @throws IOException
-	 */
-	public static String getPlaylistIdByGroup(AlbumGroup albumGroup) {
-		return config.getPlaylistStoreByAlbumGroup(albumGroup).getPlaylistId();
-	}
-
+	
 	/**
 	 * Check if the given old date is still within the allowed timeout threshold in
 	 * hours
@@ -70,38 +39,6 @@ public final class BotUtils {
 		calOld.setTime(oldDate);
 		calOld.add(Calendar.HOUR_OF_DAY, timeout);
 		return calCurrent.before(calOld);
-	}
-
-	/**
-	 * Fetch all album groups that are set in the config
-	 * 
-	 * @param albumGroups
-	 */
-	public static List<AlbumGroup> getSetAlbumGroups() {
-		List<AlbumGroup> setAlbumGroups = new ArrayList<>();
-		for (AlbumGroup ag : AlbumGroup.values()) {
-			PlaylistStore ps = config.getPlaylistStoreByAlbumGroup(ag);
-			if (ps != null) {
-				if ((ps.getPlaylistId() != null && !ps.getPlaylistId().trim().isEmpty()) || ps.getParentAlbumGroup() != null) {
-					setAlbumGroups.add(ag);
-				}
-			}
-		}
-		return setAlbumGroups;
-	}
-
-	/**
-	 * Returns true if the album group is set to Compilation or the artist is
-	 * "Various Artists"
-	 * 
-	 * @param a
-	 * @return
-	 */
-	public static boolean isCollectionOrSampler(AlbumSimplified a) {
-		if (!a.getAlbumGroup().equals(AlbumGroup.COMPILATION)) {
-			return Arrays.asList(a.getArtists()).stream().anyMatch(as -> as.getName().equals(Constants.VARIOUS_ARTISTS));
-		}
-		return true;
 	}
 
 	/**

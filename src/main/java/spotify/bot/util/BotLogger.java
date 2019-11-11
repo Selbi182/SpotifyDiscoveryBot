@@ -1,4 +1,4 @@
-package spotify.bot.config;
+package spotify.bot.util;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -20,7 +20,18 @@ public class BotLogger {
 		this.log = LoggerFactory.getLogger(BotLogger.class);
 
 	}
-
+	
+	/**
+	 * Log an info message
+	 * 
+	 * @return
+	 * @throws IOException
+	 * @throws SQLException
+	 */
+	public void debug(String message) {
+		log.debug(message);
+	}
+	
 	/**
 	 * Log an info message
 	 * 

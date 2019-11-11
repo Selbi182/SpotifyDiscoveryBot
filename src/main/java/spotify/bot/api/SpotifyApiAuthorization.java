@@ -19,8 +19,8 @@ import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.exceptions.detailed.BadRequestException;
 import com.wrapper.spotify.model_objects.credentials.AuthorizationCodeCredentials;
 
-import spotify.bot.config.BotLogger;
 import spotify.bot.config.Config;
+import spotify.bot.util.BotLogger;
 import spotify.bot.util.Constants;
 
 @Component

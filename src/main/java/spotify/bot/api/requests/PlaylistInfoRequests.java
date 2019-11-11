@@ -17,8 +17,7 @@ import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
 
 import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.Config;
-import spotify.bot.config.Config.PlaylistStore;
-import spotify.bot.database.DiscoveryDatabase;
+import spotify.bot.config.dto.PlaylistStoreDTO;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.Constants;
 
@@ -27,16 +26,10 @@ public class PlaylistInfoRequests {
 
 	@Autowired
 	private SpotifyApi spotifyApi;
-	
-	@Autowired
-	private SpotifyApi nonCachingSpotifyApi;
 
 	@Autowired
 	private Config config;
-
-	@Autowired
-	private DiscoveryDatabase database;
-
+	
 	/**
 	 * Display the [NEW] notifier of a playlist (if it isn't already set) in the
 	 * playlist's title
@@ -45,7 +38,7 @@ public class PlaylistInfoRequests {
 	 * @throws Exception
 	 */
 	public void showNotifier(AlbumGroup albumGroup) throws Exception {
-		String playlistId = BotUtils.getPlaylistIdByGroup(albumGroup);
+		String playlistId = config.getPlaylistIdByGroup(albumGroup);
 		if (playlistId != null) {
 			Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
 			String playlistName = p.getName();
@@ -64,7 +57,7 @@ public class PlaylistInfoRequests {
 	 */
 	public void timestampPlaylists(List<AlbumGroup> albumGroups) throws Exception {
 		for (AlbumGroup ag : albumGroups) {
-			String playlistId = BotUtils.getPlaylistIdByGroup(ag);
+			String playlistId = config.getPlaylistIdByGroup(ag);
 			if (playlistId != null) {
 				String newDescription = String.format("Last Search: %s", Constants.DESCRIPTION_TIMESTAMP_FORMAT.format(Calendar.getInstance().getTime()));
 				SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).description(newDescription));
@@ -78,8 +71,8 @@ public class PlaylistInfoRequests {
 	 * @throws Exception
 	 */
 	public void clearObsoleteNotifiers() throws Exception {
-		for (AlbumGroup ag : BotUtils.getSetAlbumGroups()) {
-			PlaylistStore ps = config.getPlaylistStoreByAlbumGroup(ag);
+		for (AlbumGroup ag : config.getSetAlbumGroups()) {
+			PlaylistStoreDTO ps = config.getPlaylistStore(ag);
 			if (ps.getParentAlbumGroup() == null && ps.getLastUpdate() != null && ps.getRecentSongsAddedCount() != null) {
 				String playlistId = ps.getPlaylistId();
 				Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
@@ -88,7 +81,7 @@ public class PlaylistInfoRequests {
 					if (shouldIndicatorBeMarkedAsRead(ps)) {
 						playlistName = p.getName().replace(Constants.NEW_INDICATOR_TEXT, "").trim();
 						SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).name(playlistName));
-						database.unsetPlaylistStore(ps.getAlbumGroup().getGroup());
+						config.unsetPlaylistStore(ps.getAlbumGroup());
 					}
 				}
 			}
@@ -105,7 +98,7 @@ public class PlaylistInfoRequests {
 	 * @throws IOException
 	 * @throws Exception
 	 */
-	private boolean shouldIndicatorBeMarkedAsRead(PlaylistStore playlistStore) throws IOException, Exception {
+	private boolean shouldIndicatorBeMarkedAsRead(PlaylistStoreDTO playlistStore) throws IOException, Exception {
 		Date lastUpdated = playlistStore.getLastUpdate();
 		Integer lastUpdateSongCount = playlistStore.getRecentSongsAddedCount();
 		if (lastUpdated == null || lastUpdateSongCount == null || lastUpdateSongCount == 0) {
@@ -113,7 +106,7 @@ public class PlaylistInfoRequests {
 		}
 
 		// Timeout after a certain number of hours since the playlist was last updated
-		int newNotificationTimeout = config.getNewNotificationTimeout();
+		int newNotificationTimeout = config.getBotConfig().getNewNotificationTimeout();
 		if (!BotUtils.isTimeoutActive(lastUpdated, newNotificationTimeout)) {
 			return true;
 		}
@@ -126,7 +119,7 @@ public class PlaylistInfoRequests {
 			return false;
 		}
 		int tracksToFetch = Math.min(lastUpdateSongCount, Constants.DEFAULT_LIMIT);
-		PlaylistTrack[] recentlyAddedPlaylistTracks = SpotifyCall.execute(nonCachingSpotifyApi.getPlaylistsTracks(playlistId).limit(tracksToFetch)).getItems();
+		PlaylistTrack[] recentlyAddedPlaylistTracks = SpotifyCall.execute(spotifyApi.getPlaylistsTracks(playlistId).limit(tracksToFetch)).getItems();
 		boolean currentlyPlayingSongIsNew = Arrays.asList(recentlyAddedPlaylistTracks).stream().anyMatch(pt -> pt.getTrack().getId().equals(currentlyPlaying.getItem().getId()));
 		return currentlyPlayingSongIsNew;
 	}

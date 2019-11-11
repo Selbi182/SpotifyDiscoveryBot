@@ -1,6 +1,7 @@
 package spotify.bot.api;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -16,64 +17,46 @@ import spotify.bot.config.Config;
 @Configuration
 public class SpotifyApiWrapper {
 
+	private static final int ZERO_SIZE_CACHE = 0;
+
 	@Autowired
 	private Config config;
 
 	/**
-	 * Create a default Spotify API instance
+	 * Creates a SpotifyApi instance with a cache size of 0 entries (default would
+	 * be 1000). This makes the API somewhat slower under most circumstances, but
+	 * it's required to get real-time updates about new releases at the minute they
+	 * come out
 	 * 
 	 * @return the API instance
 	 * 
 	 * @throws SpotifyWebApiException
 	 * @throws InterruptedException
 	 * @throws IOException
+	 * @throws SQLException
 	 */
 	@Bean
-	SpotifyApi spotifyApi() throws SpotifyWebApiException, InterruptedException, IOException {
-		SpotifyApi spotifyApi = defaultSpotifyApiBuilder().build();
+	SpotifyApi spotifyApi() throws SpotifyWebApiException, InterruptedException, IOException, SQLException {
+		SpotifyApi spotifyApi = new SpotifyApi.Builder()
+			.setClientId(config.getBotConfig().getClientId())
+			.setClientSecret(config.getBotConfig().getClientSecret())
+			.setRedirectUri(SpotifyHttpManager.makeUri(config.getBotConfig().getCallbackUri()))
+			.setHttpManager(nonCachingHttpManager())
+			.build();
 		initializeTokens(spotifyApi);
 		return spotifyApi;
-	}
-
-	/**
-	 * Create a SpotifyApi instance with a cache size of 0. This makes the API
-	 * significantly slower, but may be useful in some instances where real-time
-	 * data is required
-	 * 
-	 * @return
-	 * @throws InterruptedException
-	 * @throws SpotifyWebApiException
-	 * @throws IOException
-	 */
-	@Bean
-	SpotifyApi nonCachingSpotifyApi() throws SpotifyWebApiException, InterruptedException, IOException {
-		SpotifyApi nonCachingSpotifyApi = defaultSpotifyApiBuilder()
-			.setHttpManager(nonCacheHttpManager())
-			.build();
-		initializeTokens(nonCachingSpotifyApi);
-		return nonCachingSpotifyApi;
-	}
-
-	/**
-	 * Create a base Spotify API builder with only the mandatory settings
-	 * 
-	 * @return
-	 */
-	private SpotifyApi.Builder defaultSpotifyApiBuilder() {
-		return new SpotifyApi.Builder()
-			.setClientId(config.getClientId())
-			.setClientSecret(config.getClientSecret())
-			.setRedirectUri(SpotifyHttpManager.makeUri(config.getCallbackUri()));
 	}
 
 	/**
 	 * Set the previously set tokens of the config, if any were set
 	 * 
 	 * @param api
+	 * @throws IOException
+	 * @throws SQLException
 	 */
-	private void initializeTokens(SpotifyApi api) {
-		api.setAccessToken(config.getAccessToken());
-		api.setRefreshToken(config.getRefreshToken());
+	private void initializeTokens(SpotifyApi api) throws SQLException, IOException {
+		api.setAccessToken(config.getUserConfig().getAccessToken());
+		api.setRefreshToken(config.getUserConfig().getRefreshToken());
 	}
 
 	/**
@@ -81,9 +64,9 @@ public class SpotifyApiWrapper {
 	 * 
 	 * @return
 	 */
-	private IHttpManager nonCacheHttpManager() {
+	private IHttpManager nonCachingHttpManager() {
 		IHttpManager nonCacheHttpManager = new SpotifyHttpManager.Builder()
-			.setCacheMaxEntries(0)
+			.setCacheMaxEntries(ZERO_SIZE_CACHE)
 			.build();
 		return nonCacheHttpManager;
 	}

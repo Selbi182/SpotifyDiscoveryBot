@@ -2,34 +2,45 @@ package spotify.bot.api.requests;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+
+import javax.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.wrapper.spotify.enums.AlbumGroup;
+import com.wrapper.spotify.enums.ReleaseDatePrecision;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
 import spotify.bot.config.Config;
-import spotify.bot.config.Config.PlaylistStore;
-import spotify.bot.dto.AlbumTrackPair;
+import spotify.bot.config.dto.PlaylistStoreDTO;
+import spotify.bot.util.AlbumTrackPair;
 import spotify.bot.util.BotUtils;
-import spotify.bot.util.ReleaseValidator;
+import spotify.bot.util.Constants;
 
 @Service
 public class OfflineRequests {
 
 	@Autowired
 	private Config config;
-
-	@Autowired
+	
 	private ReleaseValidator releaseValidator;
+	
+	@PostConstruct
+	private void initReleaseValidator() throws SQLException, IOException {
+		releaseValidator = new ReleaseValidator(config.getUserConfig().getLookbackDays());
+	}
 
 	/**
 	 * Sort the albums of each album group
@@ -83,8 +94,9 @@ public class OfflineRequests {
 	 * @param newSongsByGroup
 	 * @param albumGroups
 	 * @return
+	 * @throws SQLException 
 	 */
-	public Map<AlbumGroup, List<AlbumTrackPair>> groupTracksToParentAlbumGroup(Map<AlbumGroup, List<AlbumTrackPair>> newSongsByGroup, List<AlbumGroup> albumGroups) {
+	public Map<AlbumGroup, List<AlbumTrackPair>> groupTracksToParentAlbumGroup(Map<AlbumGroup, List<AlbumTrackPair>> newSongsByGroup, List<AlbumGroup> albumGroups) throws SQLException {
 		Map<AlbumGroup, List<AlbumGroup>> groupedPlaylistStores = createPlaylistGroupsByParent(albumGroups);
 		if (groupedPlaylistStores.size() == albumGroups.size()) {
 			// Each album group has its own set playlist, no merging required
@@ -102,24 +114,26 @@ public class OfflineRequests {
 		}
 		return mergedAlbumGroups;
 	}
-
+	
+	
 	/**
 	 * Create a merged view of all playlist stores by their parent album group
 	 * 
 	 * @param enabledAlbumGroups
 	 * @return
+	 * @throws SQLException 
 	 */
-	private Map<AlbumGroup, List<AlbumGroup>> createPlaylistGroupsByParent(Collection<AlbumGroup> enabledAlbumGroups) {
+	private Map<AlbumGroup, List<AlbumGroup>> createPlaylistGroupsByParent(Collection<AlbumGroup> enabledAlbumGroups) throws SQLException {
 		Map<AlbumGroup, List<AlbumGroup>> playlistStoresByAlbumGroupParent = new HashMap<>();
 		for (AlbumGroup ag : enabledAlbumGroups) {
-			PlaylistStore ps = config.getPlaylistStoreByAlbumGroup(ag);
+			PlaylistStoreDTO ps = config.getPlaylistStore(ag);
 			if (ps != null && ps.getParentAlbumGroup() == null) {
 				playlistStoresByAlbumGroupParent.put(ag, new ArrayList<>());
 				playlistStoresByAlbumGroupParent.get(ag).add(ag);
 			}
 		}
 		for (AlbumGroup ag : enabledAlbumGroups) {
-			PlaylistStore ps = config.getPlaylistStoreByAlbumGroup(ag);
+			PlaylistStoreDTO ps = config.getPlaylistStore(ag);
 			if (ps != null && ps.getParentAlbumGroup() != null) {
 				playlistStoresByAlbumGroupParent.get(ps.getParentAlbumGroup()).add(ag);
 			}
@@ -141,8 +155,51 @@ public class OfflineRequests {
 	 */
 	public Map<AlbumGroup, List<AlbumSimplified>> categorizeAndFilterAlbums(List<AlbumSimplified> albumsSimplified, List<AlbumGroup> albumGroups) throws IOException, SQLException {
 		Map<AlbumGroup, List<AlbumSimplified>> categorizedAlbums = categorizeAlbumsByAlbumGroup(albumsSimplified, albumGroups);
-		int lookbackDays = config.getLookbackDays();
+		int lookbackDays = config.getUserConfig().getLookbackDays();
 		Map<AlbumGroup, List<AlbumSimplified>> filteredAlbums = filterNewAlbumsOnly(categorizedAlbums, lookbackDays);
 		return filteredAlbums;
 	}
+
+	/**
+	 * 
+	 * @author Borsti
+	 *
+	 */
+	class ReleaseValidator {
+		private Set<String> validDates;
+		private String validMonthDate;
+
+		private ReleaseValidator(int lookbackDays) {
+			Calendar cal = Calendar.getInstance();
+
+			SimpleDateFormat monthPrecision = new SimpleDateFormat(Constants.RELEASE_DATE_FORMAT_MONTH);
+			this.validMonthDate = monthPrecision.format(cal.getTime());
+
+			SimpleDateFormat datePrecision = new SimpleDateFormat(Constants.RELEASE_DATE_FORMAT_DAY);
+			this.validDates = new HashSet<>();
+			for (int i = 0; i < lookbackDays; i++) {
+				validDates.add(datePrecision.format(cal.getTime()));
+				cal.add(Calendar.DAY_OF_MONTH, -1);
+			}
+		}
+
+		/**
+		 * Returns true if the album's given release date is within the previously
+		 * specified lookbackDays range
+		 * 
+		 * @param a
+		 * @return
+		 */
+		boolean isValidDate(AlbumSimplified a) {
+			if (a != null) {
+				if (a.getReleaseDatePrecision().equals(ReleaseDatePrecision.DAY)) {
+					return validDates.contains(a.getReleaseDate());
+				} else if (a.getReleaseDatePrecision().equals(ReleaseDatePrecision.MONTH)) {
+					return validMonthDate.equals(a.getReleaseDate());
+				}
+			}
+			return false;
+		}
+	}
+
 }

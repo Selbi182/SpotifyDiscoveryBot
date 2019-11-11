@@ -1,9 +1,5 @@
 package spotify.bot.api.requests;
 
-import java.io.IOException;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -16,10 +12,9 @@ import com.wrapper.spotify.enums.ModelObjectType;
 import com.wrapper.spotify.model_objects.specification.Artist;
 
 import spotify.bot.api.SpotifyCall;
-import spotify.bot.config.BotLogger;
 import spotify.bot.config.Config;
-import spotify.bot.database.DBConstants;
-import spotify.bot.database.DiscoveryDatabase;
+import spotify.bot.config.database.DatabaseService;
+import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.Constants;
 
@@ -31,13 +26,13 @@ public class UserInfoRequests {
 
 	@Autowired
 	private Config config;
+	
+	@Autowired
+	private DatabaseService databaseService;
 
 	@Autowired
 	private BotLogger log;
-
-	@Autowired
-	private DiscoveryDatabase database;
-
+	
 	/**
 	 * Get all the user's followed artists
 	 * 
@@ -46,12 +41,12 @@ public class UserInfoRequests {
 	 */
 	public List<String> getFollowedArtistsIds() throws Exception {
 		// Try to fetch from cache first
-		List<String> cachedArtists = getCachedFollowedArtists();
+		List<String> cachedArtists = databaseService.getArtistCache();
 		BotUtils.removeNullStrings(cachedArtists);
 		if (cachedArtists != null && !cachedArtists.isEmpty()) {
-			Date lastUpdatedArtistCache = config.getArtistCacheLastUpdated();
+			Date lastUpdatedArtistCache = config.getBotConfig().getArtistCacheLastUpdated();
 			if (lastUpdatedArtistCache != null) {
-				int artistCacheTimeout = config.getArtistCacheTimeout();
+				int artistCacheTimeout = config.getBotConfig().getArtistCacheTimeout();
 				if (BotUtils.isTimeoutActive(lastUpdatedArtistCache, artistCacheTimeout)) {
 					return cachedArtists;
 				}
@@ -65,16 +60,7 @@ public class UserInfoRequests {
 		if (followedArtistIds.isEmpty()) {
 			log.warning("No followed artists found!");
 		}
-		database.updateFollowedArtistsCacheAsync(followedArtistIds, cachedArtists);
+		databaseService.updateFollowedArtistsCacheAsync(followedArtistIds, cachedArtists);
 		return followedArtistIds;
-	}
-
-	private List<String> getCachedFollowedArtists() throws IOException, SQLException {
-		ResultSet rs = database.fullTable(DBConstants.TABLE_ARTIST_CACHE);
-		List<String> cachedArtists = new ArrayList<>();
-		while (rs.next()) {
-			cachedArtists.add(rs.getString(DBConstants.COL_ARTIST_IDS));
-		}
-		return cachedArtists;
 	}
 }

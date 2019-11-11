@@ -19,8 +19,9 @@ import spotify.bot.api.requests.PlaylistInfoRequests;
 import spotify.bot.api.requests.PlaylistSongsRequests;
 import spotify.bot.api.requests.TrackRequests;
 import spotify.bot.api.requests.UserInfoRequests;
-import spotify.bot.config.BotLogger;
-import spotify.bot.dto.AlbumTrackPair;
+import spotify.bot.config.Config;
+import spotify.bot.util.AlbumTrackPair;
+import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
 
 @Component
@@ -32,8 +33,8 @@ public class SpotifyDiscoveryBotCrawler {
 	private SpotifyApiAuthorization spotifyApiAuthorization;
 
 	@Autowired
-	private CrawlFinalizer crawlFinalizer;
-
+	private Config config;
+	
 	@Autowired
 	private BotLogger log;
 
@@ -73,14 +74,11 @@ public class SpotifyDiscoveryBotCrawler {
 		if (isReady()) {
 			setReady(false);
 			try {
-				return crawl();
-			} catch (UnauthorizedException e) {
 				spotifyApiAuthorization.login();
-				return runCrawler();
+				return crawl();
 			} catch (Exception e) {
 				log.stackTrace(e);
 			} finally {
-				crawlFinalizer.finalizeResources();
 				setReady(true);
 			}
 		}
@@ -102,8 +100,6 @@ public class SpotifyDiscoveryBotCrawler {
 				clearObsoleteNotifiers();
 			} catch (Exception e) {
 				log.stackTrace(e);
-			} finally {
-				crawlFinalizer.finalizeResources();
 			}
 		}
 	}
@@ -175,7 +171,7 @@ public class SpotifyDiscoveryBotCrawler {
 	 *             if just about anything at all goes wrong lol
 	 */
 	private Map<AlbumGroup, Integer> crawl() throws Exception {
-		List<AlbumGroup> albumGroups = BotUtils.getSetAlbumGroups();
+		List<AlbumGroup> albumGroups = config.getSetAlbumGroups();
 		Map<AlbumGroup, Integer> additionResults = BotUtils.createAlbumGroupToIntegerMap(albumGroups);
 		List<String> followedArtists = userInfoRequests.getFollowedArtistsIds();
 		if (!followedArtists.isEmpty()) {
@@ -186,7 +182,7 @@ public class SpotifyDiscoveryBotCrawler {
 					Map<AlbumGroup, List<AlbumTrackPair>> newSongs = trackRequests.getSongIdsByAlbums(newAlbums, followedArtists);
 					if (!BotUtils.isAllEmptyAlbumsOfGroups(newSongs)) {
 						playlistSongsRequests.addAllReleasesToSetPlaylists(newSongs, albumGroups);
-						BotUtils.writeSongAdditionResults(newSongs, additionResults);						
+						BotUtils.writeSongAdditionResults(newSongs, additionResults);
 					}
 				}
 			}

@@ -1,7 +1,6 @@
 package spotify.bot.api.requests;
 
 import java.io.IOException;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,24 +17,21 @@ import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
 import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.Config;
-import spotify.bot.database.DBConstants;
-import spotify.bot.database.DiscoveryDatabase;
+import spotify.bot.config.database.DatabaseService;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.Constants;
 
 @Service
 public class AlbumRequests {
-	/**
-	 * Config instance
-	 */
+
 	@Autowired
 	private Config config;
+	
+	@Autowired
+	private DatabaseService databaseService;
 
 	@Autowired
-	private SpotifyApi nonCachingSpotifyApi;
-
-	@Autowired
-	private DiscoveryDatabase database;
+	private SpotifyApi spotifyApi;
 
 	/**
 	 * Read all albums of the given artists and album groups and filter them by
@@ -50,7 +46,7 @@ public class AlbumRequests {
 		List<AlbumSimplified> allAlbums = getAlbumsOfArtists(followedArtists, albumGroups);
 		List<AlbumSimplified> filteredAlbums = filterNonCachedAlbumsOnly(allAlbums);
 		BotUtils.removeNulls(filteredAlbums);
-		database.cacheAlbumIdsAsync(filteredAlbums);
+		databaseService.cacheAlbumIdsAsync(filteredAlbums);
 		return filteredAlbums;
 	}
 
@@ -80,9 +76,9 @@ public class AlbumRequests {
 	 * @throws Exception
 	 */
 	private List<AlbumSimplified> getAlbumIdsOfSingleArtist(String artistId, String albumGroups) throws Exception {
-		List<AlbumSimplified> albumsOfCurrentArtist = SpotifyCall.executePaging(nonCachingSpotifyApi
+		List<AlbumSimplified> albumsOfCurrentArtist = SpotifyCall.executePaging(spotifyApi
 			.getArtistsAlbums(artistId)
-			.market(config.getMarket())
+			.market(config.getUserConfig().getMarket())
 			.limit(Constants.DEFAULT_LIMIT)
 			.album_type(albumGroups));
 		return albumsOfCurrentArtist;
@@ -96,7 +92,6 @@ public class AlbumRequests {
 	 * @throws SQLException
 	 */
 	private List<AlbumSimplified> filterNonCachedAlbumsOnly(List<AlbumSimplified> albumsSimplified) throws IOException, SQLException {
-		// Organize every album by their ID
 		Map<String, AlbumSimplified> filteredAlbums = new HashMap<>();
 		for (AlbumSimplified as : albumsSimplified) {
 			if (as != null) {
@@ -104,13 +99,11 @@ public class AlbumRequests {
 			}
 		}
 
-		// Get the cached albums and remove those from the above map
-		ResultSet rs = database.fullTable(DBConstants.TABLE_ALBUM_CACHE);
-		while (rs.next()) {
-			filteredAlbums.remove(rs.getString(DBConstants.COL_ALBUM_IDS));
+		List<String> albumCache = databaseService.getAlbumCache();
+		for (String id : albumCache) {
+			filteredAlbums.remove(id);			
 		}
-
-		// Return the leftover albums
+		
 		return filteredAlbums.values().stream().collect(Collectors.toList());
 	}
 

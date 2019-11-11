@@ -1,16 +1,10 @@
-package spotify.bot.database;
+package spotify.bot.config.database;
 
-public class DBConstants {
+class DBConstants {
 
-	/**
-	 * Utility class
-	 */
 	private DBConstants() {}
 
-	// Database
-	public final static String DB_FILE_NAME = "database.db";
-	public final static String DB_URL_PREFIX = "jdbc:sqlite:";
-
+	// Database constants
 	public final static String TABLE_ALBUM_CACHE = "album_cache";
 	public final static String COL_ALBUM_IDS = "album_id";
 

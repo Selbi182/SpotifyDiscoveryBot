@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
 import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.Config;
 import spotify.bot.config.dto.PlaylistStoreDTO;
+import spotify.bot.util.AlbumTrackPair;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.Constants;
 
@@ -33,8 +35,8 @@ public class PlaylistInfoService {
 	private Config config;
 
 	/**
-	 * Display the [NEW] notifiers of the given album group's playlists titles (if
-	 * they aren't set already)
+	 * Display the [NEW] notifiers of the given album groups' playlists titles, if
+	 * any songs were added
 	 * 
 	 * @param albumGroup
 	 * @throws SQLException
@@ -42,9 +44,11 @@ public class PlaylistInfoService {
 	 * @throws IOException
 	 * @throws SpotifyWebApiException
 	 */
-	public void showNotifiers(List<AlbumGroup> albumGroups) throws SpotifyWebApiException, SQLException, IOException, InterruptedException {
-		for (AlbumGroup ag : albumGroups) {
-			showNotifier(ag);
+	public void showNotifiers(Map<AlbumGroup, List<AlbumTrackPair>> newSongs) throws SpotifyWebApiException, SQLException, IOException, InterruptedException {
+		for (Map.Entry<AlbumGroup, List<AlbumTrackPair>> entry : newSongs.entrySet()) {
+			if (!entry.getValue().isEmpty()) {
+				showNotifier(entry.getKey());
+			}
 		}
 	}
 

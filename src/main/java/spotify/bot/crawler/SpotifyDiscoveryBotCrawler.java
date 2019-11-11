@@ -190,7 +190,7 @@ public class SpotifyDiscoveryBotCrawler {
 					Map<AlbumGroup, List<AlbumTrackPair>> newSongs = trackService.getSongIdsByAlbums(newAlbums, followedArtists);
 					if (!BotUtils.isAllEmptyAlbumsOfGroups(newSongs)) {
 						playlistSongsService.addAllReleasesToSetPlaylists(newSongs, albumGroups);
-						playlistInfoService.showNotifiers(albumGroups);
+						playlistInfoService.showNotifiers(newSongs);
 						BotUtils.collectSongAdditionResults(newSongs, additionResults);
 					}
 				}

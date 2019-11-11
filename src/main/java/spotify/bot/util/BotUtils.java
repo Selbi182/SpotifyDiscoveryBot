@@ -25,7 +25,7 @@ public final class BotUtils {
 	private BotUtils() {}
 
 	///////
-	
+
 	/**
 	 * Check if the given old date is still within the allowed timeout threshold in
 	 * hours
@@ -163,7 +163,7 @@ public final class BotUtils {
 	 * @param newSongsMap
 	 * @param targetCountMap
 	 */
-	public static void writeSongAdditionResults(Map<AlbumGroup, List<AlbumTrackPair>> newSongsMap, Map<AlbumGroup, Integer> targetCountMap) {
+	public static void collectSongAdditionResults(Map<AlbumGroup, List<AlbumTrackPair>> newSongsMap, Map<AlbumGroup, Integer> targetCountMap) {
 		for (Map.Entry<AlbumGroup, List<AlbumTrackPair>> entry : newSongsMap.entrySet()) {
 			int totalSongsOfGroup = entry.getValue().stream().mapToInt(atp -> atp.getTracks().size()).sum();
 			targetCountMap.put(entry.getKey(), totalSongsOfGroup);

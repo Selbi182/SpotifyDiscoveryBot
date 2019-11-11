@@ -35,7 +35,7 @@ public class Config {
 	 * @throws SQLException
 	 */
 	@PostConstruct
-	public void init() throws SQLException, IOException {
+	private void init() throws SQLException, IOException {
 		this.botConfig = getBotConfig();
 		this.userConfig = getUserConfig();
 		this.playlistStoreMap = getPlaylistStoreMap();

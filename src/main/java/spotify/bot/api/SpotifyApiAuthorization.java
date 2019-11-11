@@ -65,8 +65,6 @@ public class SpotifyApiAuthorization {
 	 * @throws InterruptedException
 	 * @throws IOException
 	 * @throws SpotifyWebApiException
-	 * 
-	 * @throws Exception
 	 */
 	private void authenticate() throws SpotifyWebApiException, IOException, InterruptedException {
 		URI uri = SpotifyCall.execute(spotifyApi.authorizationCodeUri().scope(Constants.SCOPES));
@@ -89,10 +87,13 @@ public class SpotifyApiAuthorization {
 	 * 
 	 * @param code
 	 * @return
-	 * @throws Exception
+	 * @throws InterruptedException
+	 * @throws IOException
+	 * @throws SpotifyWebApiException
+	 * @throws SQLException
 	 */
 	@RequestMapping("/login-callback")
-	private ResponseEntity<String> loginCallback(@RequestParam String code) throws Exception {
+	private ResponseEntity<String> loginCallback(@RequestParam String code) throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
 		try {
 			AuthorizationCodeCredentials acc = SpotifyCall.execute(spotifyApi.authorizationCode(code));
 			updateTokens(acc);

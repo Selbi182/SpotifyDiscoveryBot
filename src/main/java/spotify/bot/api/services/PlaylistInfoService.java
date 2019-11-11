@@ -1,6 +1,7 @@
-package spotify.bot.api.requests;
+package spotify.bot.api.services;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.enums.AlbumGroup;
+import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.model_objects.miscellaneous.CurrentlyPlaying;
 import com.wrapper.spotify.model_objects.specification.Playlist;
 import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
@@ -22,22 +24,41 @@ import spotify.bot.util.BotUtils;
 import spotify.bot.util.Constants;
 
 @Service
-public class PlaylistInfoRequests {
+public class PlaylistInfoService {
 
 	@Autowired
 	private SpotifyApi spotifyApi;
 
 	@Autowired
 	private Config config;
-	
+
+	/**
+	 * Display the [NEW] notifiers of the given album group's playlists titles (if
+	 * they aren't set already)
+	 * 
+	 * @param albumGroup
+	 * @throws SQLException
+	 * @throws InterruptedException
+	 * @throws IOException
+	 * @throws SpotifyWebApiException
+	 */
+	public void showNotifiers(List<AlbumGroup> albumGroups) throws SpotifyWebApiException, SQLException, IOException, InterruptedException {
+		for (AlbumGroup ag : albumGroups) {
+			showNotifier(ag);
+		}
+	}
+
 	/**
 	 * Display the [NEW] notifier of a playlist (if it isn't already set) in the
 	 * playlist's title
 	 * 
 	 * @param albumGroup
-	 * @throws Exception
+	 * @throws SQLException
+	 * @throws InterruptedException
+	 * @throws IOException
+	 * @throws SpotifyWebApiException
 	 */
-	public void showNotifier(AlbumGroup albumGroup) throws Exception {
+	private void showNotifier(AlbumGroup albumGroup) throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
 		String playlistId = config.getPlaylistIdByGroup(albumGroup);
 		if (playlistId != null) {
 			Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
@@ -53,9 +74,12 @@ public class PlaylistInfoRequests {
 	 * Timestamp all given playlists that DIDN'T have any songs added
 	 * 
 	 * @param albumGroups
-	 * @throws Exception
+	 * @throws SQLException
+	 * @throws InterruptedException
+	 * @throws IOException
+	 * @throws SpotifyWebApiException
 	 */
-	public void timestampPlaylists(List<AlbumGroup> albumGroups) throws Exception {
+	public void timestampPlaylists(List<AlbumGroup> albumGroups) throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
 		for (AlbumGroup ag : albumGroups) {
 			String playlistId = config.getPlaylistIdByGroup(ag);
 			if (playlistId != null) {
@@ -68,9 +92,12 @@ public class PlaylistInfoRequests {
 	/**
 	 * Convenience method to try and clear every obsolete New indicator
 	 * 
-	 * @throws Exception
+	 * @throws InterruptedException
+	 * @throws IOException
+	 * @throws SQLException
+	 * @throws SpotifyWebApiException
 	 */
-	public void clearObsoleteNotifiers() throws Exception {
+	public void clearObsoleteNotifiers() throws SpotifyWebApiException, SQLException, IOException, InterruptedException, Exception {
 		for (AlbumGroup ag : config.getSetAlbumGroups()) {
 			PlaylistStoreDTO ps = config.getPlaylistStore(ag);
 			if (ps.getParentAlbumGroup() == null && ps.getLastUpdate() != null && ps.getRecentSongsAddedCount() != null) {
@@ -96,7 +123,6 @@ public class PlaylistInfoRequests {
 	 * @param playlistId
 	 * @return
 	 * @throws IOException
-	 * @throws Exception
 	 */
 	private boolean shouldIndicatorBeMarkedAsRead(PlaylistStoreDTO playlistStore) throws IOException, Exception {
 		Date lastUpdated = playlistStore.getLastUpdate();

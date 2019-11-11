@@ -1,7 +1,11 @@
 package spotify.bot.crawler;
 
+import java.io.IOException;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+
+import javax.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -9,16 +13,16 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import com.wrapper.spotify.enums.AlbumGroup;
+import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.exceptions.detailed.UnauthorizedException;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
 import spotify.bot.api.SpotifyApiAuthorization;
-import spotify.bot.api.requests.AlbumRequests;
-import spotify.bot.api.requests.OfflineRequests;
-import spotify.bot.api.requests.PlaylistInfoRequests;
-import spotify.bot.api.requests.PlaylistSongsRequests;
-import spotify.bot.api.requests.TrackRequests;
-import spotify.bot.api.requests.UserInfoRequests;
+import spotify.bot.api.services.AlbumService;
+import spotify.bot.api.services.PlaylistInfoService;
+import spotify.bot.api.services.PlaylistSongsService;
+import spotify.bot.api.services.TrackService;
+import spotify.bot.api.services.UserInfoService;
 import spotify.bot.config.Config;
 import spotify.bot.util.AlbumTrackPair;
 import spotify.bot.util.BotLogger;
@@ -34,32 +38,30 @@ public class SpotifyDiscoveryBotCrawler {
 
 	@Autowired
 	private Config config;
-	
+
 	@Autowired
 	private BotLogger log;
 
 	@Autowired
-	private AlbumRequests albumRequests;
+	private UserInfoService userInfoService;
 
 	@Autowired
-	private OfflineRequests offlineRequests;
+	private AlbumService albumService;
 
 	@Autowired
-	private PlaylistSongsRequests playlistSongsRequests;
+	private TrackService trackService;
 
 	@Autowired
-	private PlaylistInfoRequests playlistInfoRequests;
+	private PlaylistSongsService playlistSongsService;
 
 	@Autowired
-	private TrackRequests trackRequests;
-
-	@Autowired
-	private UserInfoRequests userInfoRequests;
+	private PlaylistInfoService playlistInfoService;
 
 	/**
-	 * Spring-visible constructor to set the initial ready-state to false
+	 * Set the initial ready-state to false
 	 */
-	SpotifyDiscoveryBotCrawler() {
+	@PostConstruct
+	private void init() {
 		setReady(false);
 	}
 
@@ -67,17 +69,17 @@ public class SpotifyDiscoveryBotCrawler {
 	 * Run the Spotify New Discovery crawler!
 	 * 
 	 * @return a result map containing the number of added songs by album type
-	 * @throws Exception
-	 *             if just about anything at all goes wrong lol
+	 * @throws IOException
+	 * @throws InterruptedException
+	 * @throws SpotifyWebApiException
+	 * @throws SQLException
 	 */
-	public Map<AlbumGroup, Integer> runCrawler() throws Exception {
+	public Map<AlbumGroup, Integer> runCrawler() throws SpotifyWebApiException, InterruptedException, IOException, SQLException {
 		if (isReady()) {
 			setReady(false);
 			try {
 				spotifyApiAuthorization.login();
 				return crawl();
-			} catch (Exception e) {
-				log.stackTrace(e);
 			} finally {
 				setReady(true);
 			}
@@ -89,17 +91,18 @@ public class SpotifyDiscoveryBotCrawler {
 	 * Clears obsolete [NEW] notifiers from playlists where applicable. This method
 	 * cannot require the lock.
 	 * 
-	 * @throws Exception
+	 * @throws InterruptedException
+	 * @throws IOException
+	 * @throws SQLException
+	 * @throws SpotifyWebApiException
 	 */
-	public void clearObsoleteNotifiers() throws Exception {
+	public void clearObsoleteNotifiers() throws SpotifyWebApiException, SQLException, IOException, InterruptedException, Exception {
 		if (isReady()) {
 			try {
-				playlistInfoRequests.clearObsoleteNotifiers();
+				playlistInfoService.clearObsoleteNotifiers();
 			} catch (UnauthorizedException e) {
 				spotifyApiAuthorization.login();
 				clearObsoleteNotifiers();
-			} catch (Exception e) {
-				log.stackTrace(e);
 			}
 		}
 	}
@@ -108,11 +111,14 @@ public class SpotifyDiscoveryBotCrawler {
 	 * Event that will be fired once the Spring application has fully booted. It
 	 * will automatically initiate the first crawling iteration.
 	 * 
-	 * @throws Exception
+	 * @throws SQLException
+	 * @throws IOException
+	 * @throws InterruptedException
+	 * @throws SpotifyWebApiException
 	 */
 	@EventListener(ApplicationReadyEvent.class)
-	private void firstCrawlAndEnableReadyState() throws Exception {
-		log.info("Executing initial crawl iteration...");
+	private void firstCrawlAndEnableReadyState() throws SpotifyWebApiException, InterruptedException, IOException, SQLException {
+		log.info("Executing initial crawl...");
 		long time = System.currentTimeMillis();
 		{
 			setReady(true);
@@ -122,7 +128,7 @@ public class SpotifyDiscoveryBotCrawler {
 				log.info(response);
 			}
 		}
-		log.info("Initial crawl iteration successfully finished in: " + (System.currentTimeMillis() - time) + "ms");
+		log.info("Initial crawl successfully finished in: " + (System.currentTimeMillis() - time) + "ms");
 	}
 
 	/**
@@ -167,27 +173,30 @@ public class SpotifyDiscoveryBotCrawler {
 	 * speed up the future search processes
 	 * 
 	 * @return a result map containing the number of added songs by album type
-	 * @throws Exception
-	 *             if just about anything at all goes wrong lol
+	 * @throws SQLException
+	 * @throws InterruptedException
+	 * @throws IOException
+	 * @throws SpotifyWebApiException
 	 */
-	private Map<AlbumGroup, Integer> crawl() throws Exception {
+	private Map<AlbumGroup, Integer> crawl() throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
 		List<AlbumGroup> albumGroups = config.getSetAlbumGroups();
 		Map<AlbumGroup, Integer> additionResults = BotUtils.createAlbumGroupToIntegerMap(albumGroups);
-		List<String> followedArtists = userInfoRequests.getFollowedArtistsIds();
+		List<String> followedArtists = userInfoService.getFollowedArtistsIds();
 		if (!followedArtists.isEmpty()) {
-			List<AlbumSimplified> nonCachedAlbums = albumRequests.getNonCachedAlbumsOfArtists(followedArtists, albumGroups);
+			List<AlbumSimplified> nonCachedAlbums = albumService.getNonCachedAlbumsOfArtists(followedArtists, albumGroups);
 			if (!nonCachedAlbums.isEmpty()) {
-				Map<AlbumGroup, List<AlbumSimplified>> newAlbums = offlineRequests.categorizeAndFilterAlbums(nonCachedAlbums, albumGroups);
+				Map<AlbumGroup, List<AlbumSimplified>> newAlbums = albumService.categorizeAndFilterAlbums(nonCachedAlbums, albumGroups);
 				if (!BotUtils.isAllEmptyAlbumsOfGroups(newAlbums)) {
-					Map<AlbumGroup, List<AlbumTrackPair>> newSongs = trackRequests.getSongIdsByAlbums(newAlbums, followedArtists);
+					Map<AlbumGroup, List<AlbumTrackPair>> newSongs = trackService.getSongIdsByAlbums(newAlbums, followedArtists);
 					if (!BotUtils.isAllEmptyAlbumsOfGroups(newSongs)) {
-						playlistSongsRequests.addAllReleasesToSetPlaylists(newSongs, albumGroups);
-						BotUtils.writeSongAdditionResults(newSongs, additionResults);
+						playlistSongsService.addAllReleasesToSetPlaylists(newSongs, albumGroups);
+						playlistInfoService.showNotifiers(albumGroups);
+						BotUtils.collectSongAdditionResults(newSongs, additionResults);
 					}
 				}
 			}
 		}
-		playlistInfoRequests.timestampPlaylists(albumGroups);
+		playlistInfoService.timestampPlaylists(albumGroups);
 		return additionResults;
 	}
 }

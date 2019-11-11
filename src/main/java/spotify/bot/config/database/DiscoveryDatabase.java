@@ -20,10 +20,10 @@ import spotify.bot.util.BotLogger;
 
 @Repository
 class DiscoveryDatabase {
-	
+
 	// Database base constants
-	public final static String DB_FILE_NAME = "database.db";
-	public final static String DB_URL_PREFIX = "jdbc:sqlite:";
+	private final static String DB_FILE_NAME = "database.db";
+	private final static String DB_URL_PREFIX = "jdbc:sqlite:";
 
 	// Database query masks
 	private final static String SINGLE_SELECT_QUERY_MASK = "SELECT * FROM %s LIMIT 1";
@@ -39,12 +39,12 @@ class DiscoveryDatabase {
 
 	@Autowired
 	private BotLogger log;
-	
+
 	private String dbUrl;
 	private Connection connection;
 
 	@PostConstruct
-	private void setDatabaseUrl() throws IOException, SQLException {
+	private void init() throws IOException, SQLException {
 		File setDbFilePath = null;
 
 		File alternateDatabaseFilepath = Main.getAlternateDatabaseFilePath();
@@ -79,7 +79,7 @@ class DiscoveryDatabase {
 		}
 		return connection;
 	}
-	
+
 	/**
 	 * Close the SQL connection if it's still live
 	 * 
@@ -91,7 +91,7 @@ class DiscoveryDatabase {
 			connection.close();
 		}
 	}
-	
+
 	/**
 	 * Creates a new Database statement. May create a new database instance.
 	 * 
@@ -148,7 +148,7 @@ class DiscoveryDatabase {
 	public synchronized void updateNull(String table, String targetColumn, String conditionColumn, String conditionValue) throws SQLException {
 		createStatement().executeUpdate(String.format(UPDATE_QUERY_MASK_RAW, table, targetColumn, null));
 	}
-	
+
 	/**
 	 * Adds all given strings to the specified table's specified column
 	 * 

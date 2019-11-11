@@ -107,7 +107,7 @@ public class SpotifyCall {
 	 *             if the retry timeout is interrupted
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T, A, BT> List<T> executePaging(IPagingCursorbasedRequestBuilder<T, A, BT> pagingRequestBuilder) throws Exception {
+	public static <T, A, BT> List<T> executePaging(IPagingCursorbasedRequestBuilder<T, A, BT> pagingRequestBuilder) throws SpotifyWebApiException, IOException, InterruptedException {
 		List<T> resultList = new ArrayList<>();
 		PagingCursorbased<T> paging = null;
 		do {

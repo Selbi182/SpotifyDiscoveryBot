@@ -1,5 +1,7 @@
 package spotify.bot;
 
+import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.wrapper.spotify.enums.AlbumGroup;
+import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 
 import spotify.bot.crawler.SpotifyDiscoveryBotCrawler;
 import spotify.bot.util.BotLogger;
@@ -54,19 +57,18 @@ public class CrawlScheduler {
 	 * </ul>
 	 * 
 	 * @return a ResponseEntity defining the result of the crawling process
-	 * 
-	 * @throws Exception
-	 *             should anything whatsoever go wrong lol
+	 * @throws SQLException
+	 * @throws IOException
+	 * @throws InterruptedException
+	 * @throws SpotifyWebApiException
 	 */
 	@Scheduled(cron = CRAWL_CRON)
 	@RequestMapping("/crawl")
-	public ResponseEntity<String> runScheduler() throws Exception {
+	public ResponseEntity<String> runScheduler() throws SpotifyWebApiException, InterruptedException, IOException, SQLException {
 		if (!crawler.isReady()) {
 			return new ResponseEntity<>("Crawler isn't ready!", HttpStatus.CONFLICT);
 		}
-		long time = System.currentTimeMillis();
 		Map<AlbumGroup, Integer> results = crawler.runCrawler();
-		log.info(String.valueOf(System.currentTimeMillis() - time));
 		String response = BotUtils.compileResultString(results);
 		if (response != null) {
 			log.info(response);
@@ -80,10 +82,14 @@ public class CrawlScheduler {
 	 * applicable. Will only run while crawler is idle.
 	 * 
 	 * @return
+	 * @throws InterruptedException
+	 * @throws IOException
+	 * @throws SQLException
+	 * @throws SpotifyWebApiException
 	 */
 	@Scheduled(cron = CLEAR_NOTIFIER_CRON)
 	@RequestMapping("/clear-notifiers")
-	public ResponseEntity<String> clearNewIndicatorScheduler() throws Exception {
+	public ResponseEntity<String> clearNewIndicatorScheduler() throws SpotifyWebApiException, SQLException, IOException, InterruptedException, Exception {
 		if (!crawler.isReady()) {
 			return new ResponseEntity<>("Can't clear [NEW] indicators now, as crawler is currently in progress...", HttpStatus.CONFLICT);
 		}

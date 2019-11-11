@@ -20,7 +20,6 @@ public final class Constants {
 	public final static String SCOPES = "user-follow-read playlist-modify-private";
 	public final static String TRACK_PREFIX = "spotify:track:";
 	public final static int DEFAULT_LIMIT = 50;
-	public final static int SEVERAL_ALBUMS_LIMIT = 20;
 	public final static int PLAYLIST_ADD_LIMIT = 100;
 	public final static int PLAYLIST_SIZE_LIMIT = 10000;
 	public final static String RELEASE_DATE_FORMAT_DAY = "yyyy-MM-dd";

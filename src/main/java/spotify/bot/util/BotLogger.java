@@ -16,22 +16,11 @@ public class BotLogger {
 	private Logger log;
 
 	@PostConstruct
-	public void init() throws SecurityException, IOException {
+	private void init() throws SecurityException, IOException {
 		this.log = LoggerFactory.getLogger(BotLogger.class);
 
 	}
-	
-	/**
-	 * Log an info message
-	 * 
-	 * @return
-	 * @throws IOException
-	 * @throws SQLException
-	 */
-	public void debug(String message) {
-		log.debug(message);
-	}
-	
+
 	/**
 	 * Log an info message
 	 * 

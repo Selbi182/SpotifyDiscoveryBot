@@ -29,16 +29,30 @@ public class DatabaseService {
 
 	private final static String CACHE_ALBUMS_THREAD_NAME = "Caching ALBUM IDs";
 	private final static String CACHE_ARTISTS_THREAD_NAME = "Caching ARTIST IDs";
-	
+
 	@Autowired
 	private DiscoveryDatabase database;
-	
+
 	@Autowired
 	private BotLogger log;
-	
+
+	///////////////////////
+
+	/**
+	 * Update the access and refresh tokens in the database
+	 * 
+	 * @param accessToken
+	 * @param refreshToken
+	 * @throws SQLException
+	 */
+	public void updateTokens(String accessToken, String refreshToken) throws SQLException {
+		database.update(DBConstants.TABLE_USER_CONFIG, DBConstants.COL_ACCESS_TOKEN, accessToken);
+		database.update(DBConstants.TABLE_USER_CONFIG, DBConstants.COL_REFRESH_TOKEN, refreshToken);
+	}
+
 	////////////////////////
 	// READ
-	
+
 	/**
 	 * Return the entire contents of the "album_cache" table as Strings
 	 * 
@@ -111,10 +125,10 @@ public class DatabaseService {
 		}
 		return playlistStore;
 	}
-	
+
 	////////////////////////
 	// WRITE
-	
+
 	/**
 	 * Unset the given recent addition info of the given playlist store
 	 * 
@@ -156,19 +170,6 @@ public class DatabaseService {
 				DBConstants.COL_ALBUM_GROUP,
 				albumGroupString.toUpperCase());
 		}
-	}
-
-	/**
-	 * Update the update store's given timestamp and set the song count
-	 * 
-	 * @param group
-	 * @param addedSongs
-	 * @throws SQLException
-	 */
-	public synchronized void refreshArtistCacheLastUpdate() throws SQLException {
-		database.update(DBConstants.TABLE_BOT_CONFIG,
-			DBConstants.COL_ARTIST_CACHE_LAST_UPDATE,
-			String.valueOf(BotUtils.currentTime()));
 	}
 
 	/**
@@ -228,8 +229,16 @@ public class DatabaseService {
 		t.start();
 	}
 
-	public void updateTokens(String accessToken, String refreshToken) throws SQLException {
-		database.update(DBConstants.TABLE_USER_CONFIG, DBConstants.COL_ACCESS_TOKEN, accessToken);
-		database.update(DBConstants.TABLE_USER_CONFIG, DBConstants.COL_REFRESH_TOKEN, refreshToken);
+	/**
+	 * Update the update store's given timestamp and set the song count
+	 * 
+	 * @param group
+	 * @param addedSongs
+	 * @throws SQLException
+	 */
+	private synchronized void refreshArtistCacheLastUpdate() throws SQLException {
+		database.update(DBConstants.TABLE_BOT_CONFIG,
+			DBConstants.COL_ARTIST_CACHE_LAST_UPDATE,
+			String.valueOf(BotUtils.currentTime()));
 	}
 }

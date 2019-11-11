@@ -1,5 +1,7 @@
-package spotify.bot.api.requests;
+package spotify.bot.api.services;
 
+import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -9,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.enums.ModelObjectType;
+import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.model_objects.specification.Artist;
 
 import spotify.bot.api.SpotifyCall;
@@ -19,27 +22,30 @@ import spotify.bot.util.BotUtils;
 import spotify.bot.util.Constants;
 
 @Service
-public class UserInfoRequests {
+public class UserInfoService {
 
 	@Autowired
 	private SpotifyApi spotifyApi;
 
 	@Autowired
 	private Config config;
-	
+
 	@Autowired
 	private DatabaseService databaseService;
 
 	@Autowired
 	private BotLogger log;
-	
+
 	/**
 	 * Get all the user's followed artists
 	 * 
 	 * @return
-	 * @throws Exception
+	 * @throws SQLException
+	 * @throws IOException
+	 * @throws InterruptedException
+	 * @throws SpotifyWebApiException
 	 */
-	public List<String> getFollowedArtistsIds() throws Exception {
+	public List<String> getFollowedArtistsIds() throws IOException, SQLException, SpotifyWebApiException, InterruptedException {
 		// Try to fetch from cache first
 		List<String> cachedArtists = databaseService.getArtistCache();
 		BotUtils.removeNullStrings(cachedArtists);

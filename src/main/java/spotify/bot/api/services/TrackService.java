@@ -1,4 +1,4 @@
-package spotify.bot.api.requests;
+package spotify.bot.api.services;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -9,7 +9,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +27,7 @@ import spotify.bot.util.BotUtils;
 import spotify.bot.util.Constants;
 
 @Service
-public class TrackRequests {
+public class TrackService {
 
 	@Autowired
 	private SpotifyApi spotifyApi;
@@ -49,9 +48,6 @@ public class TrackRequests {
 	 * @return
 	 * @throws SQLException
 	 * @throws IOException
-	 * @throws ExecutionException
-	 * @throws InterruptedException
-	 * @throws Exception
 	 */
 	public Map<AlbumGroup, List<AlbumTrackPair>> getSongIdsByAlbums(Map<AlbumGroup, List<AlbumSimplified>> albumsByAlbumGroup, List<String> followedArtists) throws IOException, SQLException {
 		Map<AlbumGroup, List<AlbumTrackPair>> tracksOfAlbumsByGroup = BotUtils.createAlbumGroupToListOfTMap(albumsByAlbumGroup.keySet());
@@ -78,7 +74,6 @@ public class TrackRequests {
 	 * 
 	 * @param albums
 	 * @return
-	 * @throws Exception
 	 */
 	private List<AlbumTrackPair> getSongIdsByAlbums(List<AlbumSimplified> albums) {
 		List<AlbumTrackPair> tracksOfAlbums = new ArrayList<>();
@@ -113,7 +108,6 @@ public class TrackRequests {
 	 * @param extraAlbumIdsFiltered
 	 * @param followedArtists
 	 * @return
-	 * @throws Exception
 	 */
 	private List<AlbumTrackPair> intelligentAppearsOnSearch(List<AlbumSimplified> appearsOnAlbums, Collection<String> followedArtistsRaw) {
 		Set<String> followedArtistsSet = new HashSet<>(followedArtistsRaw);

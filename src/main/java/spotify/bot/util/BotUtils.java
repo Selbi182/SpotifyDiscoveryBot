@@ -55,20 +55,6 @@ public final class BotUtils {
 	}
 
 	/**
-	 * Creates a concurrent generic map with 0-set integers as the values
-	 * 
-	 * @param albumGroups
-	 * @return
-	 */
-	public static Map<AlbumGroupExtended, Integer> createAlbumGroupToIntegerMap(Collection<AlbumGroupExtended> albumGroups) {
-		Map<AlbumGroupExtended, Integer> albumGroupToInteger = new HashMap<>();
-		for (AlbumGroupExtended age : albumGroups) {
-			albumGroupToInteger.put(age, 0);
-		}
-		return albumGroupToInteger;
-	}
-
-	/**
 	 * Returns true if all mappings just contain an empty list (not null)
 	 * 
 	 * @param listsByMap

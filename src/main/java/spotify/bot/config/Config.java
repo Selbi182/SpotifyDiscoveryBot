@@ -143,24 +143,6 @@ public class Config {
 	}
 
 	/**
-	 * Returns the stored playlist ID by the given album group. Should the same ID
-	 * be set for multiple playlists, the album group is returned hierarchically:
-	 * ALBUM > SINGLE > COMPILATION > APPEARS_ON
-	 * 
-	 * @param albumGroup
-	 * @return
-	 * @throws SQLException
-	 * @throws IOException
-	 */
-	public String getPlaylistIdByGroup(AlbumGroupExtended albumGroup) throws SQLException {
-		PlaylistStore ps = getPlaylistStore(albumGroup);
-		if (ps != null) {
-			return ps.getPlaylistId();
-		}
-		return null;
-	}
-
-	/**
 	 * Fetch all album groups that are set in the config
 	 * 
 	 * @param albumGroups

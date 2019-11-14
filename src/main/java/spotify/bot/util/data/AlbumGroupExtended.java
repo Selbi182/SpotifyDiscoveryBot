@@ -30,10 +30,6 @@ public enum AlbumGroupExtended {
 		this.specialType = specialType;
 	}
 
-	public static AlbumGroupExtended keyOf(String type) {
-		return map.get(type);
-	}
-
 	/**
 	 * Return the extended album group representation of the default album group.
 	 * 

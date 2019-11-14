@@ -41,7 +41,7 @@ public class PlaylistInfoService {
 	/**
 	 * The description timestamp. Example: "January 1, 2000 — 00:00"
 	 */
-	public final static SimpleDateFormat DESCRIPTION_TIMESTAMP_FORMAT = new SimpleDateFormat("MMMMM d, yyyy \u2014 HH:mm", Locale.ENGLISH);
+	private final static SimpleDateFormat DESCRIPTION_TIMESTAMP_FORMAT = new SimpleDateFormat("MMMMM d, yyyy \u2014 HH:mm", Locale.ENGLISH);
 
 	@Autowired
 	private SpotifyApi spotifyApi;

@@ -167,9 +167,8 @@ public class SpotifyDiscoveryBotCrawler {
 	 * <li>Get all followed artists (will be cached every 24 hours)</li>
 	 * <li>Fetch all albums of those artists (AlbumSimplified)</li>
 	 * <li>Filter out all albums that were already stored in the DB</li>
-	 * <li>Filter out all albums not released in the lookbackDays range (default: 30
-	 * days)</li>
-	 * <li>Get the songs IDs of the remaining (new) albums using</li>
+	 * <li>Filter out all albums not released in the lookback-days range</li>
+	 * <li>Get the songs IDs of the remaining (new) albums</li>
 	 * <li>Sort the releases and add them to the respective playlists</li>
 	 * </ol>
 	 * 
@@ -208,7 +207,7 @@ public class SpotifyDiscoveryBotCrawler {
 					log.warning("Only found irrelevant appears_on releases!");
 				}
 			}
-		} catch (Exception e) {
+		} catch (SQLException | SpotifyWebApiException | IOException | InterruptedException e) {
 			throw e;
 		} finally {
 			filterService.cacheAlbumIds(nonCachedAlbums);

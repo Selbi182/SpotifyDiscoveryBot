@@ -27,7 +27,7 @@ import spotify.bot.util.BotLogger;
 public class SpotifyApiAuthorization {
 
 	private final static String SCOPES = "user-follow-read playlist-modify-private";
-	
+
 	@Autowired
 	private SpotifyApi spotifyApi;
 

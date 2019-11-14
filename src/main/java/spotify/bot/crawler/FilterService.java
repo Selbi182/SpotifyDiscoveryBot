@@ -5,10 +5,12 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -26,8 +28,10 @@ import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
 import spotify.bot.config.Config;
-import spotify.bot.config.dto.PlaylistStoreDTO;
+import spotify.bot.config.database.DatabaseService;
+import spotify.bot.config.dto.PlaylistStore;
 import spotify.bot.util.BotUtils;
+import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;
 
 @Service
@@ -36,17 +40,72 @@ public class FilterService {
 	private final static String VARIOUS_ARTISTS = "Various Artists";
 
 	private final static Pattern EP_MATCHER = Pattern.compile("\\bE\\W?P\\W?\\b");
-	private final static int EP_SONG_COUNT_THRESHOLD = 5;
+	private final static int EP_SONG_COUNT_THRESHOLD = 4;
 	private final static int EP_DURATION_THRESHOLD = 20 * 60 * 1000;
 
 	@Autowired
 	private Config config;
+
+	@Autowired
+	private DatabaseService databaseService;
 
 	private final static DateTimeFormatter RELEASE_DATE_PARSER = new DateTimeFormatterBuilder()
 		.append(DateTimeFormatter.ofPattern("yyyy[-MM[-dd]]"))
 		.parseDefaulting(ChronoField.DAY_OF_MONTH, 1)
 		.parseDefaulting(ChronoField.MONTH_OF_YEAR, 1)
 		.toFormatter();
+
+	///////////////////
+	// FILTER BY CACHED
+
+	/**
+	 * Return non-database-filterd list of albums from the input
+	 * 
+	 * @param allAlbums
+	 * @return
+	 * @throws IOException
+	 * @throws SQLException
+	 */
+	public List<AlbumSimplified> getNonCachedAlbums(List<AlbumSimplified> allAlbums) throws IOException, SQLException {
+		List<AlbumSimplified> filteredAlbums = filterNonCachedAlbumsOnly(allAlbums);
+		BotUtils.removeNulls(filteredAlbums);
+		return filteredAlbums;
+	}
+
+	/**
+	 * Filter out all album IDs not currently present in the database
+	 * 
+	 * @param albumsSimplified
+	 * @return
+	 * @throws SQLException
+	 */
+	private List<AlbumSimplified> filterNonCachedAlbumsOnly(List<AlbumSimplified> albumsSimplified) throws IOException, SQLException {
+		Map<String, AlbumSimplified> filteredAlbums = new HashMap<>();
+		for (AlbumSimplified as : albumsSimplified) {
+			if (as != null) {
+				filteredAlbums.put(as.getId(), as);
+			}
+		}
+
+		List<String> albumCache = databaseService.getAlbumCache();
+		for (String id : albumCache) {
+			filteredAlbums.remove(id);
+		}
+
+		return filteredAlbums.values().stream().collect(Collectors.toList());
+	}
+
+	////////////
+
+	/**
+	 * Cache the given album IDs in the database
+	 * 
+	 * @param album
+	 * @throws SQLException
+	 */
+	public void cacheAlbumIds(List<AlbumSimplified> album) throws SQLException {
+		databaseService.cacheAlbumIdsAsync(album);
+	}
 
 	/////////////////////////
 	// FILTER BY RELEASE DATE
@@ -62,8 +121,11 @@ public class FilterService {
 	 * @throws IOException
 	 * @throws SQLException
 	 */
-	public Map<AlbumGroup, List<AlbumSimplified>> categorizeAndFilterAlbums(List<AlbumSimplified> albumsSimplified, List<AlbumGroup> albumGroups) throws SQLException, IOException {
-		Map<AlbumGroup, List<AlbumSimplified>> categorizedAlbums = categorizeAlbumsByAlbumGroup(albumsSimplified, albumGroups);
+	public Map<AlbumGroup, List<AlbumSimplified>> categorizeAndFilterAlbums(List<AlbumSimplified> albumsSimplified) throws SQLException, IOException {
+		if (albumsSimplified.isEmpty()) {
+			return Collections.emptyMap();
+		}
+		Map<AlbumGroup, List<AlbumSimplified>> categorizedAlbums = categorizeAlbumsByAlbumGroup(albumsSimplified);
 		Map<AlbumGroup, List<AlbumSimplified>> filteredAlbums = filterNewAlbumsOnly(categorizedAlbums);
 		return filteredAlbums;
 	}
@@ -76,14 +138,14 @@ public class FilterService {
 	 * @param albumGroups
 	 * @return
 	 */
-	private Map<AlbumGroup, List<AlbumSimplified>> categorizeAlbumsByAlbumGroup(List<AlbumSimplified> albumsSimplified, List<AlbumGroup> albumGroups) {
-		Map<AlbumGroup, List<AlbumSimplified>> categorized = BotUtils.createAlbumGroupToListOfTMap(albumGroups);
-		albumsSimplified.parallelStream().forEach(as -> {
+	private Map<AlbumGroup, List<AlbumSimplified>> categorizeAlbumsByAlbumGroup(List<AlbumSimplified> albumsSimplified) {
+		Map<AlbumGroup, List<AlbumSimplified>> categorized = BotUtils.createAlbumGroupToListOfTMap();
+		for (AlbumSimplified as : albumsSimplified) {
 			AlbumGroup albumGroupOfAlbum = as.getAlbumGroup();
 			if (albumGroupOfAlbum != null) {
 				categorized.get(albumGroupOfAlbum).add(as);
 			}
-		});
+		}
 		return categorized;
 	}
 
@@ -97,7 +159,7 @@ public class FilterService {
 	 */
 	private Map<AlbumGroup, List<AlbumSimplified>> filterNewAlbumsOnly(Map<AlbumGroup, List<AlbumSimplified>> albumsSimplifiedByGroup) throws SQLException, IOException {
 		int lookbackDays = config.getUserConfig().getLookbackDays();
-		Map<AlbumGroup, List<AlbumSimplified>> filteredAlbums = BotUtils.createAlbumGroupToListOfTMap(albumsSimplifiedByGroup.keySet());
+		Map<AlbumGroup, List<AlbumSimplified>> filteredAlbums = BotUtils.createAlbumGroupToListOfTMap();
 		for (Map.Entry<AlbumGroup, List<AlbumSimplified>> entry : albumsSimplifiedByGroup.entrySet()) {
 			List<AlbumSimplified> filteredAlbumsOfGroup = entry.getValue().stream().filter(as -> isValidDate(as, lookbackDays)).collect(Collectors.toList());
 			filteredAlbums.get(entry.getKey()).addAll(filteredAlbumsOfGroup);
@@ -116,9 +178,13 @@ public class FilterService {
 	 * @throws IOException
 	 */
 	private boolean isValidDate(AlbumSimplified as, int lookbackDays) {
-		LocalDate releaseDate = LocalDate.parse(as.getReleaseDate(), RELEASE_DATE_PARSER);
-		LocalDate lowerReleaseDateBoundary = LocalDate.now().minusDays(lookbackDays);
-		return releaseDate.isAfter(lowerReleaseDateBoundary);
+		try {
+			LocalDate releaseDate = LocalDate.parse(as.getReleaseDate(), RELEASE_DATE_PARSER);
+			LocalDate lowerReleaseDateBoundary = LocalDate.now().minusDays(lookbackDays);
+			return releaseDate.isAfter(lowerReleaseDateBoundary);
+		} catch (DateTimeParseException e) {
+			return false;
+		}
 	}
 
 	////////////////////////////////
@@ -131,22 +197,19 @@ public class FilterService {
 	 * 
 	 * @param extraAlbumIdsFiltered
 	 * @param followedArtists
-	 * @return
 	 * @throws IOException
 	 * @throws SQLException
 	 */
-	public Map<AlbumGroup, List<AlbumTrackPair>> intelligentAppearsOnSearch(Map<AlbumGroup, List<AlbumTrackPair>> newSongs, List<String> followedArtists) throws SQLException, IOException {
+	public void intelligentAppearsOnSearch(Map<AlbumGroup, List<AlbumTrackPair>> newSongs, List<String> followedArtists) throws SQLException, IOException {
 		boolean isIntelligentAppearsOnSearchEnabled = config.getUserConfig().isIntelligentAppearsOnSearch();
 		List<AlbumTrackPair> appearsOnAlbums = newSongs.get(AlbumGroup.APPEARS_ON);
 		if (!isIntelligentAppearsOnSearchEnabled || appearsOnAlbums.isEmpty()) {
-			return newSongs;
+			return;
 		}
 
 		Set<String> followedArtistsSet = new HashSet<>(followedArtists);
 		List<AlbumTrackPair> intelligentAppearsOnSearchResults = filterNonCompilationsByFeaturedArtist(appearsOnAlbums, followedArtistsSet);
 		newSongs.put(AlbumGroup.APPEARS_ON, intelligentAppearsOnSearchResults);
-
-		return newSongs;
 	}
 
 	private List<AlbumTrackPair> filterNonCompilationsByFeaturedArtist(List<AlbumTrackPair> albumTrackPairs, Set<String> followedArtists) {
@@ -176,14 +239,14 @@ public class FilterService {
 	 * @return
 	 */
 	private boolean isCollectionOrSampler(AlbumSimplified a) {
-		if (!a.getAlbumGroup().equals(AlbumGroup.COMPILATION)) {
+		if (!a.getAlbumGroup().equals(AlbumGroupExtended.COMPILATION.asAlbumGroup())) {
 			return Arrays.asList(a.getArtists()).stream().anyMatch(as -> as.getName().equals(VARIOUS_ARTISTS));
 		}
 		return true;
 	}
 
 	/**
-	 * Checks if ag least a single artist of the subset is part of the given artist
+	 * Checks if age least a single artist of the subset is part of the given artist
 	 * superset
 	 * 
 	 * @param followedArtists
@@ -204,84 +267,35 @@ public class FilterService {
 	 * differentiate between them).
 	 * 
 	 * @param newSongsByGroup
-	 * @param enabledAlbumGroups
+	 * @param playlistStores
 	 * @return
 	 * @throws SQLException
 	 */
-	public Map<String, List<AlbumTrackPair>> mapToTargetPlaylistIds(Map<AlbumGroup, List<AlbumTrackPair>> newSongsByGroup, List<AlbumGroup> enabledAlbumGroups) throws SQLException {
-		List<AlbumTrackPair> singles = newSongsByGroup.get(AlbumGroup.SINGLE);
-		List<AlbumTrackPair> eps = singles.stream()
-			.filter(atp -> isEP(atp))
-			.collect(Collectors.toList());
-		singles.removeAll(eps);
-
-		// TODO
-
-		Map<AlbumGroup, List<AlbumTrackPair>> groupedTracks = groupTracksToParentAlbumGroup(newSongsByGroup, enabledAlbumGroups);
-		Map<String, List<AlbumTrackPair>> tracksByPlaylistId = new HashMap<>();
-		for (Map.Entry<AlbumGroup, List<AlbumTrackPair>> entry : groupedTracks.entrySet()) {
-			String playlistId = config.getPlaylistIdByGroup(entry.getKey());
-			tracksByPlaylistId.put(playlistId, entry.getValue());
+	public Map<PlaylistStore, List<AlbumTrackPair>> mapToTargetPlaylist(Map<AlbumGroup, List<AlbumTrackPair>> newSongsByGroup, Collection<PlaylistStore> playlistStores) throws SQLException {
+		Map<PlaylistStore, List<AlbumTrackPair>> resultMap = new HashMap<>();
+		for (Map.Entry<AlbumGroup, List<AlbumTrackPair>> entry : newSongsByGroup.entrySet()) {
+			PlaylistStore ps = config.getPlaylistStore(entry.getKey());
+			if (ps != null) {
+				resultMap.put(ps, entry.getValue());
+			}
 		}
-		return tracksByPlaylistId;
+
+		PlaylistStore psEp = config.getPlaylistStore(AlbumGroupExtended.EP);
+		if (psEp != null && psEp.getPlaylistId() != null) {
+			List<AlbumTrackPair> singles = resultMap.get(config.getPlaylistStore(AlbumGroupExtended.SINGLE));
+			List<AlbumTrackPair> eps = singles.stream()
+				.filter(atp -> isEP(atp))
+				.collect(Collectors.toList());
+			singles.removeAll(eps);
+			resultMap.put(psEp, eps);
+		}
+
+		return resultMap;
 	}
 
 	private boolean isEP(AlbumTrackPair atp) {
 		return (atp.getTracks().size() >= EP_SONG_COUNT_THRESHOLD
 			|| atp.getTracks().stream().mapToInt(TrackSimplified::getDurationMs).sum() >= EP_DURATION_THRESHOLD
 			|| EP_MATCHER.matcher(atp.getAlbum().getName()).find());
-	}
-
-	/**
-	 * Returns a rearranged view of the given map, depending on whether any album
-	 * groups point to the same target playlist.
-	 * 
-	 * @param newSongsByGroup
-	 * @param enabledAlbumGroups
-	 * @return
-	 * @throws SQLException
-	 */
-	private Map<AlbumGroup, List<AlbumTrackPair>> groupTracksToParentAlbumGroup(Map<AlbumGroup, List<AlbumTrackPair>> newSongsByGroup, List<AlbumGroup> enabledAlbumGroups) throws SQLException {
-		Map<AlbumGroup, List<AlbumGroup>> groupedPlaylistStores = getPlaylistStoresByParent(enabledAlbumGroups);
-		if (groupedPlaylistStores.size() == enabledAlbumGroups.size()) {
-			// Each album group has its own set playlist, no merging required
-			return newSongsByGroup;
-		}
-
-		Map<AlbumGroup, List<AlbumTrackPair>> mergedAlbumGroups = new HashMap<>();
-		for (Map.Entry<AlbumGroup, List<AlbumGroup>> playlistGroup : groupedPlaylistStores.entrySet()) {
-			AlbumGroup parentAlbumGroup = playlistGroup.getKey();
-			List<AlbumTrackPair> mergedAlbumTrackPairs = new ArrayList<>();
-			for (AlbumGroup childAlbumGroup : playlistGroup.getValue()) {
-				mergedAlbumTrackPairs.addAll(newSongsByGroup.get(childAlbumGroup));
-			}
-			mergedAlbumGroups.put(parentAlbumGroup, mergedAlbumTrackPairs);
-		}
-		return mergedAlbumGroups;
-	}
-
-	/**
-	 * Gets a merged view of all playlist stores by their parent album group
-	 * 
-	 * @param enabledAlbumGroups
-	 * @return
-	 * @throws SQLException
-	 */
-	private Map<AlbumGroup, List<AlbumGroup>> getPlaylistStoresByParent(Collection<AlbumGroup> enabledAlbumGroups) throws SQLException {
-		Map<AlbumGroup, List<AlbumGroup>> playlistStoresByAlbumGroupParent = new HashMap<>();
-		for (AlbumGroup ag : enabledAlbumGroups) {
-			PlaylistStoreDTO ps = config.getPlaylistStore(ag);
-			if (ps != null && ps.getParentAlbumGroup() == null) {
-				playlistStoresByAlbumGroupParent.put(ag, new ArrayList<>());
-				playlistStoresByAlbumGroupParent.get(ag).add(ag);
-			}
-		}
-		for (AlbumGroup ag : enabledAlbumGroups) {
-			PlaylistStoreDTO ps = config.getPlaylistStore(ag);
-			if (ps != null && ps.getParentAlbumGroup() != null) {
-				playlistStoresByAlbumGroupParent.get(ps.getParentAlbumGroup()).add(ag);
-			}
-		}
-		return playlistStoresByAlbumGroupParent;
 	}
 }

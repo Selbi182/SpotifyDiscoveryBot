@@ -3,6 +3,7 @@ package spotify.bot.config;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -15,8 +16,9 @@ import com.wrapper.spotify.enums.AlbumGroup;
 
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.config.dto.BotConfigDTO;
-import spotify.bot.config.dto.PlaylistStoreDTO;
+import spotify.bot.config.dto.PlaylistStore;
 import spotify.bot.config.dto.UserConfigDTO;
+import spotify.bot.util.data.AlbumGroupExtended;
 
 @Configuration
 public class Config {
@@ -26,7 +28,7 @@ public class Config {
 
 	private BotConfigDTO botConfig;
 	private UserConfigDTO userConfig;
-	private Map<AlbumGroup, PlaylistStoreDTO> playlistStoreMap;
+	private Map<AlbumGroupExtended, PlaylistStore> playlistStoreMap;
 
 	/**
 	 * Sets up or refreshes the configuration for the Spotify bot from the database
@@ -93,7 +95,7 @@ public class Config {
 	 * @return
 	 * @throws SQLException
 	 */
-	public Map<AlbumGroup, PlaylistStoreDTO> getPlaylistStoreMap() throws SQLException {
+	private Map<AlbumGroupExtended, PlaylistStore> getPlaylistStoreMap() throws SQLException {
 		if (playlistStoreMap == null) {
 			playlistStoreMap = databaseService.getAllPlaylistStores();
 		}
@@ -104,6 +106,16 @@ public class Config {
 	// PLAYLIST STORE READERS
 
 	/**
+	 * Returns all set playlist stores.
+	 * 
+	 * @return
+	 * @throws SQLException
+	 */
+	public Collection<PlaylistStore> getAllPlaylistStores() throws SQLException {
+		return getPlaylistStoreMap().values();
+	}
+
+	/**
 	 * 
 	 * Returns the stored playlist store by the given album group.
 	 * 
@@ -112,8 +124,21 @@ public class Config {
 	 * @throws SQLException
 	 * @throws IOException
 	 */
-	public PlaylistStoreDTO getPlaylistStore(AlbumGroup albumGroup) throws SQLException {
-		PlaylistStoreDTO ps = getPlaylistStoreMap().get(albumGroup);
+	public PlaylistStore getPlaylistStore(AlbumGroup albumGroup) throws SQLException {
+		return getPlaylistStore(AlbumGroupExtended.fromAlbumGroup(albumGroup));
+	}
+
+	/**
+	 * 
+	 * Returns the stored playlist store by the given album group.
+	 * 
+	 * @param albumGroup
+	 * @return
+	 * @throws SQLException
+	 * @throws IOException
+	 */
+	public PlaylistStore getPlaylistStore(AlbumGroupExtended albumGroupExtended) throws SQLException {
+		PlaylistStore ps = getPlaylistStoreMap().get(albumGroupExtended);
 		return ps;
 	}
 
@@ -127,8 +152,8 @@ public class Config {
 	 * @throws SQLException
 	 * @throws IOException
 	 */
-	public String getPlaylistIdByGroup(AlbumGroup albumGroup) throws SQLException {
-		PlaylistStoreDTO ps = getPlaylistStore(albumGroup);
+	public String getPlaylistIdByGroup(AlbumGroupExtended albumGroup) throws SQLException {
+		PlaylistStore ps = getPlaylistStore(albumGroup);
 		if (ps != null) {
 			return ps.getPlaylistId();
 		}
@@ -143,11 +168,30 @@ public class Config {
 	 */
 	public List<AlbumGroup> getEnabledAlbumGroups() throws SQLException {
 		List<AlbumGroup> setAlbumGroups = new ArrayList<>();
-		for (AlbumGroup ag : AlbumGroup.values()) {
-			PlaylistStoreDTO ps = getPlaylistStore(ag);
+		for (AlbumGroup age : AlbumGroup.values()) {
+			PlaylistStore ps = getPlaylistStore(age);
 			if (ps != null) {
-				if ((ps.getPlaylistId() != null && !ps.getPlaylistId().trim().isEmpty()) || ps.getParentAlbumGroup() != null) {
-					setAlbumGroups.add(ag);
+				if ((ps.getPlaylistId() != null && !ps.getPlaylistId().trim().isEmpty())) {
+					setAlbumGroups.add(age);
+				}
+			}
+		}
+		return setAlbumGroups;
+	}
+
+	/**
+	 * Fetch all album groups that are set in the config
+	 * 
+	 * @param albumGroups
+	 * @throws SQLException
+	 */
+	public List<AlbumGroupExtended> getEnabledSpecialAlbumGroups() throws SQLException {
+		List<AlbumGroupExtended> setAlbumGroups = new ArrayList<>();
+		for (AlbumGroupExtended age : AlbumGroupExtended.values()) {
+			PlaylistStore ps = getPlaylistStore(age);
+			if (ps != null) {
+				if ((ps.getPlaylistId() != null && !ps.getPlaylistId().trim().isEmpty())) {
+					setAlbumGroups.add(age);
 				}
 			}
 		}
@@ -163,20 +207,19 @@ public class Config {
 	 * @param albumGroup
 	 * @throws SQLException
 	 */
-	public void refreshPlaylistStore(AlbumGroup albumGroup) throws SQLException {
+	public void refreshPlaylistStore(AlbumGroupExtended albumGroup) throws SQLException {
 		databaseService.refreshPlaylistStore(albumGroup.getGroup());
 		invalidatePlaylistStore();
 	}
 
 	/**
-	 * Removes the timestamp from the given album group's playlist
-	 * store.
+	 * Removes the timestamp from the given album group's playlist store.
 	 * 
 	 * @param albumGroup
 	 * @param addedSongsCount
 	 * @throws SQLException
 	 */
-	public void unsetPlaylistStore(AlbumGroup albumGroup) throws SQLException {
+	public void unsetPlaylistStore(AlbumGroupExtended albumGroup) throws SQLException {
 		databaseService.unsetPlaylistStore(albumGroup);
 		invalidatePlaylistStore();
 	}

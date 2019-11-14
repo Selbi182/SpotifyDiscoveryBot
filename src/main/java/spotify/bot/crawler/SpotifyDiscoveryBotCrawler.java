@@ -2,6 +2,7 @@ package spotify.bot.crawler;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -24,8 +25,10 @@ import spotify.bot.api.services.PlaylistSongsService;
 import spotify.bot.api.services.TrackService;
 import spotify.bot.api.services.UserInfoService;
 import spotify.bot.config.Config;
+import spotify.bot.config.dto.PlaylistStore;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
+import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;
 
 @Component
@@ -56,7 +59,7 @@ public class SpotifyDiscoveryBotCrawler {
 
 	@Autowired
 	private PlaylistInfoService playlistInfoService;
-	
+
 	@Autowired
 	private FilterService filterService;
 
@@ -77,7 +80,7 @@ public class SpotifyDiscoveryBotCrawler {
 	 * @throws SpotifyWebApiException
 	 * @throws SQLException
 	 */
-	public Map<AlbumGroup, Integer> runCrawler() throws SpotifyWebApiException, InterruptedException, IOException, SQLException {
+	public Map<AlbumGroupExtended, Integer> runCrawler() throws SpotifyWebApiException, InterruptedException, IOException, SQLException {
 		if (isReady()) {
 			setReady(false);
 			try {
@@ -125,7 +128,7 @@ public class SpotifyDiscoveryBotCrawler {
 		long time = System.currentTimeMillis();
 		{
 			setReady(true);
-			Map<AlbumGroup, Integer> results = runCrawler();
+			Map<AlbumGroupExtended, Integer> results = runCrawler();
 			String response = BotUtils.compileResultString(results);
 			if (response != null) {
 				log.info(response);
@@ -181,35 +184,35 @@ public class SpotifyDiscoveryBotCrawler {
 	 * @throws IOException
 	 * @throws SpotifyWebApiException
 	 */
-	private Map<AlbumGroup, Integer> crawl() throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
+	private Map<AlbumGroupExtended, Integer> crawl() throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
 		List<String> followedArtists = userInfoService.getFollowedArtistsIds();
 		if (followedArtists.isEmpty()) {
 			log.warning("No followed artists found!");
 			return null;
-		}		
-		List<AlbumGroup> enabledAlbumGroups = config.getEnabledAlbumGroups();
-		List<AlbumSimplified> nonCachedAlbums = albumService.getNonCachedAlbumsOfArtists(followedArtists, enabledAlbumGroups);
+		}
+
+		Collection<PlaylistStore> playlistStores = config.getAllPlaylistStores();
+		List<AlbumSimplified> allAlbums = albumService.getAllAlbumsOfArtists(followedArtists);
+		List<AlbumSimplified> nonCachedAlbums = filterService.getNonCachedAlbums(allAlbums);
 		try {
-			if (!nonCachedAlbums.isEmpty()) {
-				Map<AlbumGroup, List<AlbumSimplified>> newAlbums = filterService.categorizeAndFilterAlbums(nonCachedAlbums, enabledAlbumGroups);
-				if (!BotUtils.isAllEmptyAlbumsOfGroups(newAlbums)) {
-					Map<AlbumGroup, List<AlbumTrackPair>> newSongs = trackService.getSongsOfAlbumGroups(newAlbums);
-					newSongs = filterService.intelligentAppearsOnSearch(newSongs, followedArtists);
-					if (!BotUtils.isAllEmptyAlbumsOfGroups(newSongs)) {
-						Map<String, List<AlbumTrackPair>> songsByPlaylistId = filterService.mapToTargetPlaylistIds(newSongs, enabledAlbumGroups);
-						playlistSongsService.addAllReleasesToSetPlaylists(songsByPlaylistId);
-						playlistInfoService.showNotifiers(newSongs);
-						return BotUtils.collectSongAdditionResults(newSongs);							
-					} else {
-						log.warning("Only found irrelevant appears_on releases!");
-					}
+			Map<AlbumGroup, List<AlbumSimplified>> newAlbums = filterService.categorizeAndFilterAlbums(nonCachedAlbums);
+			if (!BotUtils.isAllEmptyLists(newAlbums)) {
+				Map<AlbumGroup, List<AlbumTrackPair>> newSongs = trackService.getSongsOfAlbumGroups(newAlbums);
+				filterService.intelligentAppearsOnSearch(newSongs, followedArtists);
+				if (!BotUtils.isAllEmptyLists(newSongs)) {
+					Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist = filterService.mapToTargetPlaylist(newSongs, playlistStores);
+					playlistSongsService.addAllReleasesToSetPlaylists(songsByPlaylist);
+					playlistInfoService.showNotifiers(songsByPlaylist);
+					return BotUtils.collectSongAdditionResults(songsByPlaylist);
 				} else {
-					log.warning("No new releases found, despite finding " + nonCachedAlbums.size() + " new non-cached entries!");
+					log.warning("Only found irrelevant appears_on releases!");
 				}
 			}
+		} catch (Exception e) {
+			throw e;
 		} finally {
-			albumService.cacheAlbumIds(nonCachedAlbums);
-			playlistInfoService.timestampPlaylists(enabledAlbumGroups);
+			filterService.cacheAlbumIds(nonCachedAlbums);
+			playlistInfoService.timestampPlaylists(playlistStores);
 		}
 		return null;
 	}

@@ -19,7 +19,7 @@ public class SpotifyCall {
 
 	private final static int RETRY_TIMEOUT_4XX = 500;
 	private final static int RETRY_TIMEOUT_5XX = 60 * 1000;
-	
+
 	/**
 	 * Utility class
 	 */

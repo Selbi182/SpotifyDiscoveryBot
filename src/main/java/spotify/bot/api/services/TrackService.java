@@ -22,7 +22,7 @@ import spotify.bot.util.data.AlbumTrackPair;
 public class TrackService {
 
 	private final static int MAX_PLAYLIST_TRACK_FETCH_LIMIT = 50;
-	
+
 	@Autowired
 	private SpotifyApi spotifyApi;
 
@@ -31,7 +31,7 @@ public class TrackService {
 
 	/**
 	 * Get all songs IDs of the given list of albums, categorized by album group and
-	 * the source album. Appears_on might bbe treated differently
+	 * the source album.
 	 * 
 	 * @param followedArtists
 	 * 
@@ -41,7 +41,7 @@ public class TrackService {
 	 * @throws IOException
 	 */
 	public Map<AlbumGroup, List<AlbumTrackPair>> getSongsOfAlbumGroups(Map<AlbumGroup, List<AlbumSimplified>> albumsByAlbumGroup) throws IOException, SQLException {
-		Map<AlbumGroup, List<AlbumTrackPair>> tracksOfAlbumsByGroup = BotUtils.createAlbumGroupToListOfTMap(albumsByAlbumGroup.keySet());
+		Map<AlbumGroup, List<AlbumTrackPair>> tracksOfAlbumsByGroup = BotUtils.createAlbumGroupToListOfTMap();
 		albumsByAlbumGroup.entrySet().parallelStream().forEach(ag -> {
 			AlbumGroup albumGroup = ag.getKey();
 			List<AlbumSimplified> albums = ag.getValue();

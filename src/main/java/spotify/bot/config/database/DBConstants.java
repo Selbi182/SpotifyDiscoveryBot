@@ -30,6 +30,5 @@ class DBConstants {
 	public final static String TABLE_PLAYLIST_STORE = "playlist_store";
 	public final static String COL_ALBUM_GROUP = "album_group";
 	public final static String COL_PLAYLIST_ID = "playlist_id";
-	public final static String CPL_PARENT_ALBUM_GROUP = "parent_album_group";
 	public final static String COL_LAST_UPDATE = "last_update";
 }

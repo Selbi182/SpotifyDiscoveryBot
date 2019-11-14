@@ -13,12 +13,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 
 import spotify.bot.crawler.SpotifyDiscoveryBotCrawler;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
+import spotify.bot.util.data.AlbumGroupExtended;
 
 @RestController
 @Component
@@ -68,7 +68,7 @@ public class CrawlScheduler {
 		if (!crawler.isReady()) {
 			return new ResponseEntity<>("Crawler isn't ready!", HttpStatus.CONFLICT);
 		}
-		Map<AlbumGroup, Integer> results = crawler.runCrawler();
+		Map<AlbumGroupExtended, Integer> results = crawler.runCrawler();
 		String response = BotUtils.compileResultString(results);
 		if (response != null) {
 			log.info(response);

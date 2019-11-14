@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -14,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.wrapper.spotify.SpotifyApi;
-import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.model_objects.miscellaneous.CurrentlyPlaying;
 import com.wrapper.spotify.model_objects.specification.Playlist;
@@ -22,8 +22,9 @@ import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
 
 import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.Config;
-import spotify.bot.config.dto.PlaylistStoreDTO;
+import spotify.bot.config.dto.PlaylistStore;
 import spotify.bot.util.BotUtils;
+import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;
 
 @Service
@@ -58,9 +59,9 @@ public class PlaylistInfoService {
 	 * @throws IOException
 	 * @throws SpotifyWebApiException
 	 */
-	public void showNotifiers(Map<AlbumGroup, List<AlbumTrackPair>> newSongs) throws SpotifyWebApiException, SQLException, IOException, InterruptedException {
-		for (Map.Entry<AlbumGroup, List<AlbumTrackPair>> entry : newSongs.entrySet()) {
-			AlbumGroup albumGroup = entry.getKey();
+	public void showNotifiers(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws SpotifyWebApiException, SQLException, IOException, InterruptedException {
+		for (Map.Entry<PlaylistStore, List<AlbumTrackPair>> entry : songsByPlaylist.entrySet()) {
+			AlbumGroupExtended albumGroup = entry.getKey().getAlbumGroupExtended();
 			List<AlbumTrackPair> albumTrackPairs = entry.getValue();
 			if (!albumTrackPairs.isEmpty()) {
 				showNotifier(entry.getKey());
@@ -79,8 +80,8 @@ public class PlaylistInfoService {
 	 * @throws IOException
 	 * @throws SpotifyWebApiException
 	 */
-	private void showNotifier(AlbumGroup albumGroup) throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
-		String playlistId = config.getPlaylistIdByGroup(albumGroup);
+	private void showNotifier(PlaylistStore playlistStore) throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
+		String playlistId = playlistStore.getPlaylistId();
 		if (playlistId != null) {
 			Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
 			String playlistName = p.getName();
@@ -94,15 +95,15 @@ public class PlaylistInfoService {
 	/**
 	 * Timestamp all given playlists that DIDN'T have any songs added
 	 * 
-	 * @param albumGroups
+	 * @param collection
 	 * @throws SQLException
 	 * @throws InterruptedException
 	 * @throws IOException
 	 * @throws SpotifyWebApiException
 	 */
-	public void timestampPlaylists(List<AlbumGroup> albumGroups) throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
-		for (AlbumGroup ag : albumGroups) {
-			String playlistId = config.getPlaylistIdByGroup(ag);
+	public void timestampPlaylists(Collection<PlaylistStore> playlistStores) throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
+		for (PlaylistStore ps : playlistStores) {
+			String playlistId = ps.getPlaylistId();
 			if (playlistId != null) {
 				String newDescription = String.format("Last Search: %s", DESCRIPTION_TIMESTAMP_FORMAT.format(Calendar.getInstance().getTime()));
 				SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).description(newDescription));
@@ -119,18 +120,15 @@ public class PlaylistInfoService {
 	 * @throws SpotifyWebApiException
 	 */
 	public void clearObsoleteNotifiers() throws SpotifyWebApiException, SQLException, IOException, InterruptedException, Exception {
-		for (AlbumGroup ag : config.getEnabledAlbumGroups()) {
-			PlaylistStoreDTO ps = config.getPlaylistStore(ag);
-			if (ps.getParentAlbumGroup() == null && ps.getLastUpdate() != null) {
-				String playlistId = ps.getPlaylistId();
-				Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
-				String playlistName = p.getName();
-				if (playlistName.contains(NEW_INDICATOR_TEXT)) {
-					if (shouldIndicatorBeMarkedAsRead(ps)) {
-						playlistName = p.getName().replace(NEW_INDICATOR_TEXT, "").trim();
-						SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).name(playlistName));
-						config.unsetPlaylistStore(ps.getAlbumGroup());
-					}
+		for (PlaylistStore ps : config.getAllPlaylistStores()) {
+			String playlistId = ps.getPlaylistId();
+			Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
+			String playlistName = p.getName();
+			if (playlistName.contains(NEW_INDICATOR_TEXT)) {
+				if (shouldIndicatorBeMarkedAsRead(ps)) {
+					playlistName = p.getName().replace(NEW_INDICATOR_TEXT, "").trim();
+					SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).name(playlistName));
+					config.unsetPlaylistStore(ps.getAlbumGroupExtended());
 				}
 			}
 		}
@@ -145,7 +143,7 @@ public class PlaylistInfoService {
 	 * @return
 	 * @throws IOException
 	 */
-	private boolean shouldIndicatorBeMarkedAsRead(PlaylistStoreDTO playlistStore) throws IOException, Exception {
+	private boolean shouldIndicatorBeMarkedAsRead(PlaylistStore playlistStore) throws IOException, Exception {
 		Date lastUpdated = playlistStore.getLastUpdate();
 		if (lastUpdated == null) {
 			return true;
@@ -158,15 +156,19 @@ public class PlaylistInfoService {
 		}
 
 		// Check if the currently played song is part of the most recently added songs
+		// or if the playlist is empty
 		String playlistId = playlistStore.getPlaylistId();
-		CurrentlyPlaying currentlyPlaying = SpotifyCall.execute(spotifyApi.getUsersCurrentlyPlayingTrack());
-		if (currentlyPlaying == null) {
-			return false;
-		}
 		PlaylistTrack[] recentlyAddedPlaylistTracks = SpotifyCall.execute(spotifyApi
 			.getPlaylistsTracks(playlistId)
 			.limit(MAX_PLAYLIST_TRACK_FETCH_LIMIT))
 			.getItems();
+		if (recentlyAddedPlaylistTracks.length == 0) {
+			return true;
+		}
+		CurrentlyPlaying currentlyPlaying = SpotifyCall.execute(spotifyApi.getUsersCurrentlyPlayingTrack());
+		if (currentlyPlaying == null) {
+			return false;
+		}
 		boolean currentlyPlayingSongIsNew = Arrays.asList(recentlyAddedPlaylistTracks)
 			.stream().anyMatch(pt -> pt.getTrack().getId().equals(currentlyPlaying.getItem().getId()));
 		return currentlyPlayingSongIsNew;

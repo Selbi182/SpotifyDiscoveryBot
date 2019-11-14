@@ -20,6 +20,7 @@ import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
 import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.Config;
+import spotify.bot.config.dto.PlaylistStore;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.data.AlbumTrackPair;
 
@@ -51,10 +52,10 @@ public class PlaylistSongsService {
 	 * @throws SQLException
 	 * @throws SpotifyWebApiException
 	 */
-	public void addAllReleasesToSetPlaylists(Map<String, List<AlbumTrackPair>> songsByPlaylistId)
+	public void addAllReleasesToSetPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylistId)
 		throws SpotifyWebApiException, SQLException, IOException, InterruptedException {
-		for (Map.Entry<String, List<AlbumTrackPair>> entry : songsByPlaylistId.entrySet()) {
-			String playlistId = entry.getKey();
+		for (Map.Entry<PlaylistStore, List<AlbumTrackPair>> entry : songsByPlaylistId.entrySet()) {
+			String playlistId = entry.getKey().getPlaylistId();
 			List<AlbumTrackPair> albumTrackPairs = entry.getValue();
 			if (!albumTrackPairs.isEmpty()) {
 				Collections.sort(albumTrackPairs);
@@ -62,7 +63,7 @@ public class PlaylistSongsService {
 			}
 		}
 	}
-	
+
 	/**
 	 * Add the given list of song IDs to the playlist (a delay of a second per
 	 * release is used to retain order). May remove older songs to make room.

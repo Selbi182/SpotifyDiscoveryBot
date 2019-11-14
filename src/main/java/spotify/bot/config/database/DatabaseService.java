@@ -15,14 +15,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.neovisionaries.i18n.CountryCode;
-import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
 import spotify.bot.config.dto.BotConfigDTO;
-import spotify.bot.config.dto.PlaylistStoreDTO;
+import spotify.bot.config.dto.PlaylistStore;
 import spotify.bot.config.dto.UserConfigDTO;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
+import spotify.bot.util.data.AlbumGroupExtended;
 
 @Service
 public class DatabaseService {
@@ -108,17 +108,13 @@ public class DatabaseService {
 		return userConfigDTO;
 	}
 
-	public Map<AlbumGroup, PlaylistStoreDTO> getAllPlaylistStores() throws SQLException {
-		Map<AlbumGroup, PlaylistStoreDTO> playlistStore = new HashMap<>();
+	public Map<AlbumGroupExtended, PlaylistStore> getAllPlaylistStores() throws SQLException {
+		Map<AlbumGroupExtended, PlaylistStore> playlistStore = new HashMap<>();
 		ResultSet dbPlaylistStore = database.selectAll(DBConstants.TABLE_PLAYLIST_STORE);
 		while (dbPlaylistStore.next()) {
-			AlbumGroup albumGroup = AlbumGroup.valueOf(dbPlaylistStore.getString(DBConstants.COL_ALBUM_GROUP));
-			PlaylistStoreDTO ps = new PlaylistStoreDTO(albumGroup);
+			AlbumGroupExtended albumGroup = AlbumGroupExtended.valueOf(dbPlaylistStore.getString(DBConstants.COL_ALBUM_GROUP));
+			PlaylistStore ps = new PlaylistStore(albumGroup);
 			ps.setPlaylistId(dbPlaylistStore.getString(DBConstants.COL_PLAYLIST_ID));
-			String parentAlbumGroupString = dbPlaylistStore.getString(DBConstants.CPL_PARENT_ALBUM_GROUP);
-			if (parentAlbumGroupString != null) {
-				ps.setParentAlbumGroup(AlbumGroup.valueOf(parentAlbumGroupString));
-			}
 			ps.setLastUpdate(dbPlaylistStore.getDate(DBConstants.COL_LAST_UPDATE));
 			playlistStore.put(albumGroup, ps);
 		}
@@ -134,7 +130,7 @@ public class DatabaseService {
 	 * @param albumGroupString
 	 * @throws SQLException
 	 */
-	public synchronized void unsetPlaylistStore(AlbumGroup albumGroup) throws SQLException {
+	public synchronized void unsetPlaylistStore(AlbumGroupExtended albumGroup) throws SQLException {
 		if (albumGroup != null) {
 			database.updateNull(DBConstants.TABLE_PLAYLIST_STORE,
 				DBConstants.COL_LAST_UPDATE,

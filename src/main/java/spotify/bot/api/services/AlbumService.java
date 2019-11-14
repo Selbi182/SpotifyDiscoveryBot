@@ -3,10 +3,9 @@ package spotify.bot.api.services;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.StringJoiner;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,8 +17,6 @@ import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
 import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.Config;
-import spotify.bot.config.database.DatabaseService;
-import spotify.bot.util.BotUtils;
 
 @Service
 public class AlbumService {
@@ -30,14 +27,10 @@ public class AlbumService {
 	private Config config;
 
 	@Autowired
-	private DatabaseService databaseService;
-
-	@Autowired
 	private SpotifyApi spotifyApi;
 
 	/**
-	 * Read all albums of the given artists and album groups and filter them by
-	 * non-cached albums.
+	 * Fetch all albums of the given artists
 	 * 
 	 * @param followedArtists
 	 * @param albumGroups
@@ -47,12 +40,11 @@ public class AlbumService {
 	 * @throws InterruptedException
 	 * @throws SpotifyWebApiException
 	 */
-	public List<AlbumSimplified> getNonCachedAlbumsOfArtists(List<String> followedArtists, List<AlbumGroup> albumGroups)
+	public List<AlbumSimplified> getAllAlbumsOfArtists(List<String> followedArtists)
 		throws IOException, SQLException, SpotifyWebApiException, InterruptedException {
-		List<AlbumSimplified> allAlbums = getAlbumsOfArtists(followedArtists, albumGroups);
-		List<AlbumSimplified> filteredAlbums = filterNonCachedAlbumsOnly(allAlbums);
-		BotUtils.removeNulls(filteredAlbums);
-		return filteredAlbums;
+		Collection<AlbumGroup> enabledAlbumGroups = config.getEnabledAlbumGroups();
+		List<AlbumSimplified> allAlbums = getAlbumsOfArtists(followedArtists, enabledAlbumGroups);
+		return allAlbums;
 	}
 
 	/**
@@ -65,14 +57,28 @@ public class AlbumService {
 	 * @throws IOException
 	 * @throws SpotifyWebApiException
 	 */
-	private List<AlbumSimplified> getAlbumsOfArtists(List<String> artists, List<AlbumGroup> albumGroups) throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
-		String albumGroupString = BotUtils.createAlbumGroupString(albumGroups);
+	private List<AlbumSimplified> getAlbumsOfArtists(List<String> artists, Collection<AlbumGroup> enabledAlbumGroups) throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
+		String albumGroupString = createAlbumGroupString(enabledAlbumGroups);
 		List<AlbumSimplified> albums = new ArrayList<>();
 		for (String a : artists) {
 			List<AlbumSimplified> albumsOfCurrentArtist = getAlbumIdsOfSingleArtist(a, albumGroupString);
 			albums.addAll(albumsOfCurrentArtist);
 		}
 		return albums;
+	}
+
+	/**
+	 * Creates the comma-delimited, lowercase String of album groups to search for
+	 * 
+	 * @param enabledAlbumGroups
+	 * @return
+	 */
+	private String createAlbumGroupString(Collection<AlbumGroup> enabledAlbumGroups) {
+		StringJoiner albumGroupsAsString = new StringJoiner(",");
+		for (AlbumGroup ag : enabledAlbumGroups) {
+			albumGroupsAsString.add(ag.getGroup());
+		}
+		return albumGroupsAsString.toString();
 	}
 
 	/**
@@ -93,34 +99,5 @@ public class AlbumService {
 			.limit(MAX_ALBUM_FETCH_LIMIT)
 			.album_type(albumGroups));
 		return albumsOfCurrentArtist;
-	}
-
-	/**
-	 * Filter out all album IDs not currently present in the database
-	 * 
-	 * @param albumsSimplified
-	 * @return
-	 * @throws SQLException
-	 */
-	private List<AlbumSimplified> filterNonCachedAlbumsOnly(List<AlbumSimplified> albumsSimplified) throws IOException, SQLException {
-		Map<String, AlbumSimplified> filteredAlbums = new HashMap<>();
-		for (AlbumSimplified as : albumsSimplified) {
-			if (as != null) {
-				filteredAlbums.put(as.getId(), as);
-			}
-		}
-
-		List<String> albumCache = databaseService.getAlbumCache();
-		for (String id : albumCache) {
-			filteredAlbums.remove(id);
-		}
-
-		return filteredAlbums.values().stream().collect(Collectors.toList());
-	}
-
-	////////////
-	
-	public void cacheAlbumIds(List<AlbumSimplified> album) throws SQLException {
-		databaseService.cacheAlbumIdsAsync(album);		
 	}
 }

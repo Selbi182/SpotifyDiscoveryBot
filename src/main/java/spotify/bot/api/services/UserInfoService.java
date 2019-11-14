@@ -24,7 +24,7 @@ import spotify.bot.util.BotUtils;
 public class UserInfoService {
 
 	private final static int MAX_FOLLOWED_ARTIST_FETCH_LIMIT = 50;
-	
+
 	@Autowired
 	private SpotifyApi spotifyApi;
 

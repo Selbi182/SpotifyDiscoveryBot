@@ -13,6 +13,8 @@ import java.util.StringJoiner;
 
 import com.wrapper.spotify.enums.AlbumGroup;
 
+import spotify.bot.config.dto.PlaylistStore;
+import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;
 
 public final class BotUtils {
@@ -42,12 +44,11 @@ public final class BotUtils {
 	/**
 	 * Creates a concurrent generic map with some List T as the values
 	 * 
-	 * @param albumGroups
 	 * @return
 	 */
-	public static <T> Map<AlbumGroup, List<T>> createAlbumGroupToListOfTMap(Collection<AlbumGroup> albumGroups) {
+	public static <T> Map<AlbumGroup, List<T>> createAlbumGroupToListOfTMap() {
 		Map<AlbumGroup, List<T>> albumGroupToList = new HashMap<>();
-		for (AlbumGroup ag : albumGroups) {
+		for (AlbumGroup ag : AlbumGroup.values()) {
 			albumGroupToList.put(ag, new ArrayList<>());
 		}
 		return albumGroupToList;
@@ -59,34 +60,22 @@ public final class BotUtils {
 	 * @param albumGroups
 	 * @return
 	 */
-	public static Map<AlbumGroup, Integer> createAlbumGroupToIntegerMap(Collection<AlbumGroup> albumGroups) {
-		Map<AlbumGroup, Integer> albumGroupToInteger = new HashMap<>();
-		albumGroups.stream().forEach(ag -> {
-			albumGroupToInteger.put(ag, 0);
-		});
+	public static Map<AlbumGroupExtended, Integer> createAlbumGroupToIntegerMap(Collection<AlbumGroupExtended> albumGroups) {
+		Map<AlbumGroupExtended, Integer> albumGroupToInteger = new HashMap<>();
+		for (AlbumGroupExtended age : albumGroups) {
+			albumGroupToInteger.put(age, 0);
+		}
 		return albumGroupToInteger;
 	}
 
 	/**
-	 * Creates the comma-delimited, lowercase String of album groups to search for
+	 * Returns true if all mappings just contain an empty list (not null)
 	 * 
-	 * @param albumGroups
+	 * @param listsByMap
 	 * @return
 	 */
-	public static String createAlbumGroupString(List<AlbumGroup> albumGroups) {
-		StringJoiner albumGroupsAsString = new StringJoiner(",");
-		albumGroups.stream().forEach(ag -> albumGroupsAsString.add(ag.getGroup()));
-		return albumGroupsAsString.toString();
-	}
-
-	/**
-	 * Returns true if all album groups have empty lists
-	 * 
-	 * @param listsByGroup
-	 * @return
-	 */
-	public static <T> boolean isAllEmptyAlbumsOfGroups(Map<AlbumGroup, List<T>> listsByGroup) {
-		return listsByGroup.values().stream().allMatch(List::isEmpty);
+	public static <T, K> boolean isAllEmptyLists(Map<K, List<T>> listsByMap) {
+		return listsByMap.values().stream().allMatch(List::isEmpty);
 	}
 
 	/**
@@ -116,7 +105,7 @@ public final class BotUtils {
 	 * @throws SQLException
 	 * @throws IOException
 	 */
-	public static String compileResultString(Map<AlbumGroup, Integer> songsAddedPerAlbumGroups) {
+	public static String compileResultString(Map<AlbumGroupExtended, Integer> songsAddedPerAlbumGroups) {
 		if (songsAddedPerAlbumGroups != null) {
 			int totalSongsAdded = songsAddedPerAlbumGroups.values().stream().mapToInt(Integer::intValue).sum();
 			if (totalSongsAdded > 0) {
@@ -145,14 +134,14 @@ public final class BotUtils {
 	/**
 	 * Write the song count per album group into the target map
 	 * 
-	 * @param newSongsMap
+	 * @param songsByPlaylist
 	 * @param targetCountMap
 	 */
-	public static Map<AlbumGroup, Integer> collectSongAdditionResults(Map<AlbumGroup, List<AlbumTrackPair>> newSongsMap) {
-		Map<AlbumGroup, Integer> targetCountMap = new HashMap<>();
-		for (Map.Entry<AlbumGroup, List<AlbumTrackPair>> entry : newSongsMap.entrySet()) {
+	public static Map<AlbumGroupExtended, Integer> collectSongAdditionResults(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) {
+		Map<AlbumGroupExtended, Integer> targetCountMap = new HashMap<>();
+		for (Map.Entry<PlaylistStore, List<AlbumTrackPair>> entry : songsByPlaylist.entrySet()) {
 			int totalSongsOfGroup = entry.getValue().stream().mapToInt(atp -> atp.getTracks().size()).sum();
-			targetCountMap.put(entry.getKey(), totalSongsOfGroup);
+			targetCountMap.put(entry.getKey().getAlbumGroupExtended(), totalSongsOfGroup);
 		}
 		return targetCountMap;
 	}

@@ -1,4 +1,4 @@
-package spotify.bot.util;
+package spotify.bot.util.data;
 
 import java.util.Comparator;
 import java.util.List;

@@ -141,7 +141,7 @@ public class Config {
 	 * @param albumGroups
 	 * @throws SQLException
 	 */
-	public List<AlbumGroup> getSetAlbumGroups() throws SQLException {
+	public List<AlbumGroup> getEnabledAlbumGroups() throws SQLException {
 		List<AlbumGroup> setAlbumGroups = new ArrayList<>();
 		for (AlbumGroup ag : AlbumGroup.values()) {
 			PlaylistStoreDTO ps = getPlaylistStore(ag);
@@ -158,20 +158,18 @@ public class Config {
 	// PLAYLIST STORE WRITERS
 
 	/**
-	 * Updates the playlist store of the given album group by the current timestamp
-	 * and the given song count.
+	 * Updates the playlist store of the given album group by the current timestamp.
 	 * 
 	 * @param albumGroup
-	 * @param addedSongsCount
 	 * @throws SQLException
 	 */
-	public void refreshPlaylistStore(AlbumGroup albumGroup, int addedSongsCount) throws SQLException {
-		databaseService.refreshPlaylistStore(albumGroup.getGroup(), addedSongsCount);
+	public void refreshPlaylistStore(AlbumGroup albumGroup) throws SQLException {
+		databaseService.refreshPlaylistStore(albumGroup.getGroup());
 		invalidatePlaylistStore();
 	}
 
 	/**
-	 * Removes the timestamp and song count from the given album group's playlist
+	 * Removes the timestamp from the given album group's playlist
 	 * store.
 	 * 
 	 * @param albumGroup

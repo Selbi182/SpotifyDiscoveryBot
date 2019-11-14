@@ -3,19 +3,17 @@ package spotify.bot.util;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.StringJoiner;
-import java.util.stream.Collectors;
 
 import com.wrapper.spotify.enums.AlbumGroup;
-import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
+
+import spotify.bot.util.data.AlbumTrackPair;
 
 public final class BotUtils {
 
@@ -39,19 +37,6 @@ public final class BotUtils {
 		calOld.setTime(oldDate);
 		calOld.add(Calendar.HOUR_OF_DAY, timeout);
 		return calCurrent.before(calOld);
-	}
-
-	/**
-	 * Checks if ag least a single artist of the subset is part of the given artist
-	 * superset
-	 * 
-	 * @param followedArtists
-	 * @param artists
-	 * @return
-	 */
-	public static boolean containsFeaturedArtist(Collection<String> artistSuperset, ArtistSimplified[] artistSubset) {
-		Set<String> artistSubsetIds = Arrays.asList(artistSubset).stream().map(ArtistSimplified::getId).collect(Collectors.toSet());
-		return artistSuperset.stream().anyMatch(a -> artistSubsetIds.contains(a));
 	}
 
 	/**
@@ -163,10 +148,12 @@ public final class BotUtils {
 	 * @param newSongsMap
 	 * @param targetCountMap
 	 */
-	public static void collectSongAdditionResults(Map<AlbumGroup, List<AlbumTrackPair>> newSongsMap, Map<AlbumGroup, Integer> targetCountMap) {
+	public static Map<AlbumGroup, Integer> collectSongAdditionResults(Map<AlbumGroup, List<AlbumTrackPair>> newSongsMap) {
+		Map<AlbumGroup, Integer> targetCountMap = new HashMap<>();
 		for (Map.Entry<AlbumGroup, List<AlbumTrackPair>> entry : newSongsMap.entrySet()) {
 			int totalSongsOfGroup = entry.getValue().stream().mapToInt(atp -> atp.getTracks().size()).sum();
 			targetCountMap.put(entry.getKey(), totalSongsOfGroup);
 		}
+		return targetCountMap;
 	}
 }

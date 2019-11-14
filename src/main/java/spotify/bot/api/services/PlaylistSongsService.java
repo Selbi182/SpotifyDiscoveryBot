@@ -2,10 +2,7 @@ package spotify.bot.api.services;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,7 +13,6 @@ import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.wrapper.spotify.SpotifyApi;
-import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.model_objects.specification.Playlist;
 import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
@@ -24,15 +20,17 @@ import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
 import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.Config;
-import spotify.bot.config.dto.PlaylistStoreDTO;
-import spotify.bot.util.AlbumTrackPair;
 import spotify.bot.util.BotLogger;
-import spotify.bot.util.Constants;
+import spotify.bot.util.data.AlbumTrackPair;
 
 @Service
 public class PlaylistSongsService {
 
-	private static final int TOP_OF_PLAYLIST = 0;
+	private final static int TOP_OF_PLAYLIST = 0;
+	private final static int PLAYLIST_ADDITION_COOLDOWN = 1000;
+	private final static int PLAYLIST_ADD_LIMIT = 100;
+	private final static int PLAYLIST_SIZE_LIMIT = 10000;
+	private final static String TRACK_PREFIX = "spotify:track:";
 
 	@Autowired
 	private SpotifyApi spotifyApi;
@@ -44,6 +42,28 @@ public class PlaylistSongsService {
 	private BotLogger log;
 
 	/**
+	 * Adds all releases to the given playlist IDs
+	 * 
+	 * @param songsByPlaylistId
+	 * @param enabledAlbumGroups
+	 * @throws InterruptedException
+	 * @throws IOException
+	 * @throws SQLException
+	 * @throws SpotifyWebApiException
+	 */
+	public void addAllReleasesToSetPlaylists(Map<String, List<AlbumTrackPair>> songsByPlaylistId)
+		throws SpotifyWebApiException, SQLException, IOException, InterruptedException {
+		for (Map.Entry<String, List<AlbumTrackPair>> entry : songsByPlaylistId.entrySet()) {
+			String playlistId = entry.getKey();
+			List<AlbumTrackPair> albumTrackPairs = entry.getValue();
+			if (!albumTrackPairs.isEmpty()) {
+				Collections.sort(albumTrackPairs);
+				addSongsToPlaylistId(playlistId, albumTrackPairs);
+			}
+		}
+	}
+	
+	/**
 	 * Add the given list of song IDs to the playlist (a delay of a second per
 	 * release is used to retain order). May remove older songs to make room.
 	 * 
@@ -51,34 +71,20 @@ public class PlaylistSongsService {
 	 * @param songs
 	 * @return
 	 */
-	private int addSongsToPlaylist(List<AlbumTrackPair> albumTrackPairs, AlbumGroup albumGroup) {
-		try {
-			String playlistId = config.getPlaylistIdByGroup(albumGroup);
-			return addSongsToPlaylistId(albumTrackPairs, playlistId);
-		} catch (Exception e) {
-			log.stackTrace(e);
-		}
-		return 0;
-	}
-
-	private int addSongsToPlaylistId(List<AlbumTrackPair> albumTrackPairs, String playlistId) throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
-		int songsAdded = 0;
+	private void addSongsToPlaylistId(String playlistId, List<AlbumTrackPair> albumTrackPairs) throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
 		if (!albumTrackPairs.isEmpty()) {
 			circularPlaylistFitting(playlistId, albumTrackPairs.stream().mapToInt(AlbumTrackPair::trackCount).sum());
 			for (AlbumTrackPair atp : albumTrackPairs) {
-				for (List<TrackSimplified> partition : Lists.partition(atp.getTracks(), Constants.PLAYLIST_ADD_LIMIT)) {
+				for (List<TrackSimplified> partition : Lists.partition(atp.getTracks(), PLAYLIST_ADD_LIMIT)) {
 					JsonArray json = new JsonArray();
 					for (TrackSimplified s : partition) {
-						json.add(Constants.TRACK_PREFIX + s.getId());
+						json.add(TRACK_PREFIX + s.getId());
 					}
 					SpotifyCall.execute(spotifyApi.addTracksToPlaylist(playlistId, json).position(TOP_OF_PLAYLIST));
-					songsAdded += partition.size();
-					Thread.sleep(Constants.PLAYLIST_ADDITION_COOLDOWN);
+					Thread.sleep(PLAYLIST_ADDITION_COOLDOWN);
 				}
 			}
-			return songsAdded;
 		}
-		return 0;
 	}
 
 	/**
@@ -96,9 +102,9 @@ public class PlaylistSongsService {
 		Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
 
 		final int currentPlaylistCount = p.getTracks().getTotal();
-		if (currentPlaylistCount + songsToAddCount > Constants.PLAYLIST_SIZE_LIMIT) {
+		if (currentPlaylistCount + songsToAddCount > PLAYLIST_SIZE_LIMIT) {
 			if (!config.getUserConfig().isCircularPlaylistFitting()) {
-				log.error(p.getName() + " is full! Maximum capacity is " + Constants.PLAYLIST_SIZE_LIMIT + ". Enable circularPlaylistFitting or flush the playlist for new songs.");
+				log.error(p.getName() + " is full! Maximum capacity is " + PLAYLIST_SIZE_LIMIT + ". Enable circularPlaylistFitting or flush the playlist for new songs.");
 				return;
 			}
 			deleteSongsFromBottomOnLimit(playlistId, currentPlaylistCount, songsToAddCount);
@@ -120,17 +126,17 @@ public class PlaylistSongsService {
 	 * @throws Exception
 	 */
 	private void deleteSongsFromBottomOnLimit(String playlistId, int currentPlaylistCount, int songsToAddCount) throws SpotifyWebApiException, IOException, InterruptedException {
-		int totalSongsToDeleteCount = currentPlaylistCount + songsToAddCount - Constants.PLAYLIST_SIZE_LIMIT;
-		boolean repeat = totalSongsToDeleteCount > Constants.PLAYLIST_ADD_LIMIT;
-		int songsToDeleteCount = repeat ? Constants.PLAYLIST_ADD_LIMIT : totalSongsToDeleteCount;
+		int totalSongsToDeleteCount = currentPlaylistCount + songsToAddCount - PLAYLIST_SIZE_LIMIT;
+		boolean repeat = totalSongsToDeleteCount > PLAYLIST_ADD_LIMIT;
+		int songsToDeleteCount = repeat ? PLAYLIST_ADD_LIMIT : totalSongsToDeleteCount;
 		final int offset = currentPlaylistCount - songsToDeleteCount;
 
-		List<PlaylistTrack> tracksToDelete = SpotifyCall.executePaging(spotifyApi.getPlaylistsTracks(playlistId).offset(offset).limit(Constants.PLAYLIST_ADD_LIMIT));
+		List<PlaylistTrack> tracksToDelete = SpotifyCall.executePaging(spotifyApi.getPlaylistsTracks(playlistId).offset(offset).limit(PLAYLIST_ADD_LIMIT));
 
 		JsonArray json = new JsonArray();
 		for (int i = 0; i < tracksToDelete.size(); i++) {
 			JsonObject object = new JsonObject();
-			object.addProperty("uri", Constants.TRACK_PREFIX + tracksToDelete.get(i).getTrack().getId());
+			object.addProperty("uri", TRACK_PREFIX + tracksToDelete.get(i).getTrack().getId());
 			JsonArray positions = new JsonArray();
 			positions.add(currentPlaylistCount - songsToDeleteCount + i);
 			object.add("positions", positions);
@@ -144,84 +150,5 @@ public class PlaylistSongsService {
 		if (repeat) {
 			deleteSongsFromBottomOnLimit(playlistId, currentPlaylistCount - 100, songsToAddCount);
 		}
-	}
-
-	/**
-	 * Adds all releases to the set playlists. Playlist Stores containing a parent
-	 * playlist will use those instead. Playlists will get timestamped and receive a
-	 * [NEW] indicator on new additions
-	 * 
-	 * @param newSongsByGroup
-	 * @param enabledAlbumGroups
-	 * @throws InterruptedException
-	 * @throws IOException
-	 * @throws SQLException
-	 * @throws SpotifyWebApiException
-	 */
-	public void addAllReleasesToSetPlaylists(Map<AlbumGroup, List<AlbumTrackPair>> newSongsByGroup, List<AlbumGroup> enabledAlbumGroups)
-		throws SpotifyWebApiException, SQLException, IOException, InterruptedException {
-		Map<AlbumGroup, List<AlbumTrackPair>> mergedAlbumGroupsOfSongs = groupTracksToParentAlbumGroup(newSongsByGroup, enabledAlbumGroups);
-		for (Map.Entry<AlbumGroup, List<AlbumTrackPair>> entry : mergedAlbumGroupsOfSongs.entrySet()) {
-			AlbumGroup albumGroup = entry.getKey();
-			List<AlbumTrackPair> albumTrackPairs = entry.getValue();
-			if (!albumTrackPairs.isEmpty()) {
-				Collections.sort(albumTrackPairs);
-				int addedSongsCount = addSongsToPlaylist(albumTrackPairs, albumGroup);
-				config.refreshPlaylistStore(albumGroup, addedSongsCount);
-			}
-		}
-	}
-
-	/**
-	 * Returns a rearranged view of the given map, depending on whether any album
-	 * groups point to the same target playlist.
-	 * 
-	 * @param newSongsByGroup
-	 * @param enabledAlbumGroups
-	 * @return
-	 * @throws SQLException
-	 */
-	private Map<AlbumGroup, List<AlbumTrackPair>> groupTracksToParentAlbumGroup(Map<AlbumGroup, List<AlbumTrackPair>> newSongsByGroup, List<AlbumGroup> enabledAlbumGroups) throws SQLException {
-		Map<AlbumGroup, List<AlbumGroup>> groupedPlaylistStores = getPlaylistStoresByParent(enabledAlbumGroups);
-		if (groupedPlaylistStores.size() == enabledAlbumGroups.size()) {
-			// Each album group has its own set playlist, no merging required
-			return newSongsByGroup;
-		}
-
-		Map<AlbumGroup, List<AlbumTrackPair>> mergedAlbumGroups = new HashMap<>();
-		for (Map.Entry<AlbumGroup, List<AlbumGroup>> playlistGroup : groupedPlaylistStores.entrySet()) {
-			AlbumGroup parentAlbumGroup = playlistGroup.getKey();
-			List<AlbumTrackPair> mergedAlbumTrackPairs = new ArrayList<>();
-			for (AlbumGroup childAlbumGroup : playlistGroup.getValue()) {
-				mergedAlbumTrackPairs.addAll(newSongsByGroup.get(childAlbumGroup));
-			}
-			mergedAlbumGroups.put(parentAlbumGroup, mergedAlbumTrackPairs);
-		}
-		return mergedAlbumGroups;
-	}
-
-	/**
-	 * Gets a merged view of all playlist stores by their parent album group
-	 * 
-	 * @param enabledAlbumGroups
-	 * @return
-	 * @throws SQLException
-	 */
-	private Map<AlbumGroup, List<AlbumGroup>> getPlaylistStoresByParent(Collection<AlbumGroup> enabledAlbumGroups) throws SQLException {
-		Map<AlbumGroup, List<AlbumGroup>> playlistStoresByAlbumGroupParent = new HashMap<>();
-		for (AlbumGroup ag : enabledAlbumGroups) {
-			PlaylistStoreDTO ps = config.getPlaylistStore(ag);
-			if (ps != null && ps.getParentAlbumGroup() == null) {
-				playlistStoresByAlbumGroupParent.put(ag, new ArrayList<>());
-				playlistStoresByAlbumGroupParent.get(ag).add(ag);
-			}
-		}
-		for (AlbumGroup ag : enabledAlbumGroups) {
-			PlaylistStoreDTO ps = config.getPlaylistStore(ag);
-			if (ps != null && ps.getParentAlbumGroup() != null) {
-				playlistStoresByAlbumGroupParent.get(ps.getParentAlbumGroup()).add(ag);
-			}
-		}
-		return playlistStoresByAlbumGroupParent;
 	}
 }

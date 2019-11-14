@@ -19,11 +19,12 @@ import spotify.bot.config.Config;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
-import spotify.bot.util.Constants;
 
 @Service
 public class UserInfoService {
 
+	private final static int MAX_FOLLOWED_ARTIST_FETCH_LIMIT = 50;
+	
 	@Autowired
 	private SpotifyApi spotifyApi;
 
@@ -60,7 +61,9 @@ public class UserInfoService {
 		}
 
 		// If cache is outdated, fetch fresh dataset and update cache
-		List<Artist> followedArtists = SpotifyCall.executePaging(spotifyApi.getUsersFollowedArtists(ModelObjectType.ARTIST).limit(Constants.DEFAULT_LIMIT));
+		List<Artist> followedArtists = SpotifyCall.executePaging(spotifyApi
+			.getUsersFollowedArtists(ModelObjectType.ARTIST)
+			.limit(MAX_FOLLOWED_ARTIST_FETCH_LIMIT));
 		List<String> followedArtistIds = followedArtists.stream().map(Artist::getId).collect(Collectors.toList());
 		BotUtils.removeNullStrings(followedArtistIds);
 		if (followedArtistIds.isEmpty()) {

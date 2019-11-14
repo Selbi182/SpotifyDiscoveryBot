@@ -32,6 +32,4 @@ class DBConstants {
 	public final static String COL_PLAYLIST_ID = "playlist_id";
 	public final static String CPL_PARENT_ALBUM_GROUP = "parent_album_group";
 	public final static String COL_LAST_UPDATE = "last_update";
-	public final static String COL_RECENT_SONGS_ADDED_COUNT = "recent_songs_added_count";
-
 }

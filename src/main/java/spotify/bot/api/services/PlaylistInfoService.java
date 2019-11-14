@@ -2,10 +2,12 @@ package spotify.bot.api.services;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,12 +23,24 @@ import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
 import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.Config;
 import spotify.bot.config.dto.PlaylistStoreDTO;
-import spotify.bot.util.AlbumTrackPair;
 import spotify.bot.util.BotUtils;
-import spotify.bot.util.Constants;
+import spotify.bot.util.data.AlbumTrackPair;
 
 @Service
 public class PlaylistInfoService {
+
+	private final static int MAX_PLAYLIST_TRACK_FETCH_LIMIT = 50;
+
+	/**
+	 * The new-songs indicator as Unicode. This roughly looks like [N][E][W] when
+	 * printed out.
+	 */
+	private final static String NEW_INDICATOR_TEXT = "\uD83C\uDD7D\uD83C\uDD74\uD83C\uDD86";
+
+	/**
+	 * The description timestamp. Example: "January 1, 2000 — 00:00"
+	 */
+	public final static SimpleDateFormat DESCRIPTION_TIMESTAMP_FORMAT = new SimpleDateFormat("MMMMM d, yyyy \u2014 HH:mm", Locale.ENGLISH);
 
 	@Autowired
 	private SpotifyApi spotifyApi;
@@ -46,8 +60,11 @@ public class PlaylistInfoService {
 	 */
 	public void showNotifiers(Map<AlbumGroup, List<AlbumTrackPair>> newSongs) throws SpotifyWebApiException, SQLException, IOException, InterruptedException {
 		for (Map.Entry<AlbumGroup, List<AlbumTrackPair>> entry : newSongs.entrySet()) {
-			if (!entry.getValue().isEmpty()) {
+			AlbumGroup albumGroup = entry.getKey();
+			List<AlbumTrackPair> albumTrackPairs = entry.getValue();
+			if (!albumTrackPairs.isEmpty()) {
 				showNotifier(entry.getKey());
+				config.refreshPlaylistStore(albumGroup);
 			}
 		}
 	}
@@ -67,8 +84,8 @@ public class PlaylistInfoService {
 		if (playlistId != null) {
 			Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
 			String playlistName = p.getName();
-			if (!playlistName.contains(Constants.NEW_INDICATOR_TEXT)) {
-				playlistName = playlistName + " " + Constants.NEW_INDICATOR_TEXT;
+			if (!playlistName.contains(NEW_INDICATOR_TEXT)) {
+				playlistName = playlistName + " " + NEW_INDICATOR_TEXT;
 				SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).name(playlistName));
 			}
 		}
@@ -87,7 +104,7 @@ public class PlaylistInfoService {
 		for (AlbumGroup ag : albumGroups) {
 			String playlistId = config.getPlaylistIdByGroup(ag);
 			if (playlistId != null) {
-				String newDescription = String.format("Last Search: %s", Constants.DESCRIPTION_TIMESTAMP_FORMAT.format(Calendar.getInstance().getTime()));
+				String newDescription = String.format("Last Search: %s", DESCRIPTION_TIMESTAMP_FORMAT.format(Calendar.getInstance().getTime()));
 				SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).description(newDescription));
 			}
 		}
@@ -102,15 +119,15 @@ public class PlaylistInfoService {
 	 * @throws SpotifyWebApiException
 	 */
 	public void clearObsoleteNotifiers() throws SpotifyWebApiException, SQLException, IOException, InterruptedException, Exception {
-		for (AlbumGroup ag : config.getSetAlbumGroups()) {
+		for (AlbumGroup ag : config.getEnabledAlbumGroups()) {
 			PlaylistStoreDTO ps = config.getPlaylistStore(ag);
-			if (ps.getParentAlbumGroup() == null && ps.getLastUpdate() != null && ps.getRecentSongsAddedCount() != null) {
+			if (ps.getParentAlbumGroup() == null && ps.getLastUpdate() != null) {
 				String playlistId = ps.getPlaylistId();
 				Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
 				String playlistName = p.getName();
-				if (playlistName.contains(Constants.NEW_INDICATOR_TEXT)) {
+				if (playlistName.contains(NEW_INDICATOR_TEXT)) {
 					if (shouldIndicatorBeMarkedAsRead(ps)) {
-						playlistName = p.getName().replace(Constants.NEW_INDICATOR_TEXT, "").trim();
+						playlistName = p.getName().replace(NEW_INDICATOR_TEXT, "").trim();
 						SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).name(playlistName));
 						config.unsetPlaylistStore(ps.getAlbumGroup());
 					}
@@ -130,8 +147,7 @@ public class PlaylistInfoService {
 	 */
 	private boolean shouldIndicatorBeMarkedAsRead(PlaylistStoreDTO playlistStore) throws IOException, Exception {
 		Date lastUpdated = playlistStore.getLastUpdate();
-		Integer lastUpdateSongCount = playlistStore.getRecentSongsAddedCount();
-		if (lastUpdated == null || lastUpdateSongCount == null || lastUpdateSongCount == 0) {
+		if (lastUpdated == null) {
 			return true;
 		}
 
@@ -141,16 +157,18 @@ public class PlaylistInfoService {
 			return true;
 		}
 
-		// Check if the currently played song is part of the n<=50 most recently added
-		// songs
+		// Check if the currently played song is part of the most recently added songs
 		String playlistId = playlistStore.getPlaylistId();
 		CurrentlyPlaying currentlyPlaying = SpotifyCall.execute(spotifyApi.getUsersCurrentlyPlayingTrack());
 		if (currentlyPlaying == null) {
 			return false;
 		}
-		int tracksToFetch = Math.min(lastUpdateSongCount, Constants.DEFAULT_LIMIT);
-		PlaylistTrack[] recentlyAddedPlaylistTracks = SpotifyCall.execute(spotifyApi.getPlaylistsTracks(playlistId).limit(tracksToFetch)).getItems();
-		boolean currentlyPlayingSongIsNew = Arrays.asList(recentlyAddedPlaylistTracks).stream().anyMatch(pt -> pt.getTrack().getId().equals(currentlyPlaying.getItem().getId()));
+		PlaylistTrack[] recentlyAddedPlaylistTracks = SpotifyCall.execute(spotifyApi
+			.getPlaylistsTracks(playlistId)
+			.limit(MAX_PLAYLIST_TRACK_FETCH_LIMIT))
+			.getItems();
+		boolean currentlyPlayingSongIsNew = Arrays.asList(recentlyAddedPlaylistTracks)
+			.stream().anyMatch(pt -> pt.getTrack().getId().equals(currentlyPlaying.getItem().getId()));
 		return currentlyPlayingSongIsNew;
 	}
 }

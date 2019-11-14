@@ -24,9 +24,9 @@ import spotify.bot.api.services.PlaylistSongsService;
 import spotify.bot.api.services.TrackService;
 import spotify.bot.api.services.UserInfoService;
 import spotify.bot.config.Config;
-import spotify.bot.util.AlbumTrackPair;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
+import spotify.bot.util.data.AlbumTrackPair;
 
 @Component
 public class SpotifyDiscoveryBotCrawler {
@@ -56,6 +56,9 @@ public class SpotifyDiscoveryBotCrawler {
 
 	@Autowired
 	private PlaylistInfoService playlistInfoService;
+	
+	@Autowired
+	private FilterService filterService;
 
 	/**
 	 * Set the initial ready-state to false
@@ -179,24 +182,35 @@ public class SpotifyDiscoveryBotCrawler {
 	 * @throws SpotifyWebApiException
 	 */
 	private Map<AlbumGroup, Integer> crawl() throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
-		List<AlbumGroup> albumGroups = config.getSetAlbumGroups();
-		Map<AlbumGroup, Integer> additionResults = BotUtils.createAlbumGroupToIntegerMap(albumGroups);
 		List<String> followedArtists = userInfoService.getFollowedArtistsIds();
-		if (!followedArtists.isEmpty()) {
-			List<AlbumSimplified> nonCachedAlbums = albumService.getNonCachedAlbumsOfArtists(followedArtists, albumGroups);
+		if (followedArtists.isEmpty()) {
+			log.warning("No followed artists found!");
+			return null;
+		}		
+		List<AlbumGroup> enabledAlbumGroups = config.getEnabledAlbumGroups();
+		List<AlbumSimplified> nonCachedAlbums = albumService.getNonCachedAlbumsOfArtists(followedArtists, enabledAlbumGroups);
+		try {
 			if (!nonCachedAlbums.isEmpty()) {
-				Map<AlbumGroup, List<AlbumSimplified>> newAlbums = albumService.categorizeAndFilterAlbums(nonCachedAlbums, albumGroups);
+				Map<AlbumGroup, List<AlbumSimplified>> newAlbums = filterService.categorizeAndFilterAlbums(nonCachedAlbums, enabledAlbumGroups);
 				if (!BotUtils.isAllEmptyAlbumsOfGroups(newAlbums)) {
-					Map<AlbumGroup, List<AlbumTrackPair>> newSongs = trackService.getSongIdsByAlbums(newAlbums, followedArtists);
+					Map<AlbumGroup, List<AlbumTrackPair>> newSongs = trackService.getSongsOfAlbumGroups(newAlbums);
+					newSongs = filterService.intelligentAppearsOnSearch(newSongs, followedArtists);
 					if (!BotUtils.isAllEmptyAlbumsOfGroups(newSongs)) {
-						playlistSongsService.addAllReleasesToSetPlaylists(newSongs, albumGroups);
+						Map<String, List<AlbumTrackPair>> songsByPlaylistId = filterService.mapToTargetPlaylistIds(newSongs, enabledAlbumGroups);
+						playlistSongsService.addAllReleasesToSetPlaylists(songsByPlaylistId);
 						playlistInfoService.showNotifiers(newSongs);
-						BotUtils.collectSongAdditionResults(newSongs, additionResults);
+						return BotUtils.collectSongAdditionResults(newSongs);							
+					} else {
+						log.warning("Only found irrelevant appears_on releases!");
 					}
+				} else {
+					log.warning("No new releases found, despite finding " + nonCachedAlbums.size() + " new non-cached entries!");
 				}
 			}
+		} finally {
+			albumService.cacheAlbumIds(nonCachedAlbums);
+			playlistInfoService.timestampPlaylists(enabledAlbumGroups);
 		}
-		playlistInfoService.timestampPlaylists(albumGroups);
-		return additionResults;
+		return null;
 	}
 }

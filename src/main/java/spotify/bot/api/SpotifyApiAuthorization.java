@@ -21,12 +21,13 @@ import com.wrapper.spotify.model_objects.credentials.AuthorizationCodeCredential
 
 import spotify.bot.config.Config;
 import spotify.bot.util.BotLogger;
-import spotify.bot.util.Constants;
 
 @Component
 @RestController
 public class SpotifyApiAuthorization {
 
+	private final static String SCOPES = "user-follow-read playlist-modify-private";
+	
 	@Autowired
 	private SpotifyApi spotifyApi;
 
@@ -67,7 +68,7 @@ public class SpotifyApiAuthorization {
 	 * @throws SpotifyWebApiException
 	 */
 	private void authenticate() throws SpotifyWebApiException, IOException, InterruptedException {
-		URI uri = SpotifyCall.execute(spotifyApi.authorizationCodeUri().scope(Constants.SCOPES));
+		URI uri = SpotifyCall.execute(spotifyApi.authorizationCodeUri().scope(SCOPES));
 		try {
 			if (!Desktop.isDesktopSupported()) {
 				throw new HeadlessException();

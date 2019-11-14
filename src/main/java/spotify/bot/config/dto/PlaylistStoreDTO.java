@@ -9,7 +9,6 @@ public class PlaylistStoreDTO {
 	private String playlistId;
 	private AlbumGroup parentAlbumGroup;
 	private Date lastUpdate;
-	private Integer recentSongsAddedCount;
 
 	public PlaylistStoreDTO(AlbumGroup albumGroup) {
 		this.albumGroup = albumGroup;
@@ -33,10 +32,6 @@ public class PlaylistStoreDTO {
 		return lastUpdate;
 	}
 
-	public Integer getRecentSongsAddedCount() {
-		return recentSongsAddedCount;
-	}
-
 	/////////////
 
 	public void setPlaylistId(String playlistId) {
@@ -51,10 +46,6 @@ public class PlaylistStoreDTO {
 		this.lastUpdate = lastUpdate;
 	}
 
-	public void setRecentSongsAddedCount(Integer recentSongsAddedCount) {
-		this.recentSongsAddedCount = recentSongsAddedCount;
-	}
-
 	/////////////
 
 	@Override
@@ -63,7 +54,6 @@ public class PlaylistStoreDTO {
 			+ ", playlistId=" + playlistId
 			+ ", parentAlbumGroup=" + parentAlbumGroup
 			+ ", lastUpdated=" + lastUpdate
-			+ ", recentSongsAddedCount=" + recentSongsAddedCount
 			+ "]";
 	}
 }

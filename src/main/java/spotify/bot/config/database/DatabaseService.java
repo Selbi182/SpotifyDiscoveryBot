@@ -120,7 +120,6 @@ public class DatabaseService {
 				ps.setParentAlbumGroup(AlbumGroup.valueOf(parentAlbumGroupString));
 			}
 			ps.setLastUpdate(dbPlaylistStore.getDate(DBConstants.COL_LAST_UPDATE));
-			ps.setRecentSongsAddedCount(dbPlaylistStore.getInt(DBConstants.COL_RECENT_SONGS_ADDED_COUNT));
 			playlistStore.put(albumGroup, ps);
 		}
 		return playlistStore;
@@ -141,32 +140,20 @@ public class DatabaseService {
 				DBConstants.COL_LAST_UPDATE,
 				DBConstants.COL_ALBUM_GROUP,
 				albumGroup.getGroup().toUpperCase());
-			database.updateNull(DBConstants.TABLE_PLAYLIST_STORE,
-				DBConstants.COL_RECENT_SONGS_ADDED_COUNT,
-				DBConstants.COL_ALBUM_GROUP,
-				albumGroup.getGroup().toUpperCase());
 		}
 	}
 
 	/**
-	 * Update the playlist store's given timestamp and unset the song count
+	 * Update the playlist store's given timestamp
 	 * 
 	 * @param albumGroupString
-	 * @param addedSongsCount
 	 * @throws SQLException
 	 */
-	public synchronized void refreshPlaylistStore(String albumGroupString, Integer addedSongsCount) throws SQLException {
+	public synchronized void refreshPlaylistStore(String albumGroupString) throws SQLException {
 		if (albumGroupString != null) {
 			database.updateWithCondition(DBConstants.TABLE_PLAYLIST_STORE,
 				DBConstants.COL_LAST_UPDATE,
 				String.valueOf(BotUtils.currentTime()),
-				DBConstants.COL_ALBUM_GROUP,
-				albumGroupString.toUpperCase());
-		}
-		if (addedSongsCount != null) {
-			database.updateWithCondition(DBConstants.TABLE_PLAYLIST_STORE,
-				DBConstants.COL_RECENT_SONGS_ADDED_COUNT,
-				String.valueOf(addedSongsCount),
 				DBConstants.COL_ALBUM_GROUP,
 				albumGroupString.toUpperCase());
 		}

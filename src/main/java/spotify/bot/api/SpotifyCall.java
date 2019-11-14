@@ -15,10 +15,11 @@ import com.wrapper.spotify.requests.IRequest;
 import com.wrapper.spotify.requests.data.IPagingCursorbasedRequestBuilder;
 import com.wrapper.spotify.requests.data.IPagingRequestBuilder;
 
-import spotify.bot.util.Constants;
-
 public class SpotifyCall {
 
+	private final static int RETRY_TIMEOUT_4XX = 500;
+	private final static int RETRY_TIMEOUT_5XX = 60 * 1000;
+	
 	/**
 	 * Utility class
 	 */
@@ -50,9 +51,9 @@ public class SpotifyCall {
 			return requestBuilder.build().execute();
 		} catch (TooManyRequestsException e) {
 			int timeout = e.getRetryAfter() + 1;
-			Thread.sleep(timeout * Constants.RETRY_TIMEOUT_4XX);
+			Thread.sleep(timeout * RETRY_TIMEOUT_4XX);
 		} catch (InternalServerErrorException | BadGatewayException e) {
-			Thread.sleep(Constants.RETRY_TIMEOUT_5XX);
+			Thread.sleep(RETRY_TIMEOUT_5XX);
 		}
 		return execute(requestBuilder);
 	}

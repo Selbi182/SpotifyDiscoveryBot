@@ -1,2 +1,1 @@
-#!/bin/bash
-java -jar SpotifyNewDiscovery.jar
+java -jar SpotifyNewReleases.jar /home/pi/Schreibtisch/spotifybot/database.db

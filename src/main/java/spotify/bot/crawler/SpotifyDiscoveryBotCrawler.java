@@ -102,15 +102,16 @@ public class SpotifyDiscoveryBotCrawler {
 	 * @throws SQLException
 	 * @throws SpotifyWebApiException
 	 */
-	public void clearObsoleteNotifiers() throws SpotifyWebApiException, SQLException, IOException, InterruptedException, Exception {
+	public boolean clearObsoleteNotifiers() throws SpotifyWebApiException, SQLException, IOException, InterruptedException, Exception {
 		if (isReady()) {
 			try {
-				playlistInfoService.clearObsoleteNotifiers();
+				return playlistInfoService.clearObsoleteNotifiers();
 			} catch (UnauthorizedException e) {
 				spotifyApiAuthorization.login();
 				clearObsoleteNotifiers();
 			}
 		}
+		return false;
 	}
 
 	/**
@@ -194,17 +195,16 @@ public class SpotifyDiscoveryBotCrawler {
 		List<AlbumSimplified> allAlbums = albumService.getAllAlbumsOfArtists(followedArtists);
 		List<AlbumSimplified> nonCachedAlbums = filterService.getNonCachedAlbums(allAlbums);
 		try {
-			Map<AlbumGroup, List<AlbumSimplified>> newAlbums = filterService.categorizeAndFilterAlbums(nonCachedAlbums);
-			if (!BotUtils.isAllEmptyLists(newAlbums)) {
-				Map<AlbumGroup, List<AlbumTrackPair>> newSongs = trackService.getSongsOfAlbumGroups(newAlbums);
-				filterService.intelligentAppearsOnSearch(newSongs, followedArtists);
-				if (!BotUtils.isAllEmptyLists(newSongs)) {
-					Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist = filterService.mapToTargetPlaylist(newSongs, playlistStores);
+			List<AlbumSimplified> filteredAlbums = filterService.filterNewAlbumsOnly(nonCachedAlbums);
+			if (!filteredAlbums.isEmpty()) {
+				List<AlbumTrackPair> tracksByAlbums = trackService.getTracksOfAlbums(filteredAlbums);
+				Map<AlbumGroup, List<AlbumTrackPair>> categorizedFilteredAlbums = filterService.categorizeAlbumsByAlbumGroup(tracksByAlbums);
+				filterService.intelligentAppearsOnSearch(categorizedFilteredAlbums, followedArtists);
+				if (!BotUtils.isAllEmptyLists(categorizedFilteredAlbums)) {
+					Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist = filterService.mapToTargetPlaylist(categorizedFilteredAlbums, playlistStores);
 					playlistSongsService.addAllReleasesToSetPlaylists(songsByPlaylist);
 					playlistInfoService.showNotifiers(songsByPlaylist);
 					return BotUtils.collectSongAdditionResults(songsByPlaylist);
-				} else {
-					log.warning("Only found irrelevant appears_on releases!");
 				}
 			}
 		} catch (SQLException | SpotifyWebApiException | IOException | InterruptedException e) {

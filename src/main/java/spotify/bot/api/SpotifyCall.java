@@ -97,6 +97,8 @@ public class SpotifyCall {
 	 *            the injected return type
 	 * @param <BT>
 	 *            the injected Builder
+	 * @param <A>
+	 *            the After type (currently only String is supported)
 	 * @param pagingRequestBuilder
 	 *            the basic, unbuilt request pagingcursor builder
 	 * @return the fully exhausted list of result items

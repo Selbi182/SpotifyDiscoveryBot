@@ -93,7 +93,9 @@ public class CrawlScheduler {
 		if (!crawler.isReady()) {
 			return new ResponseEntity<>("Can't clear [NEW] indicators now, as crawler is currently in progress...", HttpStatus.CONFLICT);
 		}
-		crawler.clearObsoleteNotifiers();
-		return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+		if (crawler.clearObsoleteNotifiers()) {
+			return new ResponseEntity<>("New indicator(s) removed!", HttpStatus.CREATED);			
+		}
+		return new ResponseEntity<>(HttpStatus.OK);
 	}
 }

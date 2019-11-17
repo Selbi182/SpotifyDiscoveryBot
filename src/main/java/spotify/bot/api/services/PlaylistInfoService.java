@@ -113,25 +113,31 @@ public class PlaylistInfoService {
 
 	/**
 	 * Convenience method to try and clear every obsolete New indicator
+	 * @return 
 	 * 
 	 * @throws InterruptedException
 	 * @throws IOException
 	 * @throws SQLException
 	 * @throws SpotifyWebApiException
 	 */
-	public void clearObsoleteNotifiers() throws SpotifyWebApiException, SQLException, IOException, InterruptedException, Exception {
+	public boolean clearObsoleteNotifiers() throws SpotifyWebApiException, SQLException, IOException, InterruptedException, Exception {
+		boolean changed = false;
 		for (PlaylistStore ps : config.getAllPlaylistStores()) {
 			String playlistId = ps.getPlaylistId();
-			Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
-			String playlistName = p.getName();
-			if (playlistName.contains(NEW_INDICATOR_TEXT)) {
-				if (shouldIndicatorBeMarkedAsRead(ps)) {
-					playlistName = p.getName().replace(NEW_INDICATOR_TEXT, "").trim();
-					SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).name(playlistName));
-					config.unsetPlaylistStore(ps.getAlbumGroupExtended());
-				}
+			if (playlistId != null) {
+				Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
+				String playlistName = p.getName();
+				if (playlistName.contains(NEW_INDICATOR_TEXT)) {
+					if (shouldIndicatorBeMarkedAsRead(ps)) {
+						playlistName = playlistName.replace(NEW_INDICATOR_TEXT, "").trim();
+						SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).name(playlistName));
+						config.unsetPlaylistStore(ps.getAlbumGroupExtended());
+						changed = true;
+					}
+				}				
 			}
 		}
+		return changed;
 	}
 
 	/**
@@ -146,7 +152,7 @@ public class PlaylistInfoService {
 	private boolean shouldIndicatorBeMarkedAsRead(PlaylistStore playlistStore) throws IOException, Exception {
 		Date lastUpdated = playlistStore.getLastUpdate();
 		if (lastUpdated == null) {
-			return true;
+			return false;
 		}
 
 		// Timeout after a certain number of hours since the playlist was last updated
@@ -166,11 +172,11 @@ public class PlaylistInfoService {
 			return true;
 		}
 		CurrentlyPlaying currentlyPlaying = SpotifyCall.execute(spotifyApi.getUsersCurrentlyPlayingTrack());
-		if (currentlyPlaying == null) {
-			return false;
+		if (currentlyPlaying != null) {
+			boolean currentlyPlayingSongIsNew = Arrays.asList(recentlyAddedPlaylistTracks)
+				.stream().anyMatch(pt -> pt.getTrack().getId().equals(currentlyPlaying.getItem().getId()));
+			return currentlyPlayingSongIsNew;
 		}
-		boolean currentlyPlayingSongIsNew = Arrays.asList(recentlyAddedPlaylistTracks)
-			.stream().anyMatch(pt -> pt.getTrack().getId().equals(currentlyPlaying.getItem().getId()));
-		return currentlyPlayingSongIsNew;
+		return false;
 	}
 }

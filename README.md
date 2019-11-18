@@ -16,7 +16,7 @@ For example, albums get re-uploaded _all_ the time. Sometimes, albums get upload
 All these tiny nitpicks quickly add up. The bot does its best effort to filter out any excessive garbage. This is especially true for Appears-On releases, as labels pump out roughly twenty billion compilations and sampler per minute.
 
 ### Playlists
-Results get added into one or multiple playlists, separated by what is called an "Album Group". Playlists with new releases will get also receive a dope ?????? notification marker that automatically disappears when you mark the playlist as read:
+Results get added into one or multiple playlists, separated by what is called an "Album Group". Playlists with new releases will get also receive a dope 🅽🅴🆆 notification marker that automatically disappears when you mark the playlist as read:
 
 ![Playlists](https://i.imgur.com/TG7keIF.png)
 

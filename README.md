@@ -29,13 +29,11 @@ Unfortunately, being still in development, the bot is rather shabby in terms of 
 This bot requires an SQLite-based database to store both any cached data as well as the configuration for the bot itself. You'll find an almost-ready-to-rock template in `templates/database.db` where you need to set up the client ID and client secret for your ![Spotify Developer App](https://developer.spotify.com/dashboard). These must be entered in the `bot_config` table.
 
 ### Java
-Start the compiled JAR from your console using:
+I personally have the bot compiled as a FatJAR and run it on my Raspberry Pi 24/7, and I recommend you also find some sort of permanent hosting solution. Start the compiled JAR from your console using:
 
 ```java -jar SpotifyDiscoveryBot.jar /path/to/database.db```
 
 If the database path is omitted, the working directory will be used.
-
-I personally have the bot compiled as a FatJAR and run it on my Raspberry Pi 24/7.
 
 ### First run
 During your first run, you will be asked to log in to Spotify to receive your access and refresh token. This is a one-time process. The tokens will be stored in the database and automatically updated with each crawl.

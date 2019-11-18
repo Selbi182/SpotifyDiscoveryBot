@@ -1,4 +1,4 @@
-![Banner](https://i.imgur.com/iFm2pSZ.png)
+![Banner](https://i.imgur.com/PLKEDro.png)
 
 # Spotify Discovery Bot
 A Spring-based bot that automatically crawls for new releases by your followed artists. Never miss a release again because Spotify can't step up their game!

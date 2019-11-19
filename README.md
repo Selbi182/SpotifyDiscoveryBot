@@ -1,7 +1,7 @@
 ![Banner](https://i.imgur.com/PLKEDro.png)
 
 # Spotify Discovery Bot
-A Spring-based bot that automatically crawls for new releases by your followed artists. Never miss a release again because Spotify can't step up their game!
+A Spring-based bot that automatically crawls for new releases by your followed artists. Never miss a Spotify release again!
 
 Proudly utilizes the [Spotify Web API Java Wrapper](https://github.com/thelinmichael/spotify-web-api-java).
 
@@ -13,7 +13,7 @@ Most new music gets released exactly at midnight between Thursday and Friday, bu
 
 For example, albums get re-uploaded _all_ the time. Sometimes, albums get uploaded _multiple_ times. And sometimes, albums get released to the _wrong artist_ altogether, usually because a super generic name got used by multiple bands – enjoy your low-quality hip hop on the main page of your favorite metal band.
 
-All these tiny nitpicks quickly add up. The bot does its best effort to filter out any excessive garbage. This is especially true for Appears-On releases, as labels pump out roughly twenty billion compilations and sampler per minute.
+All these tiny nitpicks quickly add up. The bot does its best effort to filter out any excessive garbage. This is especially true for Appears-On releases, as labels pump out roughly twenty billion compilations and samplers per minute.
 
 ### Playlists
 Results get added into one or multiple playlists, separated by what is called an "Album Group". Playlists with new releases will get also receive a dope 🅽🅴🆆 notification marker that automatically disappears when you mark the playlist as read:

@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -71,19 +71,19 @@ public class BotLogger {
 		log.error(stringWriter.toString());
 	}
 
-	public void printAlbumDifference(List<AlbumSimplified> base, List<AlbumSimplified> subtrahend, String logDescription) {
+	public void printAlbumDifference(Collection<AlbumSimplified> base, Collection<AlbumSimplified> subtrahend, String logDescription) {
 		Set<AlbumSimplified> differenceView = new HashSet<>(base);
 		differenceView.removeAll(subtrahend);
 		if (!differenceView.isEmpty()) {
 			if (logDescription != null) {
-				info(logDescription);				
+				info(logDescription);
 			}
 			for (AlbumSimplified as : differenceView) {
 				info(prettyAlbumSimplified(as));
 			}
 		}
 	}
-	
+
 	public String prettyAlbumSimplified(AlbumSimplified as) {
 		return String.format("[%s] %s - %s (%s)",
 			as.getAlbumGroup().toString(),
@@ -92,7 +92,7 @@ public class BotLogger {
 			as.getReleaseDate());
 	}
 
-	public void printATPDifference(List<AlbumTrackPair> unfilteredAppearsOnAlbums, List<AlbumTrackPair> filteredAppearsOnAlbums, String logDescription) {
+	public void printATPDifference(Collection<AlbumTrackPair> unfilteredAppearsOnAlbums, Collection<AlbumTrackPair> filteredAppearsOnAlbums, String logDescription) {
 		printAlbumDifference(
 			unfilteredAppearsOnAlbums.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList()),
 			filteredAppearsOnAlbums.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList()),

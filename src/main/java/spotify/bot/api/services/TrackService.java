@@ -28,7 +28,8 @@ public class TrackService {
 	private BotLogger log;
 
 	/**
-	 * Get all songs IDs of the given list of albums, categorized as {@link AlbumTrackPair}
+	 * Get all songs IDs of the given list of albums, categorized as
+	 * {@link AlbumTrackPair}
 	 * 
 	 * @param followedArtists
 	 * 

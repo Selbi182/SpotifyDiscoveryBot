@@ -32,7 +32,6 @@ class DiscoveryDatabase {
 	private final static String DELETE_QUERY_MASK = "DELETE FROM %s WHERE %s = '%s'";
 	private final static String UPDATE_QUERY_MASK = "UPDATE %s SET %s = '%s'";
 	private final static String UPDATE_WITH_CONDITION_QUERY_MASK = "UPDATE %s SET %s = %s WHERE %s = '%s'";
-	private final static String UPDATE_QUERY_MASK_RAW = "UPDATE %s SET %s = %s";
 
 	// Instance
 	private final static File WORKSPACE_LOCATION = new File(".");
@@ -146,7 +145,7 @@ class DiscoveryDatabase {
 	}
 
 	public synchronized void updateNull(String table, String targetColumn, String conditionColumn, String conditionValue) throws SQLException {
-		createStatement().executeUpdate(String.format(UPDATE_QUERY_MASK_RAW, table, targetColumn, null));
+		updateWithCondition(table, targetColumn, null, conditionColumn, conditionValue);
 	}
 
 	/**

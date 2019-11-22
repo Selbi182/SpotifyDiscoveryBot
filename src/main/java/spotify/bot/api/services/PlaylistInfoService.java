@@ -113,7 +113,8 @@ public class PlaylistInfoService {
 
 	/**
 	 * Convenience method to try and clear every obsolete New indicator
-	 * @return 
+	 * 
+	 * @return
 	 * 
 	 * @throws InterruptedException
 	 * @throws IOException
@@ -134,7 +135,7 @@ public class PlaylistInfoService {
 						config.unsetPlaylistStore(ps.getAlbumGroupExtended());
 						changed = true;
 					}
-				}				
+				}
 			}
 		}
 		return changed;

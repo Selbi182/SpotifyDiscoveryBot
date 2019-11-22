@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -45,7 +46,7 @@ public class FilterService {
 
 	@Autowired
 	private Config config;
-	
+
 	@Autowired
 	private BotLogger log;
 
@@ -108,13 +109,13 @@ public class FilterService {
 	 */
 	public void cacheAlbumIds(List<AlbumSimplified> albums) throws SQLException {
 		if (!albums.isEmpty()) {
-			databaseService.cacheAlbumIdsAsync(albums);			
+			databaseService.cacheAlbumIdsAsync(albums);
 		}
 	}
 
 	/////////////////////////
 	// FILTER BY RELEASE DATE
-	
+
 	/**
 	 * Categorizes the given list of albums into a map of their respective album
 	 * GROUPS (aka the return context of the simplified album object)
@@ -143,12 +144,43 @@ public class FilterService {
 	 * @throws SQLException
 	 */
 	public List<AlbumSimplified> filterNewAlbumsOnly(List<AlbumSimplified> unfilteredAlbums) throws SQLException, IOException {
+		Collection<AlbumSimplified> noDuplicates = filterDuplicateAlbums(unfilteredAlbums);
 		int lookbackDays = config.getUserConfig().getLookbackDays();
 		LocalDate lowerReleaseDateBoundary = LocalDate.now().minusDays(lookbackDays);
-		List<AlbumSimplified> filteredAlbums = unfilteredAlbums.stream().filter(as -> isValidDate(as, lowerReleaseDateBoundary)).collect(Collectors.toList());
-		log.printAlbumDifference(unfilteredAlbums, filteredAlbums,
-				String.format("Dropped %d non-cached but too-old releases (lower boundary was: %s):", unfilteredAlbums.size() - filteredAlbums.size(), lowerReleaseDateBoundary.toString()));
+		List<AlbumSimplified> filteredAlbums = noDuplicates.stream().filter(as -> isValidDate(as, lowerReleaseDateBoundary)).collect(Collectors.toList());
+		log.printAlbumDifference(noDuplicates, filteredAlbums,
+			String.format("Dropped %d non-cached but too-old release[s] (lower boundary was: %s):", unfilteredAlbums.size() - filteredAlbums.size(), lowerReleaseDateBoundary.toString()));
 		return filteredAlbums;
+	}
+
+	/**
+	 * Filter duplicate albums. This is done by converting the most important meta
+	 * data into a String and making sure those are unique.
+	 * 
+	 * @param unfilteredAlbums
+	 * @return
+	 */
+	private Collection<AlbumSimplified> filterDuplicateAlbums(List<AlbumSimplified> unfilteredAlbums) {
+		Map<String, AlbumSimplified> uniqueMap = new HashMap<>();
+		for (AlbumSimplified as : unfilteredAlbums) {
+			String identifier = getAlbumIdentifierString(as);
+			if (!uniqueMap.containsKey(identifier)) {
+				uniqueMap.put(identifier, as);
+			}
+		}
+		Collection<AlbumSimplified> leftoverAlbums = uniqueMap.values();
+		log.printAlbumDifference(unfilteredAlbums, leftoverAlbums,
+			String.format("Dropped %d duplicate[s] released at the same time:", unfilteredAlbums.size() - leftoverAlbums.size()));
+		return leftoverAlbums;
+	}
+
+	private String getAlbumIdentifierString(AlbumSimplified as) {
+		StringJoiner sj = new StringJoiner("_");
+		sj.add(as.getAlbumGroup().getGroup());
+		sj.add(as.getReleaseDate());
+		sj.add(as.getArtists()[0].getName());
+		sj.add(as.getName());
+		return sj.toString();
 	}
 
 	/**
@@ -180,7 +212,7 @@ public class FilterService {
 	 * 
 	 * @param extraAlbumIdsFiltered
 	 * @param followedArtists
-	 * @return 
+	 * @return
 	 * @throws IOException
 	 * @throws SQLException
 	 */
@@ -190,14 +222,14 @@ public class FilterService {
 			if (!unfilteredAppearsOnAlbums.isEmpty()) {
 				// Preprocess into HashSet to speed up contains() operations
 				Set<String> followedArtistsSet = new HashSet<>(followedArtists);
-				
+
 				// Filter out any collection, samplers, or albums whose primary artist is
 				// already a followee
 				List<AlbumTrackPair> albumsWithoutCollectionsOrSamplers = unfilteredAppearsOnAlbums.stream()
 					.filter(atp -> !isCollectionOrSampler(atp.getAlbum()))
 					.filter(atp -> !containsFeaturedArtist(followedArtistsSet, atp.getAlbum().getArtists()))
 					.collect(Collectors.toList());
-				
+
 				// Of those, filter out the actual songs where a featured artist is a followee
 				List<AlbumTrackPair> filteredAppearsOnAlbums = new ArrayList<>();
 				for (AlbumTrackPair atp : albumsWithoutCollectionsOrSamplers) {
@@ -206,9 +238,10 @@ public class FilterService {
 						.collect(Collectors.toList());
 					filteredAppearsOnAlbums.add(new AlbumTrackPair(atp.getAlbum(), selectedSongsOfAlbum));
 				}
-				
+
 				// Finalize
-				log.printATPDifference(unfilteredAppearsOnAlbums, filteredAppearsOnAlbums, String.format("Dropped %d APPEARS_ON releases:", unfilteredAppearsOnAlbums.size() - filteredAppearsOnAlbums.size()));
+				log.printATPDifference(unfilteredAppearsOnAlbums, filteredAppearsOnAlbums,
+					String.format("Dropped %d APPEARS_ON release[s]:", unfilteredAppearsOnAlbums.size() - filteredAppearsOnAlbums.size()));
 				categorizedFilteredAlbums.put(AlbumGroup.APPEARS_ON, filteredAppearsOnAlbums);
 			}
 		}

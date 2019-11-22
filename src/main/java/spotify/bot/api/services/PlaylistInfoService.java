@@ -39,7 +39,7 @@ public class PlaylistInfoService {
 	private final static String NEW_INDICATOR_TEXT = "\uD83C\uDD7D\uD83C\uDD74\uD83C\uDD86";
 
 	/**
-	 * The description timestamp. Example: "January 1, 2000 — 00:00"
+	 * The description timestamp. Example: "January 1, 2000 - 00:00"
 	 */
 	private final static SimpleDateFormat DESCRIPTION_TIMESTAMP_FORMAT = new SimpleDateFormat("MMMMM d, yyyy \u2014 HH:mm", Locale.ENGLISH);
 

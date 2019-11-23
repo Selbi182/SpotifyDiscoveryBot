@@ -44,6 +44,9 @@ public class FilterService {
 	private final static int EP_SONG_COUNT_THRESHOLD = 4;
 	private final static int EP_DURATION_THRESHOLD = 20 * 60 * 1000;
 
+	private final static Pattern LIVE_MATCHER = Pattern.compile("\\bLIVE\\b", Pattern.CASE_INSENSITIVE);
+	private final static double LIVE_SONG_COUNT_PERCENTAGE_THRESHOLD = 0.5;
+
 	@Autowired
 	private Config config;
 
@@ -149,7 +152,7 @@ public class FilterService {
 		LocalDate lowerReleaseDateBoundary = LocalDate.now().minusDays(lookbackDays);
 		List<AlbumSimplified> filteredAlbums = noDuplicates.stream().filter(as -> isValidDate(as, lowerReleaseDateBoundary)).collect(Collectors.toList());
 		log.printAlbumDifference(noDuplicates, filteredAlbums,
-			String.format("Dropped %d non-cached but too-old release[s] (lower boundary was: %s):", unfilteredAlbums.size() - filteredAlbums.size(), lowerReleaseDateBoundary.toString()));
+			String.format("Dropped %d non-cached but too-old release[s] (lower boundary was %s):", unfilteredAlbums.size() - filteredAlbums.size(), lowerReleaseDateBoundary.toString()));
 		return filteredAlbums;
 	}
 
@@ -295,23 +298,81 @@ public class FilterService {
 				resultMap.put(ps, entry.getValue());
 			}
 		}
+		return resultMap;
+	}
+
+	/**
+	 * Re-map all albums that match the criteria of an {@link AlbumGroupExtended}.
+	 * So far, this only works for EPs or Live albums.
+	 * 
+	 * @param songsByMainPlaylist
+	 * @param playlistStores
+	 * @return
+	 * @throws SQLException
+	 */
+	public Map<PlaylistStore, List<AlbumTrackPair>> remapIntoExtendedPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPS, Collection<PlaylistStore> playlistStores) throws SQLException {
+		Map<PlaylistStore, List<AlbumTrackPair>> regroupedMap = new HashMap<>(songsByPS);
 
 		PlaylistStore psEp = config.getPlaylistStore(AlbumGroupExtended.EP);
-		if (psEp != null && psEp.getPlaylistId() != null) {
-			List<AlbumTrackPair> singles = resultMap.get(config.getPlaylistStore(AlbumGroupExtended.SINGLE));
-			List<AlbumTrackPair> eps = singles.stream()
-				.filter(atp -> isEP(atp))
-				.collect(Collectors.toList());
-			singles.removeAll(eps);
-			resultMap.put(psEp, eps);
-		}
+		remapEPs(psEp, regroupedMap);
 
-		return resultMap;
+		PlaylistStore psLive = config.getPlaylistStore(AlbumGroupExtended.LIVE);
+		remapLive(psLive, regroupedMap);
+
+		return regroupedMap;
+	}
+
+	private void remapEPs(PlaylistStore psEp, Map<PlaylistStore, List<AlbumTrackPair>> songsByPS) throws SQLException {
+		if (psEp != null && psEp.getPlaylistId() != null) {
+			List<AlbumTrackPair> singles = songsByPS.get(config.getPlaylistStore(AlbumGroupExtended.SINGLE));
+			if (!singles.isEmpty()) {
+				List<AlbumTrackPair> eps = singles.stream()
+					.filter(atp -> isEP(atp))
+					.collect(Collectors.toList());
+				if (!eps.isEmpty()) {
+					singles.removeAll(eps);
+					songsByPS.put(psEp, eps);
+				}
+			}
+		}
 	}
 
 	private boolean isEP(AlbumTrackPair atp) {
 		return (atp.getTracks().size() >= EP_SONG_COUNT_THRESHOLD
 			|| atp.getTracks().stream().mapToInt(TrackSimplified::getDurationMs).sum() >= EP_DURATION_THRESHOLD
 			|| EP_MATCHER.matcher(atp.getAlbum().getName()).find());
+	}
+
+	private void remapLive(PlaylistStore psLive, Map<PlaylistStore, List<AlbumTrackPair>> songsByPS) throws SQLException {
+		if (psLive != null && psLive.getPlaylistId() != null) {
+			List<AlbumTrackPair> allLive = new ArrayList<>();
+			for (Map.Entry<PlaylistStore, List<AlbumTrackPair>> entry : songsByPS.entrySet()) {
+				List<AlbumTrackPair> source = songsByPS.get(entry.getKey());
+				if (source != null && !source.isEmpty()) {
+					List<AlbumTrackPair> live = source.stream()
+						.filter(atp -> isLive(atp))
+						.collect(Collectors.toList());
+					if (!live.isEmpty()) {
+						source.removeAll(live);
+						allLive.addAll(live);
+					}
+				}
+			}
+			if (!allLive.isEmpty()) {
+				songsByPS.put(psLive, allLive);
+			}
+		}
+	}
+
+	private boolean isLive(AlbumTrackPair atp) {
+		if (LIVE_MATCHER.matcher(atp.getAlbum().getName()).find()) {
+			double numberOfTracks = atp.getTracks().size();
+			double numberOfLiveTracks = atp.getTracks().stream()
+				.filter(t -> LIVE_MATCHER.matcher(t.getName()).find())
+				.count();
+			double livePercentage = numberOfLiveTracks / numberOfTracks;
+			return livePercentage > LIVE_SONG_COUNT_PERCENTAGE_THRESHOLD;
+		}
+		return false;
 	}
 }

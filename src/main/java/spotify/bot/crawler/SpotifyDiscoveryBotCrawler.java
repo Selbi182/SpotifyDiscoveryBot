@@ -201,7 +201,8 @@ public class SpotifyDiscoveryBotCrawler {
 				Map<AlbumGroup, List<AlbumTrackPair>> categorizedFilteredAlbums = filterService.categorizeAlbumsByAlbumGroup(tracksByAlbums);
 				filterService.intelligentAppearsOnSearch(categorizedFilteredAlbums, followedArtists);
 				if (!BotUtils.isAllEmptyLists(categorizedFilteredAlbums)) {
-					Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist = filterService.mapToTargetPlaylist(categorizedFilteredAlbums, playlistStores);
+					Map<PlaylistStore, List<AlbumTrackPair>> songsByMainPlaylist = filterService.mapToTargetPlaylist(categorizedFilteredAlbums, playlistStores);
+					Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist = filterService.remapIntoExtendedPlaylists(songsByMainPlaylist, playlistStores);
 					playlistSongsService.addAllReleasesToSetPlaylists(songsByPlaylist);
 					playlistInfoService.showNotifiers(songsByPlaylist);
 					return BotUtils.collectSongAdditionResults(songsByPlaylist);

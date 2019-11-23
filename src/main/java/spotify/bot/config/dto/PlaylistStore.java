@@ -41,9 +41,6 @@ public class PlaylistStore {
 
 	@Override
 	public String toString() {
-		return "PlaylistStore [albumGroup=" + albumGroupExtended
-			+ ", playlistId=" + playlistId
-			+ ", lastUpdated=" + lastUpdate
-			+ "]";
+		return String.format("PS<%s>", albumGroupExtended.toString());
 	}
 }

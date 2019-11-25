@@ -48,18 +48,12 @@ public class UserInfoService {
 	 */
 	public List<String> getFollowedArtistsIds() throws IOException, SQLException, SpotifyWebApiException, InterruptedException {
 		// Try to fetch from cache first
-		List<String> cachedArtists = databaseService.getArtistCache();
-		BotUtils.removeNullStrings(cachedArtists);
-		if (cachedArtists != null && !cachedArtists.isEmpty()) {
-			Date lastUpdatedArtistCache = config.getBotConfig().getArtistCacheLastUpdated();
-			if (lastUpdatedArtistCache != null) {
-				int artistCacheTimeout = config.getBotConfig().getArtistCacheTimeout();
-				if (BotUtils.isTimeoutActive(lastUpdatedArtistCache, artistCacheTimeout)) {
-					return cachedArtists;
-				}
-			}
+		boolean cache = config.getUserOptions().isCacheFollowedArtists();
+		List<String> cachedArtists = null;
+		if (cache) {
+			cachedArtists = getCachedArtists();			
 		}
-
+		
 		// If cache is outdated, fetch fresh dataset and update cache
 		List<Artist> followedArtists = SpotifyCall.executePaging(spotifyApi
 			.getUsersFollowedArtists(ModelObjectType.ARTIST)
@@ -69,7 +63,24 @@ public class UserInfoService {
 		if (followedArtistIds.isEmpty()) {
 			log.warning("No followed artists found!");
 		}
-		databaseService.updateFollowedArtistsCacheAsync(followedArtistIds, cachedArtists);
+		if (cache) {
+			databaseService.updateFollowedArtistsCacheAsync(followedArtistIds, cachedArtists);
+		}
 		return followedArtistIds;
+	}
+	
+	private List<String> getCachedArtists() throws IOException, SQLException {
+		List<String> cachedArtists = databaseService.getArtistCache();
+		BotUtils.removeNullStrings(cachedArtists);
+		if (cachedArtists != null && !cachedArtists.isEmpty()) {
+			Date lastUpdatedArtistCache = config.getStaticConfig().getArtistCacheLastUpdated();
+			if (lastUpdatedArtistCache != null) {
+				int artistCacheTimeout = config.getStaticConfig().getArtistCacheTimeout();
+				if (BotUtils.isTimeoutActive(lastUpdatedArtistCache, artistCacheTimeout)) {
+					return cachedArtists;
+				}
+			}
+		}
+		return null;
 	}
 }

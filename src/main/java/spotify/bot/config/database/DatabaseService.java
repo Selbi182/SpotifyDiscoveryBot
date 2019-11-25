@@ -17,9 +17,10 @@ import org.springframework.stereotype.Service;
 import com.neovisionaries.i18n.CountryCode;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
-import spotify.bot.config.dto.BotConfigDTO;
 import spotify.bot.config.dto.PlaylistStore;
-import spotify.bot.config.dto.UserConfigDTO;
+import spotify.bot.config.dto.SpotifyApiConfig;
+import spotify.bot.config.dto.StaticConfig;
+import spotify.bot.config.dto.UserOptions;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -46,8 +47,8 @@ public class DatabaseService {
 	 * @throws SQLException
 	 */
 	public void updateTokens(String accessToken, String refreshToken) throws SQLException {
-		database.update(DBConstants.TABLE_USER_CONFIG, DBConstants.COL_ACCESS_TOKEN, accessToken);
-		database.update(DBConstants.TABLE_USER_CONFIG, DBConstants.COL_REFRESH_TOKEN, refreshToken);
+		database.update(DBConstants.TABLE_SPOTIFY_API, DBConstants.COL_ACCESS_TOKEN, accessToken);
+		database.update(DBConstants.TABLE_SPOTIFY_API, DBConstants.COL_REFRESH_TOKEN, refreshToken);
 	}
 
 	////////////////////////
@@ -61,9 +62,9 @@ public class DatabaseService {
 	 */
 	public List<String> getAlbumCache() throws SQLException {
 		List<String> albumCacheIds = new ArrayList<>();
-		ResultSet rs = database.selectAll(DBConstants.TABLE_ALBUM_CACHE);
+		ResultSet rs = database.selectAll(DBConstants.TABLE_CACHE_RELEASES);
 		while (rs.next()) {
-			albumCacheIds.add(rs.getString(DBConstants.COL_ALBUM_IDS));
+			albumCacheIds.add(rs.getString(DBConstants.COL_ID));
 		}
 		return albumCacheIds;
 	}
@@ -76,36 +77,45 @@ public class DatabaseService {
 	 * @throws SQLException
 	 */
 	public List<String> getArtistCache() throws IOException, SQLException {
-		ResultSet rs = database.selectAll(DBConstants.TABLE_ARTIST_CACHE);
+		ResultSet rs = database.selectAll(DBConstants.TABLE_CACHE_ARTISTS);
 		List<String> cachedArtists = new ArrayList<>();
 		while (rs.next()) {
-			cachedArtists.add(rs.getString(DBConstants.COL_ARTIST_IDS));
+			cachedArtists.add(rs.getString(DBConstants.COL_ID));
 		}
 		return cachedArtists;
 	}
 
-	public BotConfigDTO getBotConfig() throws SQLException, IOException {
-		ResultSet dbBotConfig = database.selectSingle(DBConstants.TABLE_BOT_CONFIG);
-		BotConfigDTO botConfigDto = new BotConfigDTO();
-		botConfigDto.setClientId(dbBotConfig.getString(DBConstants.COL_CLIENT_ID));
-		botConfigDto.setClientSecret(dbBotConfig.getString(DBConstants.COL_CLIENT_SECRET));
-		botConfigDto.setCallbackUri(dbBotConfig.getString(DBConstants.COL_CALLBACK_URI));
-		botConfigDto.setNewNotificationTimeout(dbBotConfig.getInt(DBConstants.COL_NEW_NOTIFICATION_TIMEOUT));
-		botConfigDto.setArtistCacheTimeout(dbBotConfig.getInt(DBConstants.COL_ARTIST_CACHE_TIMEOUT));
-		botConfigDto.setArtistCacheLastUpdated(dbBotConfig.getDate(DBConstants.COL_ARTIST_CACHE_LAST_UPDATE));
-		return botConfigDto;
+	public SpotifyApiConfig getSpotifyApiConfig() throws SQLException, IOException {
+		ResultSet db = database.selectSingle(DBConstants.TABLE_SPOTIFY_API);
+		SpotifyApiConfig spotifyApiConfig = new SpotifyApiConfig();
+		spotifyApiConfig.setClientId(db.getString(DBConstants.COL_CLIENT_ID));
+		spotifyApiConfig.setClientSecret(db.getString(DBConstants.COL_CLIENT_SECRET));
+		spotifyApiConfig.setCallbackUri(db.getString(DBConstants.COL_CALLBACK_URI));
+		spotifyApiConfig.setAccessToken(db.getString(DBConstants.COL_ACCESS_TOKEN));
+		spotifyApiConfig.setRefreshToken(db.getString(DBConstants.COL_REFRESH_TOKEN));
+		return spotifyApiConfig;
 	}
-
-	public UserConfigDTO getUserConfig() throws SQLException, IOException {
-		ResultSet dbUserConfig = database.selectSingle(DBConstants.TABLE_USER_CONFIG);
-		UserConfigDTO userConfigDTO = new UserConfigDTO();
-		userConfigDTO.setAccessToken(dbUserConfig.getString(DBConstants.COL_ACCESS_TOKEN));
-		userConfigDTO.setRefreshToken(dbUserConfig.getString(DBConstants.COL_REFRESH_TOKEN));
-		userConfigDTO.setIntelligentAppearsOnSearch(dbUserConfig.getBoolean(DBConstants.COL_INTELLIGENT_APPEARS_ON_SEARCH));
-		userConfigDTO.setMarket(CountryCode.valueOf(dbUserConfig.getString(DBConstants.COL_MARKET)));
-		userConfigDTO.setLookbackDays(dbUserConfig.getInt(DBConstants.COL_LOOKBACK_DAYS));
-		userConfigDTO.setCircularPlaylistFitting(dbUserConfig.getBoolean(DBConstants.COL_CIRCULAR_PLAYLIST_FITTING));
-		return userConfigDTO;
+	
+	public StaticConfig getStaticConfig() throws SQLException, IOException {
+		ResultSet db = database.selectSingle(DBConstants.TABLE_CONFIG_STATIC);
+		StaticConfig staticConfig = new StaticConfig();
+		staticConfig.setMarket(CountryCode.valueOf(db.getString(DBConstants.COL_MARKET)));
+		staticConfig.setLookbackDays(db.getInt(DBConstants.COL_LOOKBACK_DAYS));
+		staticConfig.setNewNotificationTimeout(db.getInt(DBConstants.COL_NEW_NOTIFICATION_TIMEOUT));
+		staticConfig.setArtistCacheTimeout(db.getInt(DBConstants.COL_ARTIST_CACHE_TIMEOUT));
+		staticConfig.setArtistCacheLastUpdated(db.getDate(DBConstants.COL_ARTIST_CACHE_LAST_UPDATE));
+		return staticConfig;
+	}
+	
+	public UserOptions getUserConfig() throws SQLException, IOException {
+		ResultSet db = database.selectSingle(DBConstants.TABLE_CONFIG_USER_OPTIONS);
+		UserOptions userOptions = new UserOptions();
+		userOptions.setCacheFollowedArtists(db.getBoolean(DBConstants.COL_CACHE_FOLLOWED_ARTISTS));
+		userOptions.setIntelligentAppearsOnSearch(db.getBoolean(DBConstants.COL_INTELLIGENT_APPEARS_ON_SEARCH));
+		userOptions.setCircularPlaylistFitting(db.getBoolean(DBConstants.COL_CIRCULAR_PLAYLIST_FITTING));
+		userOptions.setEpSeparation(db.getBoolean(DBConstants.COL_EP_SEPARATION));
+		userOptions.setLiveSeparation(db.getBoolean(DBConstants.COL_LIVE_SEPARATION));
+		return userOptions;
 	}
 
 	public Map<AlbumGroupExtended, PlaylistStore> getAllPlaylistStores() throws SQLException {
@@ -167,7 +177,7 @@ public class DatabaseService {
 			public void run() {
 				List<String> albumIds = albumsSimplified.stream().map(AlbumSimplified::getId).collect(Collectors.toList());
 				try {
-					database.insertAll(albumIds, DBConstants.TABLE_ALBUM_CACHE, DBConstants.COL_ALBUM_IDS);
+					database.insertAll(albumIds, DBConstants.TABLE_CACHE_RELEASES, DBConstants.COL_ID);
 				} catch (SQLException e) {
 					log.stackTrace(e);
 				}
@@ -190,17 +200,18 @@ public class DatabaseService {
 			public void run() {
 				try {
 					if (cachedArtists == null || cachedArtists.isEmpty()) {
-						database.insertAll(followedArtists, DBConstants.TABLE_ARTIST_CACHE, DBConstants.COL_ARTIST_IDS);
+						database.insertAll(followedArtists, DBConstants.TABLE_CACHE_ARTISTS, DBConstants.COL_ID);
 					} else {
 						Set<String> addedArtists = new HashSet<>(followedArtists);
-						addedArtists.removeAll(cachedArtists);
+						addedArtists.removeAll(cachedArtists);						
 						if (!addedArtists.isEmpty()) {
-							database.insertAll(addedArtists, DBConstants.TABLE_ARTIST_CACHE, DBConstants.COL_ARTIST_IDS);
+							database.insertAll(addedArtists, DBConstants.TABLE_CACHE_ARTISTS, DBConstants.COL_ID);
+							log.info("New followed artists:");
 						}
 						Set<String> removedArtists = new HashSet<>(cachedArtists);
 						removedArtists.removeAll(followedArtists);
 						if (!removedArtists.isEmpty()) {
-							database.deleteAll(removedArtists, DBConstants.TABLE_ARTIST_CACHE, DBConstants.COL_ARTIST_IDS);
+							database.deleteAll(removedArtists, DBConstants.TABLE_CACHE_ARTISTS, DBConstants.COL_ID);
 						}
 					}
 					refreshArtistCacheLastUpdate();
@@ -220,7 +231,7 @@ public class DatabaseService {
 	 * @throws SQLException
 	 */
 	private synchronized void refreshArtistCacheLastUpdate() throws SQLException {
-		database.update(DBConstants.TABLE_BOT_CONFIG,
+		database.update(DBConstants.TABLE_CONFIG_STATIC,
 			DBConstants.COL_ARTIST_CACHE_LAST_UPDATE,
 			String.valueOf(BotUtils.currentTime()));
 	}

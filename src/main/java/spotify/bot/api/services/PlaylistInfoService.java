@@ -157,7 +157,7 @@ public class PlaylistInfoService {
 		}
 
 		// Timeout after a certain number of hours since the playlist was last updated
-		int newNotificationTimeout = config.getBotConfig().getNewNotificationTimeout();
+		int newNotificationTimeout = config.getStaticConfig().getNewNotificationTimeout();
 		if (!BotUtils.isTimeoutActive(lastUpdated, newNotificationTimeout)) {
 			return true;
 		}

@@ -148,7 +148,7 @@ public class FilterService {
 	 */
 	public List<AlbumSimplified> filterNewAlbumsOnly(List<AlbumSimplified> unfilteredAlbums) throws SQLException, IOException {
 		Collection<AlbumSimplified> noDuplicates = filterDuplicateAlbums(unfilteredAlbums);
-		int lookbackDays = config.getUserConfig().getLookbackDays();
+		int lookbackDays = config.getStaticConfig().getLookbackDays();
 		LocalDate lowerReleaseDateBoundary = LocalDate.now().minusDays(lookbackDays);
 		List<AlbumSimplified> filteredAlbums = noDuplicates.stream().filter(as -> isValidDate(as, lowerReleaseDateBoundary)).collect(Collectors.toList());
 		log.printAlbumDifference(noDuplicates, filteredAlbums,
@@ -220,7 +220,7 @@ public class FilterService {
 	 * @throws SQLException
 	 */
 	public void intelligentAppearsOnSearch(Map<AlbumGroup, List<AlbumTrackPair>> categorizedFilteredAlbums, List<String> followedArtists) throws SQLException, IOException {
-		if (config.getUserConfig().isIntelligentAppearsOnSearch()) {
+		if (config.getUserOptions().isIntelligentAppearsOnSearch()) {
 			List<AlbumTrackPair> unfilteredAppearsOnAlbums = categorizedFilteredAlbums.get(AlbumGroup.APPEARS_ON);
 			if (!unfilteredAppearsOnAlbums.isEmpty()) {
 				// Preprocess into HashSet to speed up contains() operations
@@ -309,16 +309,18 @@ public class FilterService {
 	 * @param playlistStores
 	 * @return
 	 * @throws SQLException
+	 * @throws IOException 
 	 */
-	public Map<PlaylistStore, List<AlbumTrackPair>> remapIntoExtendedPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPS, Collection<PlaylistStore> playlistStores) throws SQLException {
+	public Map<PlaylistStore, List<AlbumTrackPair>> remapIntoExtendedPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPS, Collection<PlaylistStore> playlistStores) throws SQLException, IOException {
 		Map<PlaylistStore, List<AlbumTrackPair>> regroupedMap = new HashMap<>(songsByPS);
-
-		PlaylistStore psEp = config.getPlaylistStore(AlbumGroupExtended.EP);
-		remapEPs(psEp, regroupedMap);
-
-		PlaylistStore psLive = config.getPlaylistStore(AlbumGroupExtended.LIVE);
-		remapLive(psLive, regroupedMap);
-
+		if (config.getUserOptions().isEpSeparation()) {
+			PlaylistStore psEp = config.getPlaylistStore(AlbumGroupExtended.EP);
+			remapEPs(psEp, regroupedMap);			
+		}
+		if (config.getUserOptions().isLiveSeparation()) {
+			PlaylistStore psLive = config.getPlaylistStore(AlbumGroupExtended.LIVE);
+			remapLive(psLive, regroupedMap);			
+		}
 		return regroupedMap;
 	}
 

@@ -104,7 +104,7 @@ public class PlaylistSongsService {
 
 		final int currentPlaylistCount = p.getTracks().getTotal();
 		if (currentPlaylistCount + songsToAddCount > PLAYLIST_SIZE_LIMIT) {
-			if (!config.getUserConfig().isCircularPlaylistFitting()) {
+			if (!config.getUserOptions().isCircularPlaylistFitting()) {
 				log.error(p.getName() + " is full! Maximum capacity is " + PLAYLIST_SIZE_LIMIT + ". Enable circularPlaylistFitting or flush the playlist for new songs.");
 				return;
 			}

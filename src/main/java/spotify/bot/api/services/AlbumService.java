@@ -95,7 +95,7 @@ public class AlbumService {
 	private List<AlbumSimplified> getAlbumIdsOfSingleArtist(String artistId, String albumGroups) throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
 		List<AlbumSimplified> albumsOfCurrentArtist = SpotifyCall.executePaging(spotifyApi
 			.getArtistsAlbums(artistId)
-			.market(config.getUserConfig().getMarket())
+			.market(config.getStaticConfig().getMarket())
 			.limit(MAX_ALBUM_FETCH_LIMIT)
 			.album_type(albumGroups));
 		return albumsOfCurrentArtist;

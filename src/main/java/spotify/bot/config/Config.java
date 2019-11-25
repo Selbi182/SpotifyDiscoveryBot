@@ -15,9 +15,10 @@ import org.springframework.context.annotation.Configuration;
 import com.wrapper.spotify.enums.AlbumGroup;
 
 import spotify.bot.config.database.DatabaseService;
-import spotify.bot.config.dto.BotConfigDTO;
 import spotify.bot.config.dto.PlaylistStore;
-import spotify.bot.config.dto.UserConfigDTO;
+import spotify.bot.config.dto.SpotifyApiConfig;
+import spotify.bot.config.dto.StaticConfig;
+import spotify.bot.config.dto.UserOptions;
 import spotify.bot.util.data.AlbumGroupExtended;
 
 @Configuration
@@ -26,20 +27,20 @@ public class Config {
 	@Autowired
 	private DatabaseService databaseService;
 
-	private BotConfigDTO botConfig;
-	private UserConfigDTO userConfig;
+	private SpotifyApiConfig spotifyApiConfig;
+	private StaticConfig staticConfig;
+	private UserOptions userOptions;
 	private Map<AlbumGroupExtended, PlaylistStore> playlistStoreMap;
 
 	/**
 	 * Sets up or refreshes the configuration for the Spotify bot from the database
 	 * 
-	 * @throws IOException
 	 * @throws SQLException
 	 */
 	@PostConstruct
 	private void init() throws SQLException, IOException {
-		this.botConfig = getBotConfig();
-		this.userConfig = getUserConfig();
+		this.spotifyApiConfig = getSpotifyApiConfig();
+		this.userOptions = getUserOptions();
 		this.playlistStoreMap = getPlaylistStoreMap();
 	}
 
@@ -53,8 +54,8 @@ public class Config {
 	 * @throws SQLException
 	 */
 	public void updateTokens(String accessToken, String refreshToken) throws IOException, SQLException {
-		userConfig.setAccessToken(accessToken);
-		userConfig.setRefreshToken(refreshToken);
+		spotifyApiConfig.setAccessToken(accessToken);
+		spotifyApiConfig.setRefreshToken(refreshToken);
 		databaseService.updateTokens(accessToken, refreshToken);
 	}
 
@@ -68,13 +69,28 @@ public class Config {
 	 * @throws SQLException
 	 * @throws IOException
 	 */
-	public BotConfigDTO getBotConfig() throws SQLException, IOException {
-		if (botConfig == null) {
-			botConfig = databaseService.getBotConfig();
+	public SpotifyApiConfig getSpotifyApiConfig() throws SQLException, IOException {
+		if (spotifyApiConfig == null) {
+			spotifyApiConfig = databaseService.getSpotifyApiConfig();
 		}
-		return botConfig;
+		return spotifyApiConfig;
 	}
 
+	/**
+	 * Retuns the bot configuration. May be created if not present.
+	 * 
+	 * @return
+	 * @throws SQLException
+	 * @throws IOException
+	 */
+	public StaticConfig getStaticConfig() throws SQLException, IOException {
+		if (staticConfig == null) {
+			staticConfig = databaseService.getStaticConfig();
+		}
+		return staticConfig;
+	}
+
+	
 	/**
 	 * Returns the user configuration. May be created if not present.
 	 * 
@@ -82,11 +98,11 @@ public class Config {
 	 * @throws SQLException
 	 * @throws IOException
 	 */
-	public UserConfigDTO getUserConfig() throws SQLException, IOException {
-		if (userConfig == null) {
-			userConfig = databaseService.getUserConfig();
+	public UserOptions getUserOptions() throws SQLException, IOException {
+		if (userOptions == null) {
+			userOptions = databaseService.getUserConfig();
 		}
-		return userConfig;
+		return userOptions;
 	}
 
 	/**

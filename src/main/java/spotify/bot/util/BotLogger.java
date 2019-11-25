@@ -70,7 +70,7 @@ public class BotLogger {
 		}
 		log.error(stringWriter.toString());
 	}
-
+	
 	public void printAlbumDifference(Collection<AlbumSimplified> base, Collection<AlbumSimplified> subtrahend, String logDescription) {
 		Set<AlbumSimplified> differenceView = new HashSet<>(base);
 		differenceView.removeAll(subtrahend);

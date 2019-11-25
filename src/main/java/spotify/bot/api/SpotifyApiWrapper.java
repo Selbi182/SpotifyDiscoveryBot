@@ -33,12 +33,12 @@ public class SpotifyApiWrapper {
 	@Bean
 	SpotifyApi spotifyApi() throws SpotifyWebApiException, InterruptedException, IOException, SQLException {
 		SpotifyApi spotifyApi = new SpotifyApi.Builder()
-			.setClientId(config.getBotConfig().getClientId())
-			.setClientSecret(config.getBotConfig().getClientSecret())
-			.setRedirectUri(SpotifyHttpManager.makeUri(config.getBotConfig().getCallbackUri()))
+			.setClientId(config.getSpotifyApiConfig().getClientId())
+			.setClientSecret(config.getSpotifyApiConfig().getClientSecret())
+			.setRedirectUri(SpotifyHttpManager.makeUri(config.getSpotifyApiConfig().getCallbackUri()))
 			.build();
-		spotifyApi.setAccessToken(config.getUserConfig().getAccessToken());
-		spotifyApi.setRefreshToken(config.getUserConfig().getRefreshToken());
+		spotifyApi.setAccessToken(config.getSpotifyApiConfig().getAccessToken());
+		spotifyApi.setRefreshToken(config.getSpotifyApiConfig().getRefreshToken());
 		return spotifyApi;
 	}
 }

@@ -26,9 +26,9 @@ import spotify.bot.util.data.AlbumGroupExtended;
 public class CrawlScheduler {
 
 	/**
-	 * Cron job representing "at every 10th second after every 20 minutes".
+	 * Cron job representing "at every 10th second after every 30 minutes".
 	 */
-	private final static String CRAWL_CRON = "10 */20 * * * *";
+	private final static String CRAWL_CRON = "10 */30 * * * *";
 
 	/**
 	 * Cron job representing "every 10 seconds starting at the 5th second of a

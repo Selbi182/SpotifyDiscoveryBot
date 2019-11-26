@@ -8,9 +8,11 @@ import java.util.List;
 import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.exceptions.detailed.BadGatewayException;
 import com.wrapper.spotify.exceptions.detailed.InternalServerErrorException;
+import com.wrapper.spotify.exceptions.detailed.ServiceUnavailableException;
 import com.wrapper.spotify.exceptions.detailed.TooManyRequestsException;
 import com.wrapper.spotify.model_objects.specification.Paging;
 import com.wrapper.spotify.model_objects.specification.PagingCursorbased;
+import com.wrapper.spotify.requests.AbstractRequest;
 import com.wrapper.spotify.requests.IRequest;
 import com.wrapper.spotify.requests.data.IPagingCursorbasedRequestBuilder;
 import com.wrapper.spotify.requests.data.IPagingRequestBuilder;
@@ -48,11 +50,13 @@ public class SpotifyCall {
 	 */
 	public static <T, BT> T execute(IRequest.Builder<T, BT> requestBuilder) throws SpotifyWebApiException, IOException, InterruptedException {
 		try {
-			return requestBuilder.build().execute();
+			AbstractRequest<T> builtRequest = requestBuilder.build();
+			T result = builtRequest.execute();
+			return result;
 		} catch (TooManyRequestsException e) {
 			int timeout = e.getRetryAfter() + 1;
 			Thread.sleep(timeout * RETRY_TIMEOUT_4XX);
-		} catch (InternalServerErrorException | BadGatewayException e) {
+		} catch (InternalServerErrorException | BadGatewayException | ServiceUnavailableException e) {
 			Thread.sleep(RETRY_TIMEOUT_5XX);
 		}
 		return execute(requestBuilder);

@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.Map;
 import java.util.StringJoiner;
 
 import com.wrapper.spotify.enums.AlbumGroup;
+import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
 import spotify.bot.config.dto.PlaylistStore;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -19,6 +21,16 @@ import spotify.bot.util.data.AlbumTrackPair;
 
 public final class BotUtils {
 
+	/**
+	 * A comparator for {@link AlbumSimplified} following the order:
+	 * Album Group > (first) Artist > Release Date > Release Name
+	 */
+	public final static Comparator<AlbumSimplified> ALBUM_SIMPLIFIED_COMPARATOR = 
+		Comparator.comparing(AlbumSimplified::getAlbumGroup)
+			.thenComparing(as -> as.getArtists()[0].getName())
+			.thenComparing(AlbumSimplified::getReleaseDate)
+			.thenComparing(AlbumSimplified::getName);
+	
 	/**
 	 * Utility class
 	 */

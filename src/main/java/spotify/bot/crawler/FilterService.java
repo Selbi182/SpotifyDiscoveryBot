@@ -243,7 +243,7 @@ public class FilterService {
 				}
 
 				// Finalize
-				log.printATPDifference(unfilteredAppearsOnAlbums, filteredAppearsOnAlbums,
+				log.printAlbumTrackPairDifference(unfilteredAppearsOnAlbums, filteredAppearsOnAlbums,
 					String.format("Dropped %d APPEARS_ON release[s]:", unfilteredAppearsOnAlbums.size() - filteredAppearsOnAlbums.size()));
 				categorizedFilteredAlbums.put(AlbumGroup.APPEARS_ON, filteredAppearsOnAlbums);
 			}

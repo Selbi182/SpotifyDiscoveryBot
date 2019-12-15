@@ -6,6 +6,7 @@ import java.io.StringWriter;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -20,13 +21,12 @@ import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import spotify.bot.util.data.AlbumTrackPair;
 
 @Service
-public class BotLogger {
+public class BotLogger {	
 	private Logger log;
 
 	@PostConstruct
 	private void init() throws SecurityException, IOException {
 		this.log = LoggerFactory.getLogger(BotLogger.class);
-
 	}
 
 	/**
@@ -70,20 +70,13 @@ public class BotLogger {
 		}
 		log.error(stringWriter.toString());
 	}
-	
-	public void printAlbumDifference(Collection<AlbumSimplified> base, Collection<AlbumSimplified> subtrahend, String logDescription) {
-		Set<AlbumSimplified> differenceView = new HashSet<>(base);
-		differenceView.removeAll(subtrahend);
-		if (!differenceView.isEmpty()) {
-			if (logDescription != null) {
-				info(logDescription);
-			}
-			for (AlbumSimplified as : differenceView) {
-				info(prettyAlbumSimplified(as));
-			}
-		}
-	}
 
+	/**
+	 * Build a readable String for AlbumSimplified
+	 * 
+	 * @param as
+	 * @return
+	 */
 	public String prettyAlbumSimplified(AlbumSimplified as) {
 		return String.format("[%s] %s - %s (%s)",
 			as.getAlbumGroup().toString(),
@@ -91,8 +84,40 @@ public class BotLogger {
 			as.getName(),
 			as.getReleaseDate());
 	}
+	
+	/**
+	 * Log all releases in base which aren't in subtrahend
+	 * 
+	 * @param base
+	 * @param subtrahend
+	 * @param logDescription
+	 */
+	public void printAlbumDifference(Collection<AlbumSimplified> base, Collection<AlbumSimplified> subtrahend, String logDescription) {
+		Set<AlbumSimplified> differenceView = new HashSet<>(base);
+		differenceView.removeAll(subtrahend);
+		if (!differenceView.isEmpty()) {
+			if (logDescription != null) {
+				info(logDescription);
+			}
+			List<AlbumSimplified> sortedDifferenceView = differenceView
+				.stream()
+				.sorted(BotUtils.ALBUM_SIMPLIFIED_COMPARATOR)
+				.collect(Collectors.toList());
+			for (AlbumSimplified as : sortedDifferenceView) {
+				info(prettyAlbumSimplified(as));
+			}
+		}
+	}
 
-	public void printATPDifference(Collection<AlbumTrackPair> unfilteredAppearsOnAlbums, Collection<AlbumTrackPair> filteredAppearsOnAlbums, String logDescription) {
+
+	/**
+	 * Same as {@link BotLogger#printAlbumDifference} but for AlbumTrackPairs
+	 * 
+	 * @param unfilteredAppearsOnAlbums
+	 * @param filteredAppearsOnAlbums
+	 * @param logDescription
+	 */
+	public void printAlbumTrackPairDifference(Collection<AlbumTrackPair> unfilteredAppearsOnAlbums, Collection<AlbumTrackPair> filteredAppearsOnAlbums, String logDescription) {
 		printAlbumDifference(
 			unfilteredAppearsOnAlbums.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList()),
 			filteredAppearsOnAlbums.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList()),

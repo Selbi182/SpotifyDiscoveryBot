@@ -27,7 +27,7 @@ class DBConstants {
 	public final static String COL_ALBUM_GROUP = "album_group";
 	public final static String COL_PLAYLIST_ID = "playlist_id";
 	public final static String COL_LAST_UPDATE = "last_update";
-	
+
 	public final static String TABLE_SPOTIFY_API = "spotify_api";
 	public final static String COL_CLIENT_ID = "client_id";
 	public final static String COL_CLIENT_SECRET = "client_secret";

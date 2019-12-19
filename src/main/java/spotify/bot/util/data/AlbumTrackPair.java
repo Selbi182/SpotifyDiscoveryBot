@@ -53,4 +53,17 @@ public class AlbumTrackPair implements Comparable<AlbumTrackPair>, Comparator<Al
 	public int compareTo(AlbumTrackPair o) {
 		return compare(this, o);
 	}
+
+	@Override
+	public String toString() {
+		if (album == null || tracks == null) {
+			return super.toString();
+		}
+		return String.format("[%s] %s - %s (%s) <%d>",
+			album.getAlbumGroup().toString(),
+			album.getArtists()[0].getName(),
+			album.getName(),
+			album.getReleaseDate(),
+			tracks.size());
+	}
 }

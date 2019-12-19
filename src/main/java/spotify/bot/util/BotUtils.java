@@ -22,15 +22,14 @@ import spotify.bot.util.data.AlbumTrackPair;
 public final class BotUtils {
 
 	/**
-	 * A comparator for {@link AlbumSimplified} following the order:
-	 * Album Group > (first) Artist > Release Date > Release Name
+	 * A comparator for {@link AlbumSimplified} following the order: Album Group >
+	 * (first) Artist > Release Date > Release Name
 	 */
-	public final static Comparator<AlbumSimplified> ALBUM_SIMPLIFIED_COMPARATOR = 
-		Comparator.comparing(AlbumSimplified::getAlbumGroup)
-			.thenComparing(as -> as.getArtists()[0].getName())
-			.thenComparing(AlbumSimplified::getReleaseDate)
-			.thenComparing(AlbumSimplified::getName);
-	
+	public final static Comparator<AlbumSimplified> ALBUM_SIMPLIFIED_COMPARATOR = Comparator.comparing(AlbumSimplified::getAlbumGroup)
+		.thenComparing(as -> as.getArtists()[0].getName())
+		.thenComparing(AlbumSimplified::getReleaseDate)
+		.thenComparing(AlbumSimplified::getName);
+
 	/**
 	 * Utility class
 	 */

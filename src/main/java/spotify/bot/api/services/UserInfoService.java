@@ -51,9 +51,9 @@ public class UserInfoService {
 		boolean cache = config.getUserOptions().isCacheFollowedArtists();
 		List<String> cachedArtists = null;
 		if (cache) {
-			cachedArtists = getCachedArtists();			
+			cachedArtists = getCachedArtists();
 		}
-		
+
 		// If cache is outdated, fetch fresh dataset and update cache
 		List<Artist> followedArtists = SpotifyCall.executePaging(spotifyApi
 			.getUsersFollowedArtists(ModelObjectType.ARTIST)
@@ -68,7 +68,7 @@ public class UserInfoService {
 		}
 		return followedArtistIds;
 	}
-	
+
 	private List<String> getCachedArtists() throws IOException, SQLException {
 		List<String> cachedArtists = databaseService.getArtistCache();
 		BotUtils.removeNullStrings(cachedArtists);

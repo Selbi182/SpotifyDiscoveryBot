@@ -309,17 +309,18 @@ public class FilterService {
 	 * @param playlistStores
 	 * @return
 	 * @throws SQLException
-	 * @throws IOException 
+	 * @throws IOException
 	 */
-	public Map<PlaylistStore, List<AlbumTrackPair>> remapIntoExtendedPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPS, Collection<PlaylistStore> playlistStores) throws SQLException, IOException {
+	public Map<PlaylistStore, List<AlbumTrackPair>> remapIntoExtendedPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPS, Collection<PlaylistStore> playlistStores)
+		throws SQLException, IOException {
 		Map<PlaylistStore, List<AlbumTrackPair>> regroupedMap = new HashMap<>(songsByPS);
 		if (config.getUserOptions().isEpSeparation()) {
 			PlaylistStore psEp = config.getPlaylistStore(AlbumGroupExtended.EP);
-			remapEPs(psEp, regroupedMap);			
+			remapEPs(psEp, regroupedMap);
 		}
 		if (config.getUserOptions().isLiveSeparation()) {
 			PlaylistStore psLive = config.getPlaylistStore(AlbumGroupExtended.LIVE);
-			remapLive(psLive, regroupedMap);			
+			remapLive(psLive, regroupedMap);
 		}
 		return regroupedMap;
 	}

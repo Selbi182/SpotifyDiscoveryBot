@@ -81,7 +81,7 @@ public class CrawlScheduler {
 	 * Periodic task running every 10 seconds to remove the [NEW] indicator where
 	 * applicable. Will only run while crawler is idle.
 	 * 
-	 * @return
+	 * @return a ResponseEntity indicating whether any notifies were cleared
 	 * @throws InterruptedException
 	 * @throws IOException
 	 * @throws SQLException

@@ -95,7 +95,7 @@ public class DatabaseService {
 		spotifyApiConfig.setRefreshToken(db.getString(DBConstants.COL_REFRESH_TOKEN));
 		return spotifyApiConfig;
 	}
-	
+
 	public StaticConfig getStaticConfig() throws SQLException, IOException {
 		ResultSet db = database.selectSingle(DBConstants.TABLE_CONFIG_STATIC);
 		StaticConfig staticConfig = new StaticConfig();
@@ -106,7 +106,7 @@ public class DatabaseService {
 		staticConfig.setArtistCacheLastUpdated(db.getDate(DBConstants.COL_ARTIST_CACHE_LAST_UPDATE));
 		return staticConfig;
 	}
-	
+
 	public UserOptions getUserConfig() throws SQLException, IOException {
 		ResultSet db = database.selectSingle(DBConstants.TABLE_CONFIG_USER_OPTIONS);
 		UserOptions userOptions = new UserOptions();
@@ -203,7 +203,7 @@ public class DatabaseService {
 						database.insertAll(followedArtists, DBConstants.TABLE_CACHE_ARTISTS, DBConstants.COL_ID);
 					} else {
 						Set<String> addedArtists = new HashSet<>(followedArtists);
-						addedArtists.removeAll(cachedArtists);						
+						addedArtists.removeAll(cachedArtists);
 						if (!addedArtists.isEmpty()) {
 							database.insertAll(addedArtists, DBConstants.TABLE_CACHE_ARTISTS, DBConstants.COL_ID);
 							log.info("New followed artists:");

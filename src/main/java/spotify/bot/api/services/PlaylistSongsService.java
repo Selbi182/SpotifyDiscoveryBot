@@ -52,14 +52,15 @@ public class PlaylistSongsService {
 	 * @throws SQLException
 	 * @throws SpotifyWebApiException
 	 */
-	public void addAllReleasesToSetPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylistId)
-		throws SpotifyWebApiException, SQLException, IOException, InterruptedException {
+	public void addAllReleasesToSetPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylistId) throws SpotifyWebApiException, SQLException, IOException, InterruptedException {
+		log.debug("Adding to playlists:");
 		for (Map.Entry<PlaylistStore, List<AlbumTrackPair>> entry : songsByPlaylistId.entrySet()) {
 			String playlistId = entry.getKey().getPlaylistId();
 			List<AlbumTrackPair> albumTrackPairs = entry.getValue();
 			if (!albumTrackPairs.isEmpty()) {
 				Collections.sort(albumTrackPairs);
 				addSongsToPlaylistId(playlistId, albumTrackPairs);
+				log.printAlbumTrackPairs(albumTrackPairs);
 			}
 		}
 	}

@@ -90,7 +90,6 @@ public class Config {
 		return staticConfig;
 	}
 
-	
 	/**
 	 * Returns the user configuration. May be created if not present.
 	 * 

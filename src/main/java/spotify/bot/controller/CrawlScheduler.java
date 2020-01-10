@@ -1,4 +1,4 @@
-package spotify.bot;
+package spotify.bot.controller;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -68,7 +68,7 @@ public class CrawlScheduler {
 		if (!crawler.isReady()) {
 			return new ResponseEntity<>("Crawler isn't ready!", HttpStatus.CONFLICT);
 		}
-		Map<AlbumGroupExtended, Integer> results = crawler.runCrawler();
+		Map<AlbumGroupExtended, Integer> results = crawler.tryCrawl();
 		String response = BotUtils.compileResultString(results);
 		if (response != null) {
 			log.info(response);

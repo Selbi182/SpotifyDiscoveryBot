@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.file.Files;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -16,22 +15,17 @@ import javax.annotation.PostConstruct;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
 import spotify.bot.util.data.AlbumTrackPair;
 
 @Service
-@RestController
 public class BotLogger {
 	private final static String LOG_FILE_PATH = "./spring.log";
 	private final static int DEFAULT_LOG_READ_LINES = 100;
+	private final static int MAX_LINE_LENGTH = 90;
 
 	private Logger log;
 
@@ -47,46 +41,50 @@ public class BotLogger {
 	 * Log a debug message
 	 */
 	public void debug(String message) {
-		log.debug(message);
+		log.debug(truncateToEllipsis(message));
 	}
 
 	/**
 	 * Log an info message
 	 */
 	public void info(String message) {
-		log.info(message);
+		log.info(truncateToEllipsis(message));
 	}
 
 	/**
 	 * Log a warning message
 	 */
 	public void warning(String message) {
-		log.warn(message);
+		log.warn(truncateToEllipsis(message));
 	}
 
 	/**
 	 * Log an error message
 	 */
 	public void error(String message) {
-		log.error(message);
+		log.error(truncateToEllipsis(message));
+	}
+
+	private String truncateToEllipsis(String message) {
+		if (message.length() < MAX_LINE_LENGTH - 3) {
+			return message;
+		}
+		return message.substring(0, message.length() - 3) + "...";
 	}
 
 	///////////////////////
 
 	/**
-	 *
-	 * Displays the contents of the automatically configurated, most recent Spring
-	 * logging file (<code>./spring.log</code>).
+	 * Return the content of the default log file (<code>./spring.log</code>).
 	 * 
 	 * @param limit
 	 *            (optional) maximum number of lines to read from the top of the log
 	 *            (default: 100); Use -1 to read the entire file
-	 * @return a ResponseEntity containing the entire log content as String, or an
-	 *         error
+	 * @return a list of strings representing a line of logging
 	 * @throws IOException
+	 *             on a read error
 	 */
-	@RequestMapping("/log")
-	public ResponseEntity<List<String>> showLog(@RequestParam(value = "limit", required = false) Integer limit) throws IOException {
+	public List<String> readLog(Integer limit) throws IOException {
 		File logFile = new File(LOG_FILE_PATH);
 		if (logFile.exists()) {
 			if (logFile.canRead()) {
@@ -96,12 +94,12 @@ public class BotLogger {
 					limit = Integer.MAX_VALUE;
 				}
 				List<String> logFileLines = Files.lines(logFile.toPath()).limit(limit).collect(Collectors.toList());
-				return new ResponseEntity<List<String>>(logFileLines, HttpStatus.OK);
+				return logFileLines;
 			} else {
-				return new ResponseEntity<List<String>>(Arrays.asList("Log file is currently locked, likely because it is being written to. Try again."), HttpStatus.LOCKED);
+				throw new IOException("Log file is currently locked, likely because it is being written to. Try again.");
 			}
 		} else {
-			return new ResponseEntity<List<String>>(Arrays.asList("Couldn't find log file under expected location " + logFile.getAbsolutePath()), HttpStatus.NOT_FOUND);
+			throw new IOException("Couldn't find log file under expected location " + logFile.getAbsolutePath());
 		}
 	}
 

@@ -5,6 +5,8 @@ import java.awt.HeadlessException;
 import java.io.IOException;
 import java.net.URI;
 import java.sql.SQLException;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -27,6 +29,9 @@ import spotify.bot.util.BotLogger;
 public class SpotifyApiAuthorization {
 
 	private final static String SCOPES = "user-follow-read playlist-modify-private";
+	private final static int BACKOFF_MAX_TRIES = 10;
+	private final static int BACKOFF_TIME_BASE_MS = 1000;
+	private final static int LOGIN_TIMEOUT = 10;
 
 	@Autowired
 	private SpotifyApi spotifyApi;
@@ -45,19 +50,32 @@ public class SpotifyApiAuthorization {
 	 * @throws IOException
 	 */
 	public void login() throws SpotifyWebApiException, InterruptedException, IOException {
+		login(0);
+	}
+
+	private void login(final int retryCount) throws SpotifyWebApiException, IOException, InterruptedException {
 		try {
 			authorizationCodeRefresh();
-		} catch (IOException | SQLException | BadRequestException e) {
-			authenticate();
+		} catch (SpotifyWebApiException | IOException | InterruptedException | SQLException e) {
+			log.stackTrace(e);
+			if (retryCount >= BACKOFF_MAX_TRIES) {
+				log.error(String.format("Failed to refresh authorization token after %d tries. Log in again!", retryCount));
+				authenticate();
+				return;
+			}
+			long timeout = Math.round(Math.pow(2, retryCount));
+			log.error(String.format("Authorization code refresh failed. Retrying in %ds...", timeout));
+			Thread.sleep(BACKOFF_TIME_BASE_MS * timeout);
+			login(retryCount + 1);
 		}
 	}
 
-	/**
-	 * Log-in lock
-	 */
-	private static Object lock = new Object();
-
 	///////////////////////
+
+	/**
+	 * Authentication mutex to be used while the user is being prompted to log in
+	 */
+	private static Semaphore lock = new Semaphore(0);
 
 	/**
 	 * Authentication process
@@ -75,11 +93,13 @@ public class SpotifyApiAuthorization {
 			}
 			Desktop.getDesktop().browse(uri);
 		} catch (IOException | HeadlessException e) {
-			log.warning("Couldn't open browser window. Plase login at this URL:");
-			log.warning(uri.toString());
+			log.warning("Couldn't open browser window. Please login at this URL:");
+			System.out.println(uri.toString());
 		}
-		synchronized (lock) {
-			lock.wait();
+		boolean loggedIn = lock.tryAcquire(LOGIN_TIMEOUT, TimeUnit.MINUTES);
+		if (!loggedIn) {
+			log.error("Login timeout! Shutting down application in case of a Spotify Web API anomaly.!");
+			System.exit(1);
 		}
 	}
 
@@ -98,14 +118,14 @@ public class SpotifyApiAuthorization {
 		try {
 			AuthorizationCodeCredentials acc = SpotifyCall.execute(spotifyApi.authorizationCode(code));
 			updateTokens(acc);
-			synchronized (lock) {
-				lock.notify();
-			}
+			lock.release();
 			return new ResponseEntity<String>("Successfully logged in!", HttpStatus.OK);
 		} catch (BadRequestException e) {
 			return new ResponseEntity<String>("Response code is invalid!", HttpStatus.BAD_REQUEST);
 		}
 	}
+
+	///////////////////////
 
 	/**
 	 * Refresh the access token

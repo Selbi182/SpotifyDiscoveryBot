@@ -153,7 +153,7 @@ public class PlaylistInfoService {
 	private boolean shouldIndicatorBeMarkedAsRead(PlaylistStore playlistStore) throws IOException, Exception {
 		Date lastUpdated = playlistStore.getLastUpdate();
 		if (lastUpdated == null) {
-			return false;
+			return true;
 		}
 
 		// Timeout after a certain number of hours since the playlist was last updated

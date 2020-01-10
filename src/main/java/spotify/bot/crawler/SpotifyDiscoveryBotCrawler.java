@@ -5,8 +5,7 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-
-import javax.annotation.PostConstruct;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -33,8 +32,6 @@ import spotify.bot.util.data.AlbumTrackPair;
 
 @Component
 public class SpotifyDiscoveryBotCrawler {
-
-	private boolean ready;
 
 	@Autowired
 	private SpotifyApiAuthorization spotifyApiAuthorization;
@@ -64,33 +61,63 @@ public class SpotifyDiscoveryBotCrawler {
 	private FilterService filterService;
 
 	/**
-	 * Set the initial ready-state to false
+	 * Lock controlling the local single-crawl behavior
 	 */
-	@PostConstruct
-	private void init() {
-		setReady(false);
+	private ReentrantLock lock;
+
+	/**
+	 * Indicate whether or not the crawler is currently available
+	 * 
+	 * @return true if the lock exists and is not locked
+	 */
+	public boolean isReady() {
+		return lock != null && !lock.isLocked();
 	}
 
 	/**
-	 * Run the Spotify New Discovery crawler!
+	 * Run the Spotify New Discovery crawler if it's ready. Lock it if so.
 	 * 
-	 * @return a result map containing the number of added songs by album type
+	 * @return a result map containing the number of added songs by album type, null
+	 *         if lock wasn't available
 	 * @throws IOException
 	 * @throws InterruptedException
 	 * @throws SpotifyWebApiException
 	 * @throws SQLException
 	 */
-	public Map<AlbumGroupExtended, Integer> runCrawler() throws SpotifyWebApiException, InterruptedException, IOException, SQLException {
-		if (isReady()) {
-			setReady(false);
+	public Map<AlbumGroupExtended, Integer> tryCrawl() throws SpotifyWebApiException, InterruptedException, IOException, SQLException {
+		if (lock.tryLock()) {
 			try {
-				spotifyApiAuthorization.login();
 				return crawl();
 			} finally {
-				setReady(true);
+				lock.unlock();
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Event that will be fired once the Spring application has fully booted. It
+	 * will automatically initiate the first crawling iteration. After completion,
+	 * the bot will be made available for scheduled and external (manual) crawling.
+	 * 
+	 * @throws SQLException
+	 * @throws IOException
+	 * @throws InterruptedException
+	 * @throws SpotifyWebApiException
+	 */
+	@EventListener(ApplicationReadyEvent.class)
+	private void firstCrawlAndEnableReadyState() throws SpotifyWebApiException, InterruptedException, IOException, SQLException {
+		log.info("Executing initial crawl...");
+		long time = System.currentTimeMillis();
+		{
+			Map<AlbumGroupExtended, Integer> results = crawl();
+			String response = BotUtils.compileResultString(results);
+			if (response != null) {
+				log.info(response);
+			}
+		}
+		log.info("Initial crawl successfully finished in: " + (System.currentTimeMillis() - time) + "ms");
+		lock = new ReentrantLock();
 	}
 
 	/**
@@ -107,54 +134,10 @@ public class SpotifyDiscoveryBotCrawler {
 			try {
 				return playlistInfoService.clearObsoleteNotifiers();
 			} catch (UnauthorizedException e) {
-				spotifyApiAuthorization.login();
 				clearObsoleteNotifiers();
 			}
 		}
 		return false;
-	}
-
-	/**
-	 * Event that will be fired once the Spring application has fully booted. It
-	 * will automatically initiate the first crawling iteration.
-	 * 
-	 * @throws SQLException
-	 * @throws IOException
-	 * @throws InterruptedException
-	 * @throws SpotifyWebApiException
-	 */
-	@EventListener(ApplicationReadyEvent.class)
-	private void firstCrawlAndEnableReadyState() throws SpotifyWebApiException, InterruptedException, IOException, SQLException {
-		log.info("Executing initial crawl...");
-		long time = System.currentTimeMillis();
-		{
-			setReady(true);
-			Map<AlbumGroupExtended, Integer> results = runCrawler();
-			String response = BotUtils.compileResultString(results);
-			if (response != null) {
-				log.info(response);
-			}
-		}
-		log.info("Initial crawl successfully finished in: " + (System.currentTimeMillis() - time) + "ms");
-	}
-
-	/**
-	 * Indicate whether or not the crawler is currently available
-	 * 
-	 * @return
-	 */
-	public boolean isReady() {
-		return ready;
-	}
-
-	/**
-	 * Set ready state
-	 * 
-	 * @param ready
-	 *            the new ready state
-	 */
-	private void setReady(boolean ready) {
-		this.ready = ready;
 	}
 
 	///////////////////
@@ -185,6 +168,8 @@ public class SpotifyDiscoveryBotCrawler {
 	 * @throws SpotifyWebApiException
 	 */
 	private Map<AlbumGroupExtended, Integer> crawl() throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
+		spotifyApiAuthorization.login();
+
 		List<String> followedArtists = userInfoService.getFollowedArtistsIds();
 		if (followedArtists.isEmpty()) {
 			log.warning("No followed artists found!");

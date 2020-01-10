@@ -38,5 +38,6 @@ bin/
 
 # Spotify Bot
 templates/READY
-/database.db
-/spring.log
+database.db
+spring.log
+application.properties

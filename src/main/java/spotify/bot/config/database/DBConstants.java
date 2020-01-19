@@ -6,8 +6,10 @@ class DBConstants {
 
 	// Database constants
 	public final static String TABLE_CACHE_RELEASES = "cache_releases";
+	public final static String COL_RELEASE_ID = "release_id";
+
 	public final static String TABLE_CACHE_ARTISTS = "cache_artists";
-	public final static String COL_ID = "id";
+	public final static String COL_ARTIST_ID = "artist_id";
 
 	public final static String TABLE_CONFIG_STATIC = "config_static";
 	public final static String COL_MARKET = "market";
@@ -31,7 +33,6 @@ class DBConstants {
 	public final static String TABLE_SPOTIFY_API = "spotify_api";
 	public final static String COL_CLIENT_ID = "client_id";
 	public final static String COL_CLIENT_SECRET = "client_secret";
-	public final static String COL_CALLBACK_URI = "callback_uri";
 	public final static String COL_ACCESS_TOKEN = "access_token";
 	public final static String COL_REFRESH_TOKEN = "refresh_token";
 }

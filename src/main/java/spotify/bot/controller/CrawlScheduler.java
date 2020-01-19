@@ -31,7 +31,7 @@ public class CrawlScheduler {
 	private final static String CRAWL_CRON = "10 */30 * * * *";
 
 	/**
-	 * Cron job representing "every 10 seconds starting at the 5th second of a
+	 * Cron job representing "every 10th second starting at the 5th second of a
 	 * minute"
 	 */
 	private final static String CLEAR_NOTIFIER_CRON = "5/10 * * * * *";

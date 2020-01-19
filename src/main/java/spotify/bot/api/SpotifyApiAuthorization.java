@@ -28,6 +28,8 @@ import spotify.bot.util.BotLogger;
 @RestController
 public class SpotifyApiAuthorization {
 
+	protected final static String LOGIN_CALLBACK_URI = "/login-callback";
+
 	private final static String SCOPES = "user-follow-read playlist-modify-private";
 	private final static int BACKOFF_MAX_TRIES = 10;
 	private final static int BACKOFF_TIME_BASE_MS = 1000;
@@ -113,7 +115,7 @@ public class SpotifyApiAuthorization {
 	 * @throws SpotifyWebApiException
 	 * @throws SQLException
 	 */
-	@RequestMapping("/login-callback")
+	@RequestMapping(LOGIN_CALLBACK_URI)
 	private ResponseEntity<String> loginCallback(@RequestParam String code) throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
 		try {
 			AuthorizationCodeCredentials acc = SpotifyCall.execute(spotifyApi.authorizationCode(code));

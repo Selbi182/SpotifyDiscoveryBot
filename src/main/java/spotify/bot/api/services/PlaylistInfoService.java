@@ -150,33 +150,37 @@ public class PlaylistInfoService {
 	 * @return
 	 * @throws IOException
 	 */
-	private boolean shouldIndicatorBeMarkedAsRead(PlaylistStore playlistStore) throws IOException, Exception {
-		Date lastUpdated = playlistStore.getLastUpdate();
-		if (lastUpdated == null) {
-			return true;
-		}
+	private boolean shouldIndicatorBeMarkedAsRead(PlaylistStore playlistStore) {
+		try {
+			Date lastUpdated = playlistStore.getLastUpdate();
+			if (lastUpdated == null) {
+				return true;
+			}
 
-		// Timeout after a certain number of hours since the playlist was last updated
-		int newNotificationTimeout = config.getStaticConfig().getNewNotificationTimeout();
-		if (!BotUtils.isTimeoutActive(lastUpdated, newNotificationTimeout)) {
-			return true;
-		}
+			// Timeout after a certain number of hours since the playlist was last updated
+			int newNotificationTimeout = config.getStaticConfig().getNewNotificationTimeout();
+			if (!BotUtils.isTimeoutActive(lastUpdated, newNotificationTimeout)) {
+				return true;
+			}
 
-		// Check if the currently played song is part of the most recently added songs
-		// or if the playlist is empty
-		String playlistId = playlistStore.getPlaylistId();
-		PlaylistTrack[] recentlyAddedPlaylistTracks = SpotifyCall.execute(spotifyApi
-			.getPlaylistsTracks(playlistId)
-			.limit(MAX_PLAYLIST_TRACK_FETCH_LIMIT))
-			.getItems();
-		if (recentlyAddedPlaylistTracks.length == 0) {
-			return true;
-		}
-		CurrentlyPlaying currentlyPlaying = SpotifyCall.execute(spotifyApi.getUsersCurrentlyPlayingTrack());
-		if (currentlyPlaying != null) {
-			boolean currentlyPlayingSongIsNew = Arrays.asList(recentlyAddedPlaylistTracks)
-				.stream().anyMatch(pt -> pt.getTrack().getId().equals(currentlyPlaying.getItem().getId()));
-			return currentlyPlayingSongIsNew;
+			// Check if the currently played song is part of the most recently added songs
+			// or if the playlist is empty
+			String playlistId = playlistStore.getPlaylistId();
+			PlaylistTrack[] recentlyAddedPlaylistTracks = SpotifyCall.execute(spotifyApi
+				.getPlaylistsTracks(playlistId)
+				.limit(MAX_PLAYLIST_TRACK_FETCH_LIMIT))
+				.getItems();
+			if (recentlyAddedPlaylistTracks.length == 0) {
+				return true;
+			}
+			CurrentlyPlaying currentlyPlaying = SpotifyCall.execute(spotifyApi.getUsersCurrentlyPlayingTrack());
+			if (currentlyPlaying != null) {
+				boolean currentlyPlayingSongIsNew = Arrays.asList(recentlyAddedPlaylistTracks)
+					.stream().anyMatch(pt -> pt.getTrack().getId().equals(currentlyPlaying.getItem().getId()));
+				return currentlyPlayingSongIsNew;
+			}
+		} catch (Exception e) {
+			// Don't care, indicator clearance has absolutely no priority
 		}
 		return false;
 	}

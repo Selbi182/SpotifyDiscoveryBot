@@ -64,7 +64,7 @@ public class DatabaseService {
 		List<String> albumCacheIds = new ArrayList<>();
 		ResultSet rs = database.selectAll(DBConstants.TABLE_CACHE_RELEASES);
 		while (rs.next()) {
-			albumCacheIds.add(rs.getString(DBConstants.COL_ID));
+			albumCacheIds.add(rs.getString(DBConstants.COL_RELEASE_ID));
 		}
 		return albumCacheIds;
 	}
@@ -80,7 +80,7 @@ public class DatabaseService {
 		ResultSet rs = database.selectAll(DBConstants.TABLE_CACHE_ARTISTS);
 		List<String> cachedArtists = new ArrayList<>();
 		while (rs.next()) {
-			cachedArtists.add(rs.getString(DBConstants.COL_ID));
+			cachedArtists.add(rs.getString(DBConstants.COL_ARTIST_ID));
 		}
 		return cachedArtists;
 	}
@@ -90,7 +90,6 @@ public class DatabaseService {
 		SpotifyApiConfig spotifyApiConfig = new SpotifyApiConfig();
 		spotifyApiConfig.setClientId(db.getString(DBConstants.COL_CLIENT_ID));
 		spotifyApiConfig.setClientSecret(db.getString(DBConstants.COL_CLIENT_SECRET));
-		spotifyApiConfig.setCallbackUri(db.getString(DBConstants.COL_CALLBACK_URI));
 		spotifyApiConfig.setAccessToken(db.getString(DBConstants.COL_ACCESS_TOKEN));
 		spotifyApiConfig.setRefreshToken(db.getString(DBConstants.COL_REFRESH_TOKEN));
 		return spotifyApiConfig;
@@ -177,7 +176,7 @@ public class DatabaseService {
 			public void run() {
 				List<String> albumIds = albumsSimplified.stream().map(AlbumSimplified::getId).collect(Collectors.toList());
 				try {
-					database.insertAll(albumIds, DBConstants.TABLE_CACHE_RELEASES, DBConstants.COL_ID);
+					database.insertAll(albumIds, DBConstants.TABLE_CACHE_RELEASES, DBConstants.COL_RELEASE_ID);
 				} catch (SQLException e) {
 					log.stackTrace(e);
 				}
@@ -200,18 +199,18 @@ public class DatabaseService {
 			public void run() {
 				try {
 					if (cachedArtists == null || cachedArtists.isEmpty()) {
-						database.insertAll(followedArtists, DBConstants.TABLE_CACHE_ARTISTS, DBConstants.COL_ID);
+						database.insertAll(followedArtists, DBConstants.TABLE_CACHE_ARTISTS, DBConstants.COL_ARTIST_ID);
 					} else {
 						Set<String> addedArtists = new HashSet<>(followedArtists);
 						addedArtists.removeAll(cachedArtists);
 						if (!addedArtists.isEmpty()) {
-							database.insertAll(addedArtists, DBConstants.TABLE_CACHE_ARTISTS, DBConstants.COL_ID);
+							database.insertAll(addedArtists, DBConstants.TABLE_CACHE_ARTISTS, DBConstants.COL_ARTIST_ID);
 							log.info("New followed artists:");
 						}
 						Set<String> removedArtists = new HashSet<>(cachedArtists);
 						removedArtists.removeAll(followedArtists);
 						if (!removedArtists.isEmpty()) {
-							database.deleteAll(removedArtists, DBConstants.TABLE_CACHE_ARTISTS, DBConstants.COL_ID);
+							database.deleteAll(removedArtists, DBConstants.TABLE_CACHE_ARTISTS, DBConstants.COL_ARTIST_ID);
 						}
 					}
 					refreshArtistCacheLastUpdate();

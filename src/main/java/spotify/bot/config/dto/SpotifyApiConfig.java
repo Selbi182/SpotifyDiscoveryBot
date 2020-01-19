@@ -3,7 +3,6 @@ package spotify.bot.config.dto;
 public class SpotifyApiConfig {
 	private String clientId;
 	private String clientSecret;
-	private String callbackUri;
 	private String accessToken;
 	private String refreshToken;
 
@@ -21,14 +20,6 @@ public class SpotifyApiConfig {
 
 	public void setClientSecret(String clientSecret) {
 		this.clientSecret = clientSecret;
-	}
-
-	public String getCallbackUri() {
-		return callbackUri;
-	}
-
-	public void setCallbackUri(String callbackUri) {
-		this.callbackUri = callbackUri;
 	}
 
 	public String getAccessToken() {
@@ -49,6 +40,6 @@ public class SpotifyApiConfig {
 
 	@Override
 	public String toString() {
-		return "SpotifyApiConfig [clientId=" + clientId + ", clientSecret=" + clientSecret + ", callbackUri=" + callbackUri + ", accessToken=" + accessToken + ", refreshToken=" + refreshToken + "]";
+		return "SpotifyApiConfig [clientId=" + clientId + ", clientSecret=" + clientSecret + ", accessToken=" + accessToken + ", refreshToken=" + refreshToken + "]";
 	}
 }

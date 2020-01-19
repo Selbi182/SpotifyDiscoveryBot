@@ -6,6 +6,8 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,7 +18,9 @@ import spotify.bot.util.BotLogger;
 
 @RestController
 @Component
+@EnableScheduling
 public class MiscEndpoints {
+	private final static int SHUTDOWN_RETRY_SLEEP = 10 * 1000;
 
 	@Autowired
 	private BotLogger log;
@@ -44,14 +48,21 @@ public class MiscEndpoints {
 	}
 
 	/**
-	 * Try to shut down the bot.
+	 * Shut down the bot. This will get executed automatically once per week on
+	 * Thursday night (23:50:00) to have a fresh bot instance ready for
+	 * New-Music-Fridays.
+	 * 
+	 * @throws InterruptedException
+	 *             if interrupted during retry cooldown
 	 */
+	@Scheduled(cron = "0 50 23 * * THU")
 	@RequestMapping("/shutdown")
-	public ResponseEntity<String> shutdown() {
-		log.info("Manual shutdown requested!");
-		if (!crawler.isReady()) {
-			System.exit(0);
+	public void shutdown() throws InterruptedException {
+		log.info("Shutting down bot by request...");
+		while (!crawler.isReady()) {
+			log.warning("Can't stop application during a crawl! Trying again in 10 seconds...");
+			Thread.sleep(SHUTDOWN_RETRY_SLEEP);
 		}
-		return new ResponseEntity<String>("Can't stop application during a crawl!", HttpStatus.LOCKED);
+		System.exit(0);
 	}
 }

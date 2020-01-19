@@ -35,7 +35,7 @@ public class SpotifyApiWrapper {
 		SpotifyApi spotifyApi = new SpotifyApi.Builder()
 			.setClientId(config.getSpotifyApiConfig().getClientId())
 			.setClientSecret(config.getSpotifyApiConfig().getClientSecret())
-			.setRedirectUri(SpotifyHttpManager.makeUri(config.getSpotifyApiConfig().getCallbackUri()))
+			.setRedirectUri(SpotifyHttpManager.makeUri(SpotifyApiAuthorization.LOGIN_CALLBACK_URI))
 			.build();
 		spotifyApi.setAccessToken(config.getSpotifyApiConfig().getAccessToken());
 		spotifyApi.setRefreshToken(config.getSpotifyApiConfig().getRefreshToken());

@@ -48,21 +48,34 @@ public class MiscEndpoints {
 	}
 
 	/**
-	 * Shut down the bot. This will get executed automatically once per week on
-	 * Thursday night (23:50:00) to have a fresh bot instance ready for
-	 * New-Music-Fridays.
+	 * Shut down the bot. If a crawl is still in progress, the shutdown process will
+	 * be retried every ten seconds.
 	 * 
 	 * @throws InterruptedException
 	 *             if interrupted during retry cooldown
 	 */
-	@Scheduled(cron = "0 50 23 * * THU")
 	@RequestMapping("/shutdown")
-	public void shutdown() throws InterruptedException {
-		log.info("Shutting down bot by request...");
+	public void shutdown(@RequestParam(value = "message", defaultValue = "Shutting down Spotify bot by manual request...") String message) throws InterruptedException {
+		if (message != null && !message.isEmpty()) {
+			log.info(message);
+		}
 		while (!crawler.isReady()) {
 			log.warning("Can't stop application during a crawl! Trying again in 10 seconds...");
 			Thread.sleep(SHUTDOWN_RETRY_SLEEP);
 		}
 		System.exit(0);
 	}
+
+	/**
+	 * Shut down the bot automatically once per week on Thursday night (23:50:00) to
+	 * have a fresh bot instance ready for New-Music-Fridays.
+	 * 
+	 * @throws InterruptedException
+	 *             if interrupted during retry cooldown
+	 */
+	@Scheduled(cron = "0 50 23 * * THU")
+	private void scheduledShutdown() throws InterruptedException {
+		shutdown("Shutting down Spotify bot by scheduled cron job...");
+	}
+
 }

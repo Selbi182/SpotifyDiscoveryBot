@@ -45,7 +45,8 @@ public class SpotifyApiAuthorization {
 	private BotLogger log;
 
 	/**
-	 * Log in to Spotify
+	 * Log in to Spotify. Retry up to ten times with exponentially increasing sleep
+	 * intervals on an error.
 	 * 
 	 * @throws SpotifyWebApiException
 	 * @throws InterruptedException
@@ -59,14 +60,13 @@ public class SpotifyApiAuthorization {
 		try {
 			authorizationCodeRefresh();
 		} catch (SpotifyWebApiException | IOException | InterruptedException | SQLException e) {
-			log.stackTrace(e);
 			if (retryCount >= BACKOFF_MAX_TRIES) {
 				log.error(String.format("Failed to refresh authorization token after %d tries. Log in again!", retryCount));
+				log.stackTrace(e);
 				authenticate();
 				return;
 			}
 			long timeout = Math.round(Math.pow(2, retryCount));
-			log.error(String.format("Authorization code refresh failed. Retrying in %ds...", timeout));
 			Thread.sleep(BACKOFF_TIME_BASE_MS * timeout);
 			login(retryCount + 1);
 		}

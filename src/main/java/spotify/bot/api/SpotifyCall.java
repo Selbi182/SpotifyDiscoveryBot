@@ -1,6 +1,7 @@
 package spotify.bot.api;
 
 import java.io.IOException;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -52,7 +53,7 @@ public class SpotifyCall {
 		} catch (TooManyRequestsException e) {
 			int timeout = e.getRetryAfter() + 1;
 			Thread.sleep(timeout * RETRY_TIMEOUT_4XX);
-		} catch (SpotifyWebApiException e) {
+		} catch (SpotifyWebApiException | SocketException e) {
 			Thread.sleep(RETRY_TIMEOUT_5XX);
 		}
 		return execute(requestBuilder);

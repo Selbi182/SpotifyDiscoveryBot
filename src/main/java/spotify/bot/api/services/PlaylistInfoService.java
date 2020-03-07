@@ -128,7 +128,7 @@ public class PlaylistInfoService {
 			if (playlistId != null) {
 				Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
 				String playlistName = p.getName();
-				if (playlistName.contains(NEW_INDICATOR_TEXT)) {
+				if (playlistName != null && playlistName.contains(NEW_INDICATOR_TEXT)) {
 					if (shouldIndicatorBeMarkedAsRead(ps)) {
 						playlistName = playlistName.replace(NEW_INDICATOR_TEXT, "").trim();
 						SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).name(playlistName));

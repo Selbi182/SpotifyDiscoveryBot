@@ -22,11 +22,15 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.enums.AlbumGroup;
+import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
+import com.wrapper.spotify.model_objects.specification.AudioFeatures;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
+import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.Config;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.config.dto.PlaylistStore;
@@ -41,11 +45,14 @@ public class FilterService {
 	private final static String VARIOUS_ARTISTS = "Various Artists";
 
 	private final static Pattern EP_MATCHER = Pattern.compile("\\bE\\W?P\\W?\\b");
-	private final static int EP_SONG_COUNT_THRESHOLD = 4;
+	private final static int EP_SONG_COUNT_THRESHOLD = 5;
 	private final static int EP_DURATION_THRESHOLD = 20 * 60 * 1000;
+	private final static int EP_SONG_COUNT_THRESHOLD_LESSER = 3;
+	private final static int EP_DURATION_THRESHOLD_LESSER = 10 * 60 * 1000;
 
 	private final static Pattern LIVE_MATCHER = Pattern.compile("\\bLIVE\\b", Pattern.CASE_INSENSITIVE);
 	private final static double LIVE_SONG_COUNT_PERCENTAGE_THRESHOLD = 0.5;
+	private final static double LIVENESS_THRESHOLD = 0.8;
 
 	@Autowired
 	private Config config;
@@ -55,6 +62,9 @@ public class FilterService {
 
 	@Autowired
 	private DatabaseService databaseService;
+
+	@Autowired
+	private SpotifyApi spotifyApi;
 
 	private final static DateTimeFormatter RELEASE_DATE_PARSER = new DateTimeFormatterBuilder()
 		.append(DateTimeFormatter.ofPattern("yyyy[-MM[-dd]]"))
@@ -325,6 +335,13 @@ public class FilterService {
 		return regroupedMap;
 	}
 
+	/**
+	 * Re-map any given singles that qualify as EPs into their own category
+	 * 
+	 * @param psEp
+	 * @param songsByPS
+	 * @throws SQLException
+	 */
 	private void remapEPs(PlaylistStore psEp, Map<PlaylistStore, List<AlbumTrackPair>> songsByPS) throws SQLException {
 		if (psEp != null && psEp.getPlaylistId() != null) {
 			List<AlbumTrackPair> singles = songsByPS.get(config.getPlaylistStore(AlbumGroupExtended.SINGLE));
@@ -340,12 +357,50 @@ public class FilterService {
 		}
 	}
 
+	/**
+	 * Returns true if the given single qualifies as EP. The definition of an EP is
+	 * a single that fulfills ANY of the following attributes:
+	 * <ul>
+	 * <li>"EP" appears in the album title (uppercase, single word, may contain a
+	 * single symbol in between and after the letters)</li>
+	 * <li>min 5 songs</li>
+	 * <li>min 20 minutes</li>
+	 * <li>min 3 songs AND min 10 minutes AND none of the songs are named after the
+	 * release title*</li>
+	 * </ul>
+	 * *The great majority of EPs are covered by the first three strategies. The
+	 * last one for really silly edge cases in which an artist may release an EP
+	 * that is is too similar to a slightly fancier single by numbers alone.
+	 * 
+	 * @param atp
+	 * @return
+	 */
 	private boolean isEP(AlbumTrackPair atp) {
-		return (atp.getTracks().size() >= EP_SONG_COUNT_THRESHOLD
-			|| atp.getTracks().stream().mapToInt(TrackSimplified::getDurationMs).sum() >= EP_DURATION_THRESHOLD
-			|| EP_MATCHER.matcher(atp.getAlbum().getName()).find());
+		if (EP_MATCHER.matcher(atp.getAlbum().getName()).find()) {
+			return true;
+		}
+
+		int trackCount = atp.getTracks().size();
+		int totalDurationMs = atp.getTracks().stream().mapToInt(TrackSimplified::getDurationMs).sum();
+
+		if (trackCount >= EP_SONG_COUNT_THRESHOLD || totalDurationMs >= EP_DURATION_THRESHOLD) {
+			return true;
+		}
+
+		if (trackCount >= EP_SONG_COUNT_THRESHOLD_LESSER && totalDurationMs >= EP_DURATION_THRESHOLD_LESSER) {
+			return true;
+		}
+		return false;
 	}
 
+	/**
+	 * Re-map any given releases that qualify as live releases into their own
+	 * category
+	 * 
+	 * @param psLive
+	 * @param songsByPS
+	 * @throws SQLException
+	 */
 	private void remapLive(PlaylistStore psLive, Map<PlaylistStore, List<AlbumTrackPair>> songsByPS) throws SQLException {
 		if (psLive != null && psLive.getPlaylistId() != null) {
 			List<AlbumTrackPair> allLive = new ArrayList<>();
@@ -367,14 +422,32 @@ public class FilterService {
 		}
 	}
 
+	/**
+	 * Returns true if the given release qualifies as a live release. The definition
+	 * of a live release is a release that fulfills ALL of the following conditions:
+	 * <ol>
+	 * <li>"LIVE" contained in the release title (any case, single word)</li>
+	 * <li>At least half of the songs of this release have a "liveness" value of 80%
+	 * or more*</li>
+	 * </ol>
+	 * *The liveness value is determined by the Spotify API for each individual song.
+	 * It gives a vague idea how probable it is for the song to be live. Hints
+	 * like recording quality and audience cheers are used.
+	 * 
+	 * @param atp
+	 * @return
+	 */
 	private boolean isLive(AlbumTrackPair atp) {
-		if (LIVE_MATCHER.matcher(atp.getAlbum().getName()).find()) {
-			double numberOfTracks = atp.getTracks().size();
-			double numberOfLiveTracks = atp.getTracks().stream()
-				.filter(t -> LIVE_MATCHER.matcher(t.getName()).find())
-				.count();
-			double livePercentage = numberOfLiveTracks / numberOfTracks;
-			return livePercentage > LIVE_SONG_COUNT_PERCENTAGE_THRESHOLD;
+		try {
+			if (LIVE_MATCHER.matcher(atp.getAlbum().getName()).find()) {
+				String[] trackIds = atp.getTracks().stream().map(TrackSimplified::getId).toArray(String[]::new);
+				List<AudioFeatures> audioFeatures = Arrays.asList(SpotifyCall.execute(spotifyApi.getAudioFeaturesForSeveralTracks(trackIds)));
+				double trackCountLive = audioFeatures.stream().filter(af -> af.getLiveness() >= LIVENESS_THRESHOLD).count();
+				double trackCount = atp.getTracks().size();
+				return (trackCountLive / trackCount) >= LIVE_SONG_COUNT_PERCENTAGE_THRESHOLD;
+			}
+		} catch (SpotifyWebApiException | IOException | InterruptedException e) {
+			log.stackTrace(e);
 		}
 		return false;
 	}

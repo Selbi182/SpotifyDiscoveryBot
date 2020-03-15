@@ -52,7 +52,7 @@ public class FilterService {
 
 	private final static Pattern LIVE_MATCHER = Pattern.compile("\\bLIVE\\b", Pattern.CASE_INSENSITIVE);
 	private final static double LIVE_SONG_COUNT_PERCENTAGE_THRESHOLD = 0.5;
-	private final static double LIVENESS_THRESHOLD = 0.8;
+	private final static double LIVENESS_THRESHOLD = 0.5;
 
 	@Autowired
 	private Config config;
@@ -162,7 +162,7 @@ public class FilterService {
 		LocalDate lowerReleaseDateBoundary = LocalDate.now().minusDays(lookbackDays);
 		List<AlbumSimplified> filteredAlbums = noDuplicates.stream().filter(as -> isValidDate(as, lowerReleaseDateBoundary)).collect(Collectors.toList());
 		log.printAlbumDifference(noDuplicates, filteredAlbums,
-			String.format("Dropped %d non-cached but too-old release[s] (lower boundary was %s):", unfilteredAlbums.size() - filteredAlbums.size(), lowerReleaseDateBoundary.toString()));
+			String.format("x Dropped %d non-cached but too-old release[s] (lower boundary was %s):", unfilteredAlbums.size() - filteredAlbums.size(), lowerReleaseDateBoundary.toString()));
 		return filteredAlbums;
 	}
 
@@ -183,7 +183,7 @@ public class FilterService {
 		}
 		Collection<AlbumSimplified> leftoverAlbums = uniqueMap.values();
 		log.printAlbumDifference(unfilteredAlbums, leftoverAlbums,
-			String.format("Dropped %d duplicate[s] released at the same time:", unfilteredAlbums.size() - leftoverAlbums.size()));
+			String.format("x Dropped %d duplicate[s] released at the same time:", unfilteredAlbums.size() - leftoverAlbums.size()));
 		return leftoverAlbums;
 	}
 
@@ -254,7 +254,7 @@ public class FilterService {
 
 				// Finalize
 				log.printAlbumTrackPairDifference(unfilteredAppearsOnAlbums, filteredAppearsOnAlbums,
-					String.format("Dropped %d APPEARS_ON release[s]:", unfilteredAppearsOnAlbums.size() - filteredAppearsOnAlbums.size()));
+					String.format("x Dropped %d APPEARS_ON release[s]:", unfilteredAppearsOnAlbums.size() - filteredAppearsOnAlbums.size()));
 				categorizedFilteredAlbums.put(AlbumGroup.APPEARS_ON, filteredAppearsOnAlbums);
 			}
 		}
@@ -424,10 +424,10 @@ public class FilterService {
 
 	/**
 	 * Returns true if the given release qualifies as a live release. The definition
-	 * of a live release is a release that fulfills ALL of the following conditions:
+	 * of a live release is a release that fulfills BOTH of these conditions:
 	 * <ol>
 	 * <li>"LIVE" contained in the release title (any case, single word)</li>
-	 * <li>At least half of the songs of this release have a "liveness" value of 80%
+	 * <li>At least half of the songs of this release have a "liveness" value of 50%
 	 * or more*</li>
 	 * </ol>
 	 * *The liveness value is determined by the Spotify API for each individual song.

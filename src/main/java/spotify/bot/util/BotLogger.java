@@ -25,7 +25,7 @@ import spotify.bot.util.data.AlbumTrackPair;
 public class BotLogger {
 	private final static String LOG_FILE_PATH = "./spring.log";
 	private final static int DEFAULT_LOG_READ_LINES = 100;
-	private final static int MAX_LINE_LENGTH = 90;
+	private final static int MAX_LINE_LENGTH = 160;
 
 	private Logger log;
 
@@ -118,6 +118,19 @@ public class BotLogger {
 		log.error(stringWriter.toString());
 	}
 
+	//////////////////////
+	
+	/**
+	 * Print the given list of album track pairs
+	 * 
+	 * @param albumTrackPairs
+	 */
+	public void printAlbumTrackPairs(List<AlbumTrackPair> albumTrackPairs) {
+		for (AlbumTrackPair as : albumTrackPairs) {
+			debug(as.toString());
+		}
+	}
+	
 	/**
 	 * Build a readable String for AlbumSimplified
 	 * 
@@ -125,7 +138,7 @@ public class BotLogger {
 	 * @return
 	 */
 	public String prettyAlbumSimplified(AlbumSimplified as) {
-		return String.format("[%s] %s - %s (%s)",
+		return String.format("x [%s] %s - %s (%s)",
 			as.getAlbumGroup().toString(),
 			as.getArtists()[0].getName(),
 			as.getName(),
@@ -142,17 +155,6 @@ public class BotLogger {
 			debug(prettyAlbumSimplified(as));
 		}
 
-	}
-
-	/**
-	 * Print the given list of album track pairs
-	 * 
-	 * @param albumTrackPairs
-	 */
-	public void printAlbumTrackPairs(List<AlbumTrackPair> albumTrackPairs) {
-		for (AlbumTrackPair as : albumTrackPairs) {
-			debug(as.toString());
-		}
 	}
 
 	/**

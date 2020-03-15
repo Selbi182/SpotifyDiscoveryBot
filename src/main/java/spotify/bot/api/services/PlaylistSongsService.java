@@ -75,15 +75,17 @@ public class PlaylistSongsService {
 	 */
 	private void addSongsToPlaylistId(String playlistId, List<AlbumTrackPair> albumTrackPairs) throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
 		if (!albumTrackPairs.isEmpty()) {
-			circularPlaylistFitting(playlistId, albumTrackPairs.stream().mapToInt(AlbumTrackPair::trackCount).sum());
-			for (AlbumTrackPair atp : albumTrackPairs) {
-				for (List<TrackSimplified> partition : Lists.partition(atp.getTracks(), PLAYLIST_ADD_LIMIT)) {
-					JsonArray json = new JsonArray();
-					for (TrackSimplified s : partition) {
-						json.add(TRACK_PREFIX + s.getId());
+			boolean playlistHasCapacity = circularPlaylistFitting(playlistId, albumTrackPairs.stream().mapToInt(AlbumTrackPair::trackCount).sum());
+			if (playlistHasCapacity) {
+				for (AlbumTrackPair atp : albumTrackPairs) {
+					for (List<TrackSimplified> partition : Lists.partition(atp.getTracks(), PLAYLIST_ADD_LIMIT)) {
+						JsonArray json = new JsonArray();
+						for (TrackSimplified s : partition) {
+							json.add(TRACK_PREFIX + s.getId());
+						}
+						SpotifyCall.execute(spotifyApi.addTracksToPlaylist(playlistId, json).position(TOP_OF_PLAYLIST));
+						Thread.sleep(PLAYLIST_ADDITION_COOLDOWN);
 					}
-					SpotifyCall.execute(spotifyApi.addTracksToPlaylist(playlistId, json).position(TOP_OF_PLAYLIST));
-					Thread.sleep(PLAYLIST_ADDITION_COOLDOWN);
 				}
 			}
 		}
@@ -99,18 +101,20 @@ public class PlaylistSongsService {
 	 * @throws IOException
 	 * @throws SpotifyWebApiException
 	 * @throws SQLException
+	 * @return true on success, false if playlist is full and can't be cleared
 	 */
-	private void circularPlaylistFitting(String playlistId, int songsToAddCount) throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
+	private boolean circularPlaylistFitting(String playlistId, int songsToAddCount) throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
 		Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
 
 		final int currentPlaylistCount = p.getTracks().getTotal();
 		if (currentPlaylistCount + songsToAddCount > PLAYLIST_SIZE_LIMIT) {
 			if (!config.getUserOptions().isCircularPlaylistFitting()) {
 				log.error(p.getName() + " is full! Maximum capacity is " + PLAYLIST_SIZE_LIMIT + ". Enable circularPlaylistFitting or flush the playlist for new songs.");
-				return;
+				return false;
 			}
 			deleteSongsFromBottomOnLimit(playlistId, currentPlaylistCount, songsToAddCount);
 		}
+		return true;
 	}
 
 	/**

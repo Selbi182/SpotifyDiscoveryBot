@@ -31,6 +31,20 @@ public final class BotUtils {
 		.thenComparing(AlbumSimplified::getName);
 
 	/**
+	 * A common order of the different playlist groups: Album > Single > EP > Remix
+	 * > Live > Compilation > Appears On
+	 */
+	public final static AlbumGroupExtended[] DEFAULT_PLAYLIST_GROUP_ORDER = {
+		AlbumGroupExtended.ALBUM,
+		AlbumGroupExtended.SINGLE,
+		AlbumGroupExtended.EP,
+		AlbumGroupExtended.REMIX,
+		AlbumGroupExtended.LIVE,
+		AlbumGroupExtended.COMPILATION,
+		AlbumGroupExtended.APPEARS_ON
+	};
+
+	/**
 	 * Utility class
 	 */
 	private BotUtils() {}

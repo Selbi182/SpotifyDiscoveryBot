@@ -110,9 +110,11 @@ public class DatabaseService {
 		ResultSet db = database.selectSingle(DBConstants.TABLE_CONFIG_USER_OPTIONS);
 		UserOptions userOptions = new UserOptions();
 		userOptions.setCacheFollowedArtists(db.getBoolean(DBConstants.COL_CACHE_FOLLOWED_ARTISTS));
+		userOptions.setBatchPlaylistAddition(db.getBoolean(DBConstants.COL_BATCH_PLAYLIST_ADDITION));
 		userOptions.setIntelligentAppearsOnSearch(db.getBoolean(DBConstants.COL_INTELLIGENT_APPEARS_ON_SEARCH));
 		userOptions.setCircularPlaylistFitting(db.getBoolean(DBConstants.COL_CIRCULAR_PLAYLIST_FITTING));
 		userOptions.setEpSeparation(db.getBoolean(DBConstants.COL_EP_SEPARATION));
+		userOptions.setRemixSeparation(db.getBoolean(DBConstants.COL_REMIX_SEPARATION));
 		userOptions.setLiveSeparation(db.getBoolean(DBConstants.COL_LIVE_SEPARATION));
 		return userOptions;
 	}

@@ -72,6 +72,7 @@ public class CrawlScheduler {
 		String response = BotUtils.compileResultString(results);
 		if (response != null) {
 			log.info(response);
+			log.printLine();
 			return new ResponseEntity<>(response, HttpStatus.CREATED);
 		}
 		return new ResponseEntity<>("No new releases found.", HttpStatus.OK);

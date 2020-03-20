@@ -6,9 +6,14 @@ import java.util.Map;
 import com.wrapper.spotify.enums.AlbumGroup;
 
 public enum AlbumGroupExtended {
-	ALBUM("album"), APPEARS_ON("appears_on"), COMPILATION("compilation"), SINGLE("single"),
+	ALBUM("album"),
+	APPEARS_ON("appears_on"),
+	COMPILATION("compilation"),
+	SINGLE("single"),
 
-	EP("ep", true), LIVE("live", true), TRASH("trash", true);
+	EP("ep", true),
+	REMIX("remix", true),
+	LIVE("live", true);
 
 	private static final Map<String, AlbumGroupExtended> map = new HashMap<>();
 
@@ -19,15 +24,15 @@ public enum AlbumGroupExtended {
 	}
 
 	private final String group;
-	private final boolean specialType;
+	private final boolean extendedType;
 
 	AlbumGroupExtended(final String group) {
 		this(group, false);
 	}
 
-	AlbumGroupExtended(final String group, final boolean specialType) {
+	AlbumGroupExtended(final String group, final boolean extendedType) {
 		this.group = group;
-		this.specialType = specialType;
+		this.extendedType = extendedType;
 	}
 
 	/**
@@ -43,7 +48,7 @@ public enum AlbumGroupExtended {
 	public AlbumGroup asAlbumGroup() {
 		AlbumGroup ag = AlbumGroup.keyOf(this.group);
 		if (ag == null) {
-			throw new IllegalArgumentException("This is a special album group an cannot be converted back into a regular one!");
+			throw new IllegalArgumentException("This is a special album group and cannot be converted back into a regular one!");
 		}
 		return ag;
 	}
@@ -58,12 +63,12 @@ public enum AlbumGroupExtended {
 	}
 
 	/**
-	 * Indicates whether or not this album group is a special type (EPs, Live,
-	 * Trash, etc.)
+	 * Indicates whether or not this album group is a special extended type (EP,
+	 * Remixe, Live)
 	 * 
 	 * @return
 	 */
-	public boolean isSpecialType() {
-		return specialType;
+	public boolean isExtendedType() {
+		return extendedType;
 	}
 }

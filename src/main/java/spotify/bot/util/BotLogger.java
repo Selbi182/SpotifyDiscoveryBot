@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import com.google.common.base.Strings;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
 import spotify.bot.util.data.AlbumTrackPair;
@@ -25,7 +26,11 @@ import spotify.bot.util.data.AlbumTrackPair;
 public class BotLogger {
 	private final static String LOG_FILE_PATH = "./spring.log";
 	private final static int DEFAULT_LOG_READ_LINES = 100;
+
 	private final static int MAX_LINE_LENGTH = 160;
+	private final static String ELLIPSIS = "...";
+	private final static String DROPPED_SYMBOL = "x";
+	private final static String LINE_SYMBOL = "-";
 
 	private Logger log;
 
@@ -65,11 +70,24 @@ public class BotLogger {
 		log.error(truncateToEllipsis(message));
 	}
 
+	/**
+	 * Chop off the message if it exceeds the maximum line length of 160 characters
+	 * 
+	 * @param message
+	 * @return
+	 */
 	private String truncateToEllipsis(String message) {
-		if (message.length() < MAX_LINE_LENGTH - 3) {
+		if (message.length() < MAX_LINE_LENGTH - ELLIPSIS.length()) {
 			return message;
 		}
-		return message.substring(0, message.length() - 3) + "...";
+		return message.substring(0, message.length() - ELLIPSIS.length()) + ELLIPSIS;
+	}
+
+	/**
+	 * Print a line of hyphens (----) as INFO-level log message
+	 */
+	public void printLine() {
+		info(Strings.repeat(LINE_SYMBOL, MAX_LINE_LENGTH));
 	}
 
 	///////////////////////
@@ -119,7 +137,7 @@ public class BotLogger {
 	}
 
 	//////////////////////
-	
+
 	/**
 	 * Print the given list of album track pairs
 	 * 
@@ -130,15 +148,16 @@ public class BotLogger {
 			debug(as.toString());
 		}
 	}
-	
+
 	/**
-	 * Build a readable String for AlbumSimplified
+	 * Build a readable String for dropped AlbumSimplified
 	 * 
 	 * @param as
 	 * @return
 	 */
-	public String prettyAlbumSimplified(AlbumSimplified as) {
-		return String.format("x [%s] %s - %s (%s)",
+	public String printDroppedAlbum(AlbumSimplified as) {
+		return String.format("%s [%s] %s - %s (%s)",
+			DROPPED_SYMBOL,
 			as.getAlbumGroup().toString(),
 			as.getArtists()[0].getName(),
 			as.getName(),
@@ -152,7 +171,7 @@ public class BotLogger {
 	 */
 	public void printAlbumSimplifiedMulti(List<AlbumSimplified> albumSimplifieds) {
 		for (AlbumSimplified as : albumSimplifieds) {
-			debug(prettyAlbumSimplified(as));
+			debug(printDroppedAlbum(as));
 		}
 
 	}
@@ -164,12 +183,12 @@ public class BotLogger {
 	 * @param subtrahend
 	 * @param logDescription
 	 */
-	public void printAlbumDifference(Collection<AlbumSimplified> base, Collection<AlbumSimplified> subtrahend, String logDescription) {
+	public void printDroppedAlbumDifference(Collection<AlbumSimplified> base, Collection<AlbumSimplified> subtrahend, String logDescription) {
 		Set<AlbumSimplified> differenceView = new HashSet<>(base);
 		differenceView.removeAll(subtrahend);
 		if (!differenceView.isEmpty()) {
 			if (logDescription != null) {
-				debug(logDescription);
+				debug(DROPPED_SYMBOL + " " + logDescription);
 			}
 			List<AlbumSimplified> sortedDifferenceView = differenceView
 				.stream()
@@ -186,8 +205,8 @@ public class BotLogger {
 	 * @param filteredAppearsOnAlbums
 	 * @param logDescription
 	 */
-	public void printAlbumTrackPairDifference(Collection<AlbumTrackPair> unfilteredAppearsOnAlbums, Collection<AlbumTrackPair> filteredAppearsOnAlbums, String logDescription) {
-		printAlbumDifference(
+	public void printDroppedAlbumTrackPairDifference(Collection<AlbumTrackPair> unfilteredAppearsOnAlbums, Collection<AlbumTrackPair> filteredAppearsOnAlbums, String logDescription) {
+		printDroppedAlbumDifference(
 			unfilteredAppearsOnAlbums.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList()),
 			filteredAppearsOnAlbums.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList()),
 			logDescription);

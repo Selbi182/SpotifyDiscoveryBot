@@ -2,6 +2,7 @@ package spotify.bot.api.services;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -22,11 +23,12 @@ import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.Config;
 import spotify.bot.config.dto.PlaylistStore;
 import spotify.bot.util.BotLogger;
+import spotify.bot.util.BotUtils;
+import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;
 
 @Service
 public class PlaylistSongsService {
-
 	private final static int TOP_OF_PLAYLIST = 0;
 	private final static int PLAYLIST_ADDITION_COOLDOWN = 1000;
 	private final static int PLAYLIST_ADD_LIMIT = 100;
@@ -54,12 +56,12 @@ public class PlaylistSongsService {
 	 */
 	public void addAllReleasesToSetPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylistId) throws SpotifyWebApiException, SQLException, IOException, InterruptedException {
 		log.debug("Adding to playlists:");
-		for (Map.Entry<PlaylistStore, List<AlbumTrackPair>> entry : songsByPlaylistId.entrySet()) {
-			String playlistId = entry.getKey().getPlaylistId();
-			List<AlbumTrackPair> albumTrackPairs = entry.getValue();
+		for (AlbumGroupExtended age : BotUtils.DEFAULT_PLAYLIST_GROUP_ORDER) {
+			PlaylistStore ps = config.getPlaylistStore(age);
+			List<AlbumTrackPair> albumTrackPairs = songsByPlaylistId.get(ps);
 			if (!albumTrackPairs.isEmpty()) {
 				Collections.sort(albumTrackPairs);
-				addSongsToPlaylistId(playlistId, albumTrackPairs);
+				addSongsToPlaylistId(ps.getPlaylistId(), albumTrackPairs);
 				log.printAlbumTrackPairs(albumTrackPairs);
 			}
 		}
@@ -77,8 +79,9 @@ public class PlaylistSongsService {
 		if (!albumTrackPairs.isEmpty()) {
 			boolean playlistHasCapacity = circularPlaylistFitting(playlistId, albumTrackPairs.stream().mapToInt(AlbumTrackPair::trackCount).sum());
 			if (playlistHasCapacity) {
-				for (AlbumTrackPair atp : albumTrackPairs) {
-					for (List<TrackSimplified> partition : Lists.partition(atp.getTracks(), PLAYLIST_ADD_LIMIT)) {
+				List<List<TrackSimplified>> bundledReleases = batchReleases(albumTrackPairs);
+				for (List<TrackSimplified> t : bundledReleases) {
+					for (List<TrackSimplified> partition : Lists.partition(t, PLAYLIST_ADD_LIMIT)) {
 						JsonArray json = new JsonArray();
 						for (TrackSimplified s : partition) {
 							json.add(TRACK_PREFIX + s.getId());
@@ -89,6 +92,44 @@ public class PlaylistSongsService {
 				}
 			}
 		}
+	}
+
+	/**
+	 * If batch playlist addition is enabled, return a view of all release tracks in
+	 * lists of 100 tracks each. This is to improve performance when adding a lot of
+	 * tracks at once (especially for singles), at the cost of preserving the exact
+	 * order in which releases were published.<br/>
+	 * <br/>
+	 * 
+	 * Otherwise, simply returns a rearranged view of all the ATP tracks.
+	 * 
+	 * @param allReleases
+	 * @return
+	 * @throws IOException
+	 * @throws SQLException
+	 */
+	private List<List<TrackSimplified>> batchReleases(List<AlbumTrackPair> allReleases) throws SQLException, IOException {
+		if (config.getUserOptions().isBatchPlaylistAddition()) {
+			List<List<TrackSimplified>> bundled = new ArrayList<>();
+			List<TrackSimplified> subBatch = new ArrayList<>();
+			for (AlbumTrackPair atp : allReleases) {
+				List<TrackSimplified> tracksOfRelease = atp.getTracks();
+				if ((subBatch.size() + tracksOfRelease.size()) > PLAYLIST_ADD_LIMIT) {
+					bundled.add(subBatch);
+					subBatch = new ArrayList<>();
+				}
+				subBatch.addAll(atp.getTracks());
+			}
+			if (!subBatch.isEmpty()) {
+				bundled.add(subBatch);
+			}
+			return bundled;
+		}
+		List<List<TrackSimplified>> bundled = new ArrayList<>();
+		for (AlbumTrackPair atp : allReleases) {
+			bundled.add(atp.getTracks());
+		}
+		return bundled;
 	}
 
 	/**

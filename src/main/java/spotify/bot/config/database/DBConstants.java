@@ -20,9 +20,11 @@ class DBConstants {
 
 	public final static String TABLE_CONFIG_USER_OPTIONS = "config_user_options";
 	public final static String COL_CACHE_FOLLOWED_ARTISTS = "cache_followed_artists";
+	public final static String COL_BATCH_PLAYLIST_ADDITION = "batch_playlist_addition";
 	public final static String COL_INTELLIGENT_APPEARS_ON_SEARCH = "intelligent_appears_on_search";
 	public final static String COL_CIRCULAR_PLAYLIST_FITTING = "circular_playlist_fitting";
 	public final static String COL_EP_SEPARATION = "ep_separation";
+	public final static String COL_REMIX_SEPARATION = "remix_separation";
 	public final static String COL_LIVE_SEPARATION = "live_separation";
 
 	public final static String TABLE_PLAYLIST_STORE = "playlist_store";

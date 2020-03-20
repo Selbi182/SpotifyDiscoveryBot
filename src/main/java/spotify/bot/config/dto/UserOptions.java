@@ -2,9 +2,11 @@ package spotify.bot.config.dto;
 
 public class UserOptions {
 	private boolean cacheFollowedArtists;
+	private boolean batchPlaylistAddition;
 	private boolean intelligentAppearsOnSearch;
 	private boolean circularPlaylistFitting;
 	private boolean epSeparation;
+	private boolean remixSeparation;
 	private boolean liveSeparation;
 
 	public boolean isCacheFollowedArtists() {
@@ -13,6 +15,14 @@ public class UserOptions {
 
 	public void setCacheFollowedArtists(boolean cacheFollowedArtists) {
 		this.cacheFollowedArtists = cacheFollowedArtists;
+	}
+
+	public boolean isBatchPlaylistAddition() {
+		return batchPlaylistAddition;
+	}
+
+	public void setBatchPlaylistAddition(boolean batchPlaylistAddition) {
+		this.batchPlaylistAddition = batchPlaylistAddition;
 	}
 
 	public boolean isIntelligentAppearsOnSearch() {
@@ -39,6 +49,14 @@ public class UserOptions {
 		this.epSeparation = epSeparation;
 	}
 
+	public boolean isRemixSeparation() {
+		return remixSeparation;
+	}
+
+	public void setRemixSeparation(boolean remixSeparation) {
+		this.remixSeparation = remixSeparation;
+	}
+
 	public boolean isLiveSeparation() {
 		return liveSeparation;
 	}
@@ -49,7 +67,8 @@ public class UserOptions {
 
 	@Override
 	public String toString() {
-		return "UserOptionsConfig [cacheFollowedArtists=" + cacheFollowedArtists + ", intelligentAppearsOnSearch=" + intelligentAppearsOnSearch + ", circularPlaylistFitting="
-			+ circularPlaylistFitting + ", epSeparation=" + epSeparation + ", liveSeparation=" + liveSeparation + "]";
+		return "UserOptions [cacheFollowedArtists=" + cacheFollowedArtists + ", batchPlaylistAddition=" + batchPlaylistAddition + ", intelligentAppearsOnSearch=" + intelligentAppearsOnSearch
+			+ ", circularPlaylistFitting=" + circularPlaylistFitting + ", epSeparation=" + epSeparation + ", remixSeparation=" + remixSeparation + ", liveSeparation=" + liveSeparation + "]";
 	}
+
 }

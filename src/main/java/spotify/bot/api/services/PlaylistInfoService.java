@@ -60,12 +60,12 @@ public class PlaylistInfoService {
 	 * @throws SpotifyWebApiException
 	 */
 	public void showNotifiers(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws SpotifyWebApiException, SQLException, IOException, InterruptedException {
-		for (Map.Entry<PlaylistStore, List<AlbumTrackPair>> entry : songsByPlaylist.entrySet()) {
-			AlbumGroupExtended albumGroup = entry.getKey().getAlbumGroupExtended();
-			List<AlbumTrackPair> albumTrackPairs = entry.getValue();
-			if (!albumTrackPairs.isEmpty()) {
-				showNotifier(entry.getKey());
-				config.refreshPlaylistStore(albumGroup);
+		for (AlbumGroupExtended age : BotUtils.DEFAULT_PLAYLIST_GROUP_ORDER) {
+			PlaylistStore ps = config.getPlaylistStore(age);
+			List<AlbumTrackPair> albumTrackPairs = songsByPlaylist.get(ps);
+			if (albumTrackPairs != null && !albumTrackPairs.isEmpty()) {
+				showNotifier(ps);
+				config.refreshPlaylistStore(age);
 			}
 		}
 	}

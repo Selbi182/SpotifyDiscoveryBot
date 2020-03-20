@@ -25,6 +25,8 @@ import spotify.bot.api.services.TrackService;
 import spotify.bot.api.services.UserInfoService;
 import spotify.bot.config.Config;
 import spotify.bot.config.dto.PlaylistStore;
+import spotify.bot.filter.FilterService;
+import spotify.bot.filter.RemappingService;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -59,6 +61,9 @@ public class SpotifyDiscoveryBotCrawler {
 
 	@Autowired
 	private FilterService filterService;
+
+	@Autowired
+	private RemappingService remappingService;
 
 	/**
 	 * Lock controlling the local single-crawl behavior
@@ -169,7 +174,7 @@ public class SpotifyDiscoveryBotCrawler {
 	 */
 	private Map<AlbumGroupExtended, Integer> crawl() throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
 		spotifyApiAuthorization.login();
-
+		
 		List<String> followedArtists = userInfoService.getFollowedArtistsIds();
 		if (followedArtists.isEmpty()) {
 			log.warning("No followed artists found!");
@@ -186,8 +191,8 @@ public class SpotifyDiscoveryBotCrawler {
 				Map<AlbumGroup, List<AlbumTrackPair>> categorizedFilteredAlbums = filterService.categorizeAlbumsByAlbumGroup(tracksByAlbums);
 				filterService.intelligentAppearsOnSearch(categorizedFilteredAlbums, followedArtists);
 				if (!BotUtils.isAllEmptyLists(categorizedFilteredAlbums)) {
-					Map<PlaylistStore, List<AlbumTrackPair>> songsByMainPlaylist = filterService.mapToTargetPlaylist(categorizedFilteredAlbums, playlistStores);
-					Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist = filterService.remapIntoExtendedPlaylists(songsByMainPlaylist, playlistStores);
+					Map<PlaylistStore, List<AlbumTrackPair>> songsByMainPlaylist = remappingService.mapToTargetPlaylist(categorizedFilteredAlbums);
+					Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist = remappingService.remapIntoExtendedPlaylists(songsByMainPlaylist);
 					playlistSongsService.addAllReleasesToSetPlaylists(songsByPlaylist);
 					playlistInfoService.showNotifiers(songsByPlaylist);
 					return BotUtils.collectSongAdditionResults(songsByPlaylist);

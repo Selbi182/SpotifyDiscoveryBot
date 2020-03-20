@@ -66,4 +66,35 @@ public class AlbumTrackPair implements Comparable<AlbumTrackPair>, Comparator<Al
 			album.getReleaseDate(),
 			tracks.size());
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((album == null) ? 0 : album.hashCode());
+		result = prime * result + ((tracks == null) ? 0 : tracks.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		AlbumTrackPair other = (AlbumTrackPair) obj;
+		if (album == null) {
+			if (other.album != null)
+				return false;
+		} else if (!album.equals(other.album))
+			return false;
+		if (tracks == null) {
+			if (other.tracks != null)
+				return false;
+		} else if (!tracks.equals(other.tracks))
+			return false;
+		return true;
+	}
 }

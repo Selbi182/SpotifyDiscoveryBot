@@ -174,7 +174,7 @@ public class SpotifyDiscoveryBotCrawler {
 	 */
 	private Map<AlbumGroupExtended, Integer> crawl() throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
 		spotifyApiAuthorization.login();
-		
+
 		List<String> followedArtists = userInfoService.getFollowedArtistsIds();
 		if (followedArtists.isEmpty()) {
 			log.warning("No followed artists found!");

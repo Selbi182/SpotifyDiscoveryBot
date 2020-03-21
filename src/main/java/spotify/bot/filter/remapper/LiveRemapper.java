@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.model_objects.specification.AudioFeatures;
+import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
 import spotify.bot.api.services.TrackService;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -20,10 +21,11 @@ public class LiveRemapper implements Remapper {
 	private TrackService trackService;
 
 	private final static Pattern LIVE_MATCHER = Pattern.compile("\\bLIVE\\b", Pattern.CASE_INSENSITIVE);
-	private final static double LIVE_SONG_COUNT_PERCENTAGE_THRESHOLD = 0.5;
-	private final static double LIVENESS_THRESHOLD = 0.5;
+	private final static double LIVE_SONG_COUNT_PERCENTAGE_THRESHOLD_DEFINITE = 0.9;
+	private final static double LIVENESS_THRESHOLD = 0.55;
 	private final static double LIVENESS_THRESHOLD_LESSER = 0.3;
 	private final static double EPSILON = 0.01;
+	private final static int MIN_SONG_COUNT_FOR_SHORTCUT = 3;
 
 	@Override
 	public AlbumGroupExtended getAlbumGroup() {
@@ -61,20 +63,24 @@ public class LiveRemapper implements Remapper {
 	 */
 	@Override
 	public boolean qualifiesAsRemappable(AlbumTrackPair atp) {
-		double trackCount = atp.getTracks().size();
-		double liveTracks = atp.getTracks().stream().filter(t -> LIVE_MATCHER.matcher(t.getName()).find()).count();
-		double liveTrackPercentage = liveTracks / trackCount;
+		return qualifiesAsRemappable(atp.getAlbum().getName(), atp.getTracks(), trackService);
+	}
 
-		boolean hasLiveInTitle = LIVE_MATCHER.matcher(atp.getAlbum().getName()).find();
-		boolean hasLiveInTracks = liveTrackPercentage < EPSILON;
+	public boolean qualifiesAsRemappable(String albumTitle, List<TrackSimplified> tracks, TrackService ts) {
+		double trackCount = tracks.size();
+		double liveTracks = tracks.stream().filter(t -> LIVE_MATCHER.matcher(t.getName()).find()).count();
+		double liveTrackPercentage = liveTracks / trackCount;
+		if (trackCount > MIN_SONG_COUNT_FOR_SHORTCUT && liveTrackPercentage > LIVE_SONG_COUNT_PERCENTAGE_THRESHOLD_DEFINITE) {
+			return true;
+		}
+
+		boolean hasLiveInTitle = LIVE_MATCHER.matcher(albumTitle).find();
+		boolean hasLiveInTracks = liveTrackPercentage > EPSILON;
 
 		if (hasLiveInTitle || hasLiveInTracks) {
-			if (hasLiveInTitle && (liveTrackPercentage >= LIVE_SONG_COUNT_PERCENTAGE_THRESHOLD)) {
-				return true;
-			}
-			List<AudioFeatures> audioFeatures = trackService.getAudioFeatures(atp.getTracks());
+			List<AudioFeatures> audioFeatures = ts.getAudioFeatures(tracks);
 			double averageLiveness = audioFeatures.stream().mapToDouble(AudioFeatures::getLiveness).average().getAsDouble();
-			boolean isLive = averageLiveness >= LIVENESS_THRESHOLD;
+			boolean isLive = averageLiveness > LIVENESS_THRESHOLD;
 			if (!isLive && hasLiveInTitle) {
 				isLive = averageLiveness >= LIVENESS_THRESHOLD_LESSER;
 			}

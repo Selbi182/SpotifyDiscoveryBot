@@ -19,7 +19,7 @@ import spotify.Main;
 import spotify.bot.util.BotLogger;
 
 @Repository
-class DiscoveryDatabase {
+public class DiscoveryDatabase {
 
 	// Database base constants
 	private final static String DB_FILE_NAME = "database.db";

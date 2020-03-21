@@ -15,8 +15,9 @@ import spotify.bot.util.data.AlbumTrackPair;
 @Component
 public class RemixRemapper implements Remapper {
 
-	private final static Pattern REMIX_MATCHER = Pattern.compile("\\bREMIX(ES)?\\b", Pattern.CASE_INSENSITIVE);
-	private final static double REMIX_SONG_COUNT_PERCENTAGE_THRESHOLD = 0.5;
+	private final static Pattern REMIX_MATCHER = Pattern.compile("\\b(RMX|REMIX|REMIXES)\\b", Pattern.CASE_INSENSITIVE);
+	private final static double REMIX_SONG_COUNT_PERCENTAGE_THRESHOLD = 0.65;
+	private final static double REMIX_SONG_COUNT_PERCENTAGE_THRESHOLD_LESSER = 0.2;
 
 	@Override
 	public AlbumGroupExtended getAlbumGroup() {
@@ -42,16 +43,18 @@ public class RemixRemapper implements Remapper {
 	 */
 	@Override
 	public boolean qualifiesAsRemappable(AlbumTrackPair atp) {
-		return qualifiesAsRemappable(atp.getAlbum().getName(), atp.getTracks().stream().map(TrackSimplified::getName).collect(Collectors.toList()));
+		return qualifiesAsRemappable(atp.getAlbum().getName(), atp.getTracks());
 	}
 
-	public boolean qualifiesAsRemappable(String albumTitle, List<String> trackTitles) {
+	public boolean qualifiesAsRemappable(String albumTitle, List<TrackSimplified> tracks) {
 		boolean hasRemixInTitle = REMIX_MATCHER.matcher(albumTitle).find();
-		if (!hasRemixInTitle) {
-			double trackCountRemix = trackTitles.stream().filter(t -> REMIX_MATCHER.matcher(t).find()).count();
-			double trackCount = trackTitles.size();
-			return (trackCountRemix / trackCount) >= REMIX_SONG_COUNT_PERCENTAGE_THRESHOLD;
+		List<String> trackIds = tracks.stream().map(TrackSimplified::getName).collect(Collectors.toList());
+		double trackCountRemix = trackIds.stream().filter(t -> REMIX_MATCHER.matcher(t).find()).count();
+		double trackCount = trackIds.size();
+		double remixPercentage = trackCountRemix / trackCount;
+		if (hasRemixInTitle) {
+			return remixPercentage > REMIX_SONG_COUNT_PERCENTAGE_THRESHOLD_LESSER;
 		}
-		return true;
+		return remixPercentage > REMIX_SONG_COUNT_PERCENTAGE_THRESHOLD;
 	}
 }

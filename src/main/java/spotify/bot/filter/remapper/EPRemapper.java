@@ -1,5 +1,6 @@
 package spotify.bot.filter.remapper;
 
+import java.util.List;
 import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
@@ -51,11 +52,15 @@ public class EPRemapper implements Remapper {
 	 */
 	@Override
 	public boolean qualifiesAsRemappable(AlbumTrackPair atp) {
-		if (EP_MATCHER.matcher(atp.getAlbum().getName()).find()) {
+		return qualifiesAsRemappable(atp.getAlbum().getName(), atp.getTracks());
+	}
+
+	public boolean qualifiesAsRemappable(String albumTitle, List<TrackSimplified> tracks) {
+		if (EP_MATCHER.matcher(albumTitle).find()) {
 			return true;
 		}
-		int trackCount = atp.getTracks().size();
-		int totalDurationMs = atp.getTracks().stream().mapToInt(TrackSimplified::getDurationMs).sum();
+		int trackCount = tracks.size();
+		int totalDurationMs = tracks.stream().mapToInt(TrackSimplified::getDurationMs).sum();
 		if (trackCount >= EP_SONG_COUNT_THRESHOLD || totalDurationMs >= EP_DURATION_THRESHOLD) {
 			return true;
 		}

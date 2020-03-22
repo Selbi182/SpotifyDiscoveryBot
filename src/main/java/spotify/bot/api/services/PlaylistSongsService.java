@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,8 +24,6 @@ import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.Config;
 import spotify.bot.config.dto.PlaylistStore;
 import spotify.bot.util.BotLogger;
-import spotify.bot.util.BotUtils;
-import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;
 
 @Service
@@ -45,20 +44,20 @@ public class PlaylistSongsService {
 	private BotLogger log;
 
 	/**
-	 * Adds all releases to the given playlist IDs
+	 * Adds all releases to the given playlists
 	 * 
-	 * @param songsByPlaylistId
+	 * @param songsByPlaylist
 	 * @param enabledAlbumGroups
 	 * @throws InterruptedException
 	 * @throws IOException
 	 * @throws SQLException
 	 * @throws SpotifyWebApiException
 	 */
-	public void addAllReleasesToSetPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylistId) throws SpotifyWebApiException, SQLException, IOException, InterruptedException {
+	public void addAllReleasesToSetPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws SpotifyWebApiException, SQLException, IOException, InterruptedException {
 		log.debug("Adding to playlists:");
-		for (AlbumGroupExtended age : BotUtils.DEFAULT_PLAYLIST_GROUP_ORDER) {
-			PlaylistStore ps = config.getPlaylistStore(age);
-			List<AlbumTrackPair> albumTrackPairs = songsByPlaylistId.get(ps);
+		List<PlaylistStore> sortedPlaylistStores = songsByPlaylist.keySet().stream().sorted().collect(Collectors.toList());
+		for (PlaylistStore ps : sortedPlaylistStores) {
+			List<AlbumTrackPair> albumTrackPairs = songsByPlaylist.get(ps);
 			if (!albumTrackPairs.isEmpty()) {
 				Collections.sort(albumTrackPairs);
 				addSongsToPlaylistId(ps.getPlaylistId(), albumTrackPairs);

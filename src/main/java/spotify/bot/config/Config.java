@@ -201,23 +201,23 @@ public class Config {
 	/**
 	 * Updates the playlist store of the given album group by the current timestamp.
 	 * 
-	 * @param albumGroup
+	 * @param albumGroupExtended
 	 * @throws SQLException
 	 */
-	public void refreshPlaylistStore(AlbumGroupExtended albumGroup) throws SQLException {
-		databaseService.refreshPlaylistStore(albumGroup.getGroup());
+	public void refreshPlaylistStore(AlbumGroupExtended albumGroupExtended) throws SQLException {
+		databaseService.refreshPlaylistStore(albumGroupExtended.getGroup());
 		invalidatePlaylistStore();
 	}
 
 	/**
 	 * Removes the timestamp from the given album group's playlist store.
 	 * 
-	 * @param albumGroup
+	 * @param albumGroupExtended
 	 * @param addedSongsCount
 	 * @throws SQLException
 	 */
-	public void unsetPlaylistStore(AlbumGroupExtended albumGroup) throws SQLException {
-		databaseService.unsetPlaylistStore(albumGroup);
+	public void unsetPlaylistStore(AlbumGroupExtended albumGroupExtended) throws SQLException {
+		databaseService.unsetPlaylistStore(albumGroupExtended);
 		invalidatePlaylistStore();
 	}
 

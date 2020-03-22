@@ -6,6 +6,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -24,6 +25,15 @@ import spotify.bot.util.data.AlbumTrackPair;
 
 @Service
 public class BotLogger {
+	/**
+	 * A comparator for {@link AlbumSimplified} following the order: Album Group >
+	 * (first) Artist > Release Date > Release Name
+	 */
+	private final static Comparator<AlbumSimplified> ALBUM_SIMPLIFIED_COMPARATOR = Comparator.comparing(AlbumSimplified::getAlbumGroup)
+		.thenComparing(as -> as.getArtists()[0].getName())
+		.thenComparing(AlbumSimplified::getReleaseDate)
+		.thenComparing(AlbumSimplified::getName);
+
 	private final static String LOG_FILE_PATH = "./spring.log";
 	private final static int DEFAULT_LOG_READ_LINES = 100;
 
@@ -155,7 +165,7 @@ public class BotLogger {
 	 * @param as
 	 * @return
 	 */
-	public String printDroppedAlbum(AlbumSimplified as) {
+	private String printDroppedAlbum(AlbumSimplified as) {
 		return String.format("%s [%s] %s - %s (%s)",
 			DROPPED_SYMBOL,
 			as.getAlbumGroup().toString(),
@@ -169,7 +179,7 @@ public class BotLogger {
 	 * 
 	 * @param albumTrackPairs
 	 */
-	public void printAlbumSimplifiedMulti(List<AlbumSimplified> albumSimplifieds) {
+	private void printAlbumSimplifiedMulti(List<AlbumSimplified> albumSimplifieds) {
 		for (AlbumSimplified as : albumSimplifieds) {
 			debug(printDroppedAlbum(as));
 		}
@@ -192,7 +202,7 @@ public class BotLogger {
 			}
 			List<AlbumSimplified> sortedDifferenceView = differenceView
 				.stream()
-				.sorted(BotUtils.ALBUM_SIMPLIFIED_COMPARATOR)
+				.sorted(ALBUM_SIMPLIFIED_COMPARATOR)
 				.collect(Collectors.toList());
 			printAlbumSimplifiedMulti(sortedDifferenceView);
 		}

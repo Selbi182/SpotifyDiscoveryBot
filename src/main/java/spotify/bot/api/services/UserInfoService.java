@@ -76,7 +76,7 @@ public class UserInfoService {
 			Date lastUpdatedArtistCache = config.getStaticConfig().getArtistCacheLastUpdated();
 			if (lastUpdatedArtistCache != null) {
 				int artistCacheTimeout = config.getStaticConfig().getArtistCacheTimeout();
-				if (BotUtils.isTimeoutActive(lastUpdatedArtistCache, artistCacheTimeout)) {
+				if (BotUtils.isWithinTimeoutWindow(lastUpdatedArtistCache, artistCacheTimeout)) {
 					return cachedArtists;
 				}
 			}

@@ -2,6 +2,8 @@ package spotify.bot.util;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -12,8 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
+import com.google.common.collect.Ordering;
 import com.wrapper.spotify.enums.AlbumGroup;
-import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
 import spotify.bot.config.dto.PlaylistStore;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -22,27 +24,17 @@ import spotify.bot.util.data.AlbumTrackPair;
 public final class BotUtils {
 
 	/**
-	 * A comparator for {@link AlbumSimplified} following the order: Album Group >
-	 * (first) Artist > Release Date > Release Name
-	 */
-	public final static Comparator<AlbumSimplified> ALBUM_SIMPLIFIED_COMPARATOR = Comparator.comparing(AlbumSimplified::getAlbumGroup)
-		.thenComparing(as -> as.getArtists()[0].getName())
-		.thenComparing(AlbumSimplified::getReleaseDate)
-		.thenComparing(AlbumSimplified::getName);
-
-	/**
 	 * A common order of the different playlist groups: Album > Single > EP > Remix
 	 * > Live > Compilation > Appears On
 	 */
-	public final static AlbumGroupExtended[] DEFAULT_PLAYLIST_GROUP_ORDER = {
+	public final static Comparator<AlbumGroupExtended> DEFAULT_PLAYLIST_GROUP_ORDER_COMPARATOR = Ordering.explicit(
 		AlbumGroupExtended.ALBUM,
 		AlbumGroupExtended.SINGLE,
 		AlbumGroupExtended.EP,
 		AlbumGroupExtended.REMIX,
 		AlbumGroupExtended.LIVE,
 		AlbumGroupExtended.COMPILATION,
-		AlbumGroupExtended.APPEARS_ON
-	};
+		AlbumGroupExtended.APPEARS_ON);
 
 	/**
 	 * Utility class
@@ -52,22 +44,23 @@ public final class BotUtils {
 	///////
 
 	/**
-	 * Check if the given old date is still within the allowed timeout threshold in
-	 * hours
+	 * Check if the given old date is still within the allowed timeout window
 	 * 
-	 * @param oldDate
-	 * @param timeout
+	 * @param baseDate
+	 *            the date to check "now" against
+	 * @param timeoutInHours
+	 *            the timeout in hours
 	 */
-	public static boolean isTimeoutActive(Date oldDate, int timeout) {
-		Calendar calCurrent = Calendar.getInstance();
-		Calendar calOld = Calendar.getInstance();
-		calOld.setTime(oldDate);
-		calOld.add(Calendar.HOUR_OF_DAY, timeout);
-		return calCurrent.before(calOld);
+	public static boolean isWithinTimeoutWindow(Date baseDate, int timeoutInHours) {
+		Instant baseTime = Instant.ofEpochMilli(baseDate.getTime());
+		Instant currentTime = Instant.now();
+		boolean isWithinTimeoutWindow = currentTime.minus(timeoutInHours, ChronoUnit.HOURS).isBefore(baseTime);
+		return isWithinTimeoutWindow;
 	}
 
 	/**
-	 * Creates a concurrent generic map with some List T as the values
+	 * Creates a map with a full AlbumGroup -> List<T> relationship (the lists are
+	 * empty)
 	 * 
 	 * @return
 	 */

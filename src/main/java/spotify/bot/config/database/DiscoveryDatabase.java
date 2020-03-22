@@ -109,7 +109,7 @@ public class DiscoveryDatabase {
 	 * @throws IOException
 	 * @throws SQLException
 	 */
-	public ResultSet selectSingle(String tableName) throws SQLException, IOException {
+	ResultSet selectSingle(String tableName) throws SQLException, IOException {
 		ResultSet rs = createStatement().executeQuery(String.format(SINGLE_SELECT_QUERY_MASK, tableName));
 		return rs;
 	}
@@ -121,7 +121,7 @@ public class DiscoveryDatabase {
 	 * @return
 	 * @throws SQLException
 	 */
-	public ResultSet selectAll(String tableName) throws SQLException {
+	ResultSet selectAll(String tableName) throws SQLException {
 		ResultSet rs = createStatement().executeQuery(String.format(FULL_SELECT_QUERY_MASK, tableName));
 		return rs;
 	}
@@ -136,15 +136,15 @@ public class DiscoveryDatabase {
 	 * @param newValue
 	 * @throws SQLException
 	 */
-	public synchronized void update(String table, String targetColumn, String newValue) throws SQLException {
+	synchronized void update(String table, String targetColumn, String newValue) throws SQLException {
 		createStatement().executeUpdate(String.format(UPDATE_QUERY_MASK, table, targetColumn, newValue));
 	}
 
-	public synchronized void updateWithCondition(String table, String targetColumn, String newValue, String conditionColumn, String conditionValue) throws SQLException {
+	synchronized void updateWithCondition(String table, String targetColumn, String newValue, String conditionColumn, String conditionValue) throws SQLException {
 		createStatement().executeUpdate(String.format(UPDATE_WITH_CONDITION_QUERY_MASK, table, targetColumn, newValue, conditionColumn, conditionValue));
 	}
 
-	public synchronized void updateNull(String table, String targetColumn, String conditionColumn, String conditionValue) throws SQLException {
+	synchronized void updateNull(String table, String targetColumn, String conditionColumn, String conditionValue) throws SQLException {
 		updateWithCondition(table, targetColumn, null, conditionColumn, conditionValue);
 	}
 
@@ -156,7 +156,7 @@ public class DiscoveryDatabase {
 	 * @param column
 	 * @throws SQLException
 	 */
-	public synchronized void insertAll(Collection<String> strings, String table, String column) throws SQLException {
+	synchronized void insertAll(Collection<String> strings, String table, String column) throws SQLException {
 		if (table != null && column != null && strings != null && !strings.isEmpty()) {
 			for (String s : strings) {
 				createStatement().executeUpdate(String.format(INSERT_QUERY_MASK, table, column, s));
@@ -172,7 +172,7 @@ public class DiscoveryDatabase {
 	 * @param column
 	 * @throws SQLException
 	 */
-	public synchronized void deleteAll(Collection<String> stringsToRemove, String table, String column) throws SQLException {
+	synchronized void deleteAll(Collection<String> stringsToRemove, String table, String column) throws SQLException {
 		if (table != null && column != null && stringsToRemove != null && !stringsToRemove.isEmpty()) {
 			for (String s : stringsToRemove) {
 				createStatement().execute(String.format(DELETE_QUERY_MASK, table, column, s));

@@ -2,15 +2,16 @@ package spotify.bot.config.dto;
 
 import java.util.Date;
 
+import spotify.bot.util.BotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
 
-public class PlaylistStore {
+public class PlaylistStore implements Comparable<PlaylistStore> {
 	private final AlbumGroupExtended albumGroupExtended;
 	private String playlistId;
 	private Date lastUpdate;
 
-	public PlaylistStore(AlbumGroupExtended albumGroup) {
-		this.albumGroupExtended = albumGroup;
+	public PlaylistStore(AlbumGroupExtended albumGroupExtended) {
+		this.albumGroupExtended = albumGroupExtended;
 	}
 
 	/////////////
@@ -44,25 +45,10 @@ public class PlaylistStore {
 		return String.format("PlaylistStore<%s>", albumGroupExtended.toString());
 	}
 
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((albumGroupExtended == null) ? 0 : albumGroupExtended.hashCode());
-		return result;
-	}
+	///////////// a
 
 	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		PlaylistStore other = (PlaylistStore) obj;
-		if (albumGroupExtended != other.albumGroupExtended)
-			return false;
-		return true;
+	public int compareTo(PlaylistStore o) {
+		return BotUtils.DEFAULT_PLAYLIST_GROUP_ORDER_COMPARATOR.compare(this.getAlbumGroupExtended(), o.getAlbumGroupExtended());
 	}
 }

@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,8 +24,8 @@ import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
 import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.Config;
 import spotify.bot.config.dto.PlaylistStore;
+import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
-import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;
 
 @Service
@@ -49,6 +50,9 @@ public class PlaylistInfoService {
 	@Autowired
 	private Config config;
 
+	@Autowired
+	private BotLogger log;
+
 	/**
 	 * Display the [NEW] notifiers of the given album groups' playlists titles, if
 	 * any songs were added
@@ -60,12 +64,12 @@ public class PlaylistInfoService {
 	 * @throws SpotifyWebApiException
 	 */
 	public void showNotifiers(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws SpotifyWebApiException, SQLException, IOException, InterruptedException {
-		for (AlbumGroupExtended age : BotUtils.DEFAULT_PLAYLIST_GROUP_ORDER) {
-			PlaylistStore ps = config.getPlaylistStore(age);
+		List<PlaylistStore> sortedPlaylistStores = songsByPlaylist.keySet().stream().sorted().collect(Collectors.toList());
+		for (PlaylistStore ps : sortedPlaylistStores) {
 			List<AlbumTrackPair> albumTrackPairs = songsByPlaylist.get(ps);
-			if (albumTrackPairs != null && !albumTrackPairs.isEmpty()) {
-				showNotifier(ps);
-				config.refreshPlaylistStore(age);
+			if (!albumTrackPairs.isEmpty()) {
+				showSingleNotifier(ps);
+				config.refreshPlaylistStore(ps.getAlbumGroupExtended());
 			}
 		}
 	}
@@ -80,7 +84,7 @@ public class PlaylistInfoService {
 	 * @throws IOException
 	 * @throws SpotifyWebApiException
 	 */
-	private void showNotifier(PlaylistStore playlistStore) throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
+	private void showSingleNotifier(PlaylistStore playlistStore) throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
 		String playlistId = playlistStore.getPlaylistId();
 		if (playlistId != null) {
 			Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
@@ -91,6 +95,8 @@ public class PlaylistInfoService {
 			}
 		}
 	}
+
+	////////////////////////////////
 
 	/**
 	 * Timestamp all given playlists that DIDN'T have any songs added
@@ -111,6 +117,8 @@ public class PlaylistInfoService {
 		}
 	}
 
+	////////////////////////////////
+
 	/**
 	 * Convenience method to try and clear every obsolete New indicator
 	 * 
@@ -129,7 +137,7 @@ public class PlaylistInfoService {
 				Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
 				String playlistName = p.getName();
 				if (playlistName != null && playlistName.contains(NEW_INDICATOR_TEXT)) {
-					if (shouldIndicatorBeMarkedAsRead(ps)) {
+					if (isIndicatorMarkedAsRead(ps)) {
 						playlistName = playlistName.replace(NEW_INDICATOR_TEXT, "").trim();
 						SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).name(playlistName));
 						config.unsetPlaylistStore(ps.getAlbumGroupExtended());
@@ -144,43 +152,53 @@ public class PlaylistInfoService {
 	/**
 	 * Check if the [NEW] indicator for this playlist store should be removed. This
 	 * is either done by timeout or by checking if the currently played song is
-	 * within the top 50 most recently added songs of the playlist.
+	 * within the most recently added songs of the playlist.
 	 * 
 	 * @param playlistId
 	 * @return
 	 * @throws IOException
 	 */
-	private boolean shouldIndicatorBeMarkedAsRead(PlaylistStore playlistStore) {
+	private boolean isIndicatorMarkedAsRead(PlaylistStore playlistStore) {
 		try {
+			// Case 1: Notification timestamp is already unset
 			Date lastUpdated = playlistStore.getLastUpdate();
 			if (lastUpdated == null) {
 				return true;
 			}
 
-			// Timeout after a certain number of hours since the playlist was last updated
+			// Case 2: Timeout since playlist was last updated expired
 			int newNotificationTimeout = config.getStaticConfig().getNewNotificationTimeout();
-			if (!BotUtils.isTimeoutActive(lastUpdated, newNotificationTimeout)) {
+			if (!BotUtils.isWithinTimeoutWindow(lastUpdated, newNotificationTimeout)) {
 				return true;
 			}
 
-			// Check if the currently played song is part of the most recently added songs
-			// or if the playlist is empty
+			// Case 3: Currently played song is within the recently added playlist tracks
 			String playlistId = playlistStore.getPlaylistId();
-			PlaylistTrack[] recentlyAddedPlaylistTracks = SpotifyCall.execute(spotifyApi
+			PlaylistTrack[] topmostPlaylistTracks = SpotifyCall.execute(spotifyApi
 				.getPlaylistsTracks(playlistId)
 				.limit(MAX_PLAYLIST_TRACK_FETCH_LIMIT))
 				.getItems();
-			if (recentlyAddedPlaylistTracks.length == 0) {
+			List<PlaylistTrack> recentlyAddedPlaylistTracks = Arrays.stream(topmostPlaylistTracks)
+				.filter((pt -> BotUtils.isWithinTimeoutWindow(pt.getAddedAt(), newNotificationTimeout)))
+				.collect(Collectors.toList());
+
+			// -- Case 3a: Playlist does not have recently added tracks or is still empty
+			if (recentlyAddedPlaylistTracks.isEmpty()) {
 				return true;
 			}
+
+			// -- Case 3b: Playlist does have recently added tracks, check if the currently
+			// played song is within that list
 			CurrentlyPlaying currentlyPlaying = SpotifyCall.execute(spotifyApi.getUsersCurrentlyPlayingTrack());
 			if (currentlyPlaying != null) {
-				boolean currentlyPlayingSongIsNew = Arrays.asList(recentlyAddedPlaylistTracks)
-					.stream().anyMatch(pt -> pt.getTrack().getId().equals(currentlyPlaying.getItem().getId()));
+				boolean currentlyPlayingSongIsNew = recentlyAddedPlaylistTracks
+					.stream()
+					.anyMatch(pt -> pt.getTrack().getId().equals(currentlyPlaying.getItem().getId()));
 				return currentlyPlayingSongIsNew;
 			}
 		} catch (Exception e) {
 			// Don't care, indicator clearance has absolutely no priority
+			log.stackTrace(e);
 		}
 		return false;
 	}

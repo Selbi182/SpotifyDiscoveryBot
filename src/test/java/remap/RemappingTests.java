@@ -1,14 +1,14 @@
 package remap;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.List;
 
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -42,7 +42,7 @@ import spotify.bot.util.BotLogger;
 	SpotifyApiWrapper.class,
 	SpotifyApiAuthorization.class })
 @EnableConfigurationProperties
-class RemappingTests {
+public class RemappingTests {
 
 	@Autowired
 	private SpotifyApi spotifyApi;
@@ -57,21 +57,25 @@ class RemappingTests {
 	private static LiveRemapper liveRemapper;
 	private static RemixRemapper remixRemapper;
 
-	@BeforeAll
-	static void createRemappers() throws SpotifyWebApiException, InterruptedException, IOException {
+	@Before
+	public void createRemappers() throws SpotifyWebApiException, InterruptedException, IOException {
 		epRemapper = new EPRemapper();
 		liveRemapper = new LiveRemapper();
 		remixRemapper = new RemixRemapper();
+
+		login();
 	}
 
-	void login() {
+	private void login() {
 		try {
 			spotifyApiAuthorization.login();
 		} catch (SpotifyWebApiException | InterruptedException | IOException e) {
 			e.printStackTrace();
-			fail();
+			fail("Couldn't log in to Spotify Web API!");
 		}
 	}
+
+	///////////////
 
 	private Album getAlbum(String albumId) {
 		try {
@@ -88,13 +92,11 @@ class RemappingTests {
 			return null;
 		}
 	}
-	
+
 	///////////////////////////////
 
 	@Test
-	void epPositive() {
-		login();
-
+	public void epPositive() {
 		Album album;
 		boolean qualifiesAsRemappable;
 
@@ -112,9 +114,7 @@ class RemappingTests {
 	}
 
 	@Test
-	void epNegative() {
-		login();
-
+	public void epNegative() {
 		Album album;
 		boolean qualifiesAsRemappable;
 
@@ -134,9 +134,7 @@ class RemappingTests {
 	///////////////////////////////
 
 	@Test
-	void livePositive() {
-		login();
-
+	public void livePositive() {
 		Album album;
 		boolean qualifiesAsRemappable;
 
@@ -158,9 +156,7 @@ class RemappingTests {
 	}
 
 	@Test
-	void liveNegative() {
-		login();
-
+	public void liveNegative() {
 		Album album;
 		boolean qualifiesAsRemappable;
 
@@ -192,9 +188,7 @@ class RemappingTests {
 	///////////////////////////////
 
 	@Test
-	void remixPositive() {
-		login();
-
+	public void remixPositive() {
 		Album album;
 		boolean qualifiesAsRemappable;
 
@@ -220,9 +214,7 @@ class RemappingTests {
 	}
 
 	@Test
-	void remixNegative() {
-		login();
-
+	public void remixNegative() {
 		Album album;
 		boolean qualifiesAsRemappable;
 

@@ -49,9 +49,13 @@ public class RemappingService {
 	public Map<PlaylistStore, List<AlbumTrackPair>> mapToTargetPlaylist(Map<AlbumGroup, List<AlbumTrackPair>> newSongsByGroup) throws SQLException {
 		Map<PlaylistStore, List<AlbumTrackPair>> resultMap = new HashMap<>();
 		for (Map.Entry<AlbumGroup, List<AlbumTrackPair>> entry : newSongsByGroup.entrySet()) {
-			PlaylistStore ps = config.getPlaylistStore(entry.getKey());
-			if (ps != null) {
-				resultMap.put(ps, entry.getValue());
+			List<AlbumTrackPair> atp = entry.getValue();
+			if (!atp.isEmpty()) {
+				AlbumGroup ag = entry.getKey();
+				PlaylistStore ps = config.getPlaylistStore(ag);
+				if (ps != null) {
+					resultMap.put(ps, atp);
+				}
 			}
 		}
 		return resultMap;
@@ -82,6 +86,9 @@ public class RemappingService {
 		if (userOptions.isEpSeparation()) {
 			remap(epRemapper, regroupedMap);
 		}
+
+		// Remove entries with empty lists (also makes debugging easier)
+		regroupedMap.entrySet().removeIf(e -> e.getValue().isEmpty());
 		return regroupedMap;
 
 	}
@@ -99,8 +106,8 @@ public class RemappingService {
 							.filter(atp -> remapper.qualifiesAsRemappable(atp))
 							.collect(Collectors.toList());
 						if (!filteredReleases.isEmpty()) {
-							releases.removeAll(filteredReleases);
 							remappedTracks.addAll(filteredReleases);
+							releases.removeAll(filteredReleases);
 						}
 					}
 				}

@@ -1,7 +1,9 @@
 package spotify.bot.util.data;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import com.wrapper.spotify.enums.AlbumGroup;
 
@@ -16,10 +18,14 @@ public enum AlbumGroupExtended {
 	LIVE("live", true);
 
 	private static final Map<String, AlbumGroupExtended> map = new HashMap<>();
+	private static final Set<AlbumGroupExtended> extendedTypes = new HashSet<>();
 
 	static {
-		for (AlbumGroupExtended albumGroup : AlbumGroupExtended.values()) {
-			map.put(albumGroup.group, albumGroup);
+		for (AlbumGroupExtended albumGroupExtended : AlbumGroupExtended.values()) {
+			map.put(albumGroupExtended.group, albumGroupExtended);
+			if (albumGroupExtended.isExtendedType()) {
+				extendedTypes.add(albumGroupExtended);
+			}
 		}
 	}
 
@@ -45,7 +51,14 @@ public enum AlbumGroupExtended {
 		return map.get(albumGroup.getGroup());
 	}
 
-	public AlbumGroup asAlbumGroup() {
+	/**
+	 * Return the base album group representation of the given extended album group.
+	 * 
+	 * @return the base album group
+	 * @throws IllegalArgumentException
+	 *             if this is an extended album group
+	 */
+	public AlbumGroup asAlbumGroup() throws IllegalArgumentException {
 		AlbumGroup ag = AlbumGroup.keyOf(this.group);
 		if (ag == null) {
 			throw new IllegalArgumentException("This is a special album group and cannot be converted back into a regular one!");

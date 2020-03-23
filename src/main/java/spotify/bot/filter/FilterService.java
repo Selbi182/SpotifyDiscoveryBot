@@ -61,8 +61,6 @@ public class FilterService {
 	 * 
 	 * @param allAlbums
 	 * @return
-	 * @throws IOException
-	 * @throws SQLException
 	 */
 	public List<AlbumSimplified> getNonCachedAlbums(List<AlbumSimplified> allAlbums) throws IOException, SQLException {
 		List<AlbumSimplified> filteredAlbums = filterNonCachedAlbumsOnly(allAlbums);
@@ -75,7 +73,6 @@ public class FilterService {
 	 * 
 	 * @param albumsSimplified
 	 * @return
-	 * @throws SQLException
 	 */
 	private List<AlbumSimplified> filterNonCachedAlbumsOnly(List<AlbumSimplified> albumsSimplified) throws IOException, SQLException {
 		Map<String, AlbumSimplified> filteredAlbums = new HashMap<>();
@@ -99,7 +96,6 @@ public class FilterService {
 	 * Cache the given album IDs in the database
 	 * 
 	 * @param albums
-	 * @throws SQLException
 	 */
 	public void cacheAlbumIds(List<AlbumSimplified> albums) throws SQLException {
 		if (!albums.isEmpty()) {
@@ -134,8 +130,6 @@ public class FilterService {
 	 * 
 	 * @param unfilteredAlbums
 	 * @return
-	 * @throws IOException
-	 * @throws SQLException
 	 */
 	public List<AlbumSimplified> filterNewAlbumsOnly(List<AlbumSimplified> unfilteredAlbums) throws SQLException, IOException {
 		Collection<AlbumSimplified> noDuplicates = filterDuplicateAlbums(unfilteredAlbums);
@@ -183,8 +177,6 @@ public class FilterService {
 	 * @param album
 	 * @param lowerReleaseDateBoundary
 	 * @return
-	 * @throws SQLException
-	 * @throws IOException
 	 */
 	private boolean isValidDate(AlbumSimplified album, LocalDate lowerReleaseDateBoundary) {
 		try {
@@ -206,8 +198,6 @@ public class FilterService {
 	 * @param extraAlbumIdsFiltered
 	 * @param followedArtists
 	 * @return
-	 * @throws IOException
-	 * @throws SQLException
 	 */
 	public void intelligentAppearsOnSearch(Map<AlbumGroup, List<AlbumTrackPair>> categorizedFilteredAlbums, List<String> followedArtists) throws SQLException, IOException {
 		if (config.getUserOptions().isIntelligentAppearsOnSearch()) {

@@ -35,10 +35,6 @@ public class AlbumService {
 	 * @param followedArtists
 	 * @param albumGroups
 	 * @return
-	 * @throws SQLException
-	 * @throws IOException
-	 * @throws InterruptedException
-	 * @throws SpotifyWebApiException
 	 */
 	public List<AlbumSimplified> getAllAlbumsOfArtists(List<String> followedArtists)
 		throws IOException, SQLException, SpotifyWebApiException, InterruptedException {
@@ -52,10 +48,6 @@ public class AlbumService {
 	 * 
 	 * @param artists
 	 * @return
-	 * @throws SQLException
-	 * @throws InterruptedException
-	 * @throws IOException
-	 * @throws SpotifyWebApiException
 	 */
 	private List<AlbumSimplified> getAlbumsOfArtists(List<String> artists, Collection<AlbumGroup> enabledAlbumGroups) throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
 		String albumGroupString = createAlbumGroupString(enabledAlbumGroups);
@@ -87,10 +79,6 @@ public class AlbumService {
 	 * @param artistId
 	 * @param albumGroup
 	 * @return
-	 * @throws SQLException
-	 * @throws InterruptedException
-	 * @throws IOException
-	 * @throws SpotifyWebApiException
 	 */
 	private List<AlbumSimplified> getAlbumIdsOfSingleArtist(String artistId, String albumGroups) throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
 		List<AlbumSimplified> albumsOfCurrentArtist = SpotifyCall.executePaging(spotifyApi

@@ -69,8 +69,6 @@ public class DiscoveryDatabase {
 	/**
 	 * Returns the Database connection instance. May create a new one if not already
 	 * set
-	 * 
-	 * @throws SQLException
 	 */
 	private Connection getConnectionInstance() throws SQLException {
 		if (connection == null || connection.isClosed()) {
@@ -81,8 +79,6 @@ public class DiscoveryDatabase {
 
 	/**
 	 * Close the SQL connection if it's still live
-	 * 
-	 * @throws SQLException
 	 */
 	@PreDestroy
 	private void closeConnection() throws SQLException {
@@ -95,7 +91,6 @@ public class DiscoveryDatabase {
 	 * Creates a new Database statement. May create a new database instance.
 	 * 
 	 * @return
-	 * @throws SQLException
 	 */
 	private Statement createStatement() throws SQLException {
 		return getConnectionInstance().createStatement();
@@ -105,9 +100,6 @@ public class DiscoveryDatabase {
 
 	/**
 	 * Fetch the single-row result set of the given table
-	 * 
-	 * @throws IOException
-	 * @throws SQLException
 	 */
 	ResultSet selectSingle(String tableName) throws SQLException, IOException {
 		ResultSet rs = createStatement().executeQuery(String.format(SINGLE_SELECT_QUERY_MASK, tableName));
@@ -119,7 +111,6 @@ public class DiscoveryDatabase {
 	 * 
 	 * @param tableName
 	 * @return
-	 * @throws SQLException
 	 */
 	ResultSet selectAll(String tableName) throws SQLException {
 		ResultSet rs = createStatement().executeQuery(String.format(FULL_SELECT_QUERY_MASK, tableName));
@@ -134,7 +125,6 @@ public class DiscoveryDatabase {
 	 * @param table
 	 * @param targetColumn
 	 * @param newValue
-	 * @throws SQLException
 	 */
 	synchronized void update(String table, String targetColumn, String newValue) throws SQLException {
 		createStatement().executeUpdate(String.format(UPDATE_QUERY_MASK, table, targetColumn, newValue));
@@ -154,7 +144,6 @@ public class DiscoveryDatabase {
 	 * @param strings
 	 * @param table
 	 * @param column
-	 * @throws SQLException
 	 */
 	synchronized void insertAll(Collection<String> strings, String table, String column) throws SQLException {
 		if (table != null && column != null && strings != null && !strings.isEmpty()) {
@@ -170,7 +159,6 @@ public class DiscoveryDatabase {
 	 * @param stringsToRemove
 	 * @param table
 	 * @param column
-	 * @throws SQLException
 	 */
 	synchronized void deleteAll(Collection<String> stringsToRemove, String table, String column) throws SQLException {
 		if (table != null && column != null && stringsToRemove != null && !stringsToRemove.isEmpty()) {

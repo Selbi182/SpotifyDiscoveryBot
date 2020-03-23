@@ -1,7 +1,5 @@
 package spotify.bot.util;
 
-import java.io.IOException;
-import java.sql.SQLException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -106,8 +104,6 @@ public final class BotUtils {
 	 * 
 	 * @param songsAddedPerAlbumGroups
 	 * @return
-	 * @throws SQLException
-	 * @throws IOException
 	 */
 	public static String compileResultString(Map<AlbumGroupExtended, Integer> songsAddedPerAlbumGroups) {
 		if (songsAddedPerAlbumGroups != null) {

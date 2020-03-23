@@ -24,11 +24,6 @@ public class SpotifyApiWrapper {
 	 * preconfiguration from the database is taken first.
 	 * 
 	 * @return the API instance
-	 * 
-	 * @throws SpotifyWebApiException
-	 * @throws InterruptedException
-	 * @throws IOException
-	 * @throws SQLException
 	 */
 	@Bean
 	SpotifyApi spotifyApi() throws SpotifyWebApiException, InterruptedException, IOException, SQLException {

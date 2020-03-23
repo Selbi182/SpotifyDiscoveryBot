@@ -47,10 +47,6 @@ public class SpotifyApiAuthorization {
 	/**
 	 * Log in to Spotify. Retry up to ten times with exponentially increasing sleep
 	 * intervals on an error.
-	 * 
-	 * @throws SpotifyWebApiException
-	 * @throws InterruptedException
-	 * @throws IOException
 	 */
 	public void login() throws SpotifyWebApiException, InterruptedException, IOException {
 		login(0);
@@ -83,9 +79,6 @@ public class SpotifyApiAuthorization {
 	 * Authentication process
 	 * 
 	 * @param api
-	 * @throws InterruptedException
-	 * @throws IOException
-	 * @throws SpotifyWebApiException
 	 */
 	private void authenticate() throws SpotifyWebApiException, IOException, InterruptedException {
 		URI uri = SpotifyCall.execute(spotifyApi.authorizationCodeUri().scope(SCOPES));
@@ -110,10 +103,6 @@ public class SpotifyApiAuthorization {
 	 * 
 	 * @param code
 	 * @return
-	 * @throws InterruptedException
-	 * @throws IOException
-	 * @throws SpotifyWebApiException
-	 * @throws SQLException
 	 */
 	@RequestMapping(LOGIN_CALLBACK_URI)
 	private ResponseEntity<String> loginCallback(@RequestParam String code) throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
@@ -133,11 +122,6 @@ public class SpotifyApiAuthorization {
 	 * Refresh the access token
 	 * 
 	 * @param api
-	 * 
-	 * @throws InterruptedException
-	 * @throws IOException
-	 * @throws SpotifyWebApiException
-	 * @throws SQLException
 	 */
 	private void authorizationCodeRefresh() throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
 		AuthorizationCodeCredentials acc = SpotifyCall.execute(spotifyApi.authorizationCodeRefresh());
@@ -146,9 +130,6 @@ public class SpotifyApiAuthorization {
 
 	/**
 	 * Store the access and refresh tokens in the database
-	 * 
-	 * @throws IOException
-	 * @throws SQLException
 	 */
 	private void updateTokens(AuthorizationCodeCredentials acc) throws IOException, SQLException {
 		String accessToken = spotifyApi.getAccessToken();

@@ -38,8 +38,6 @@ public class TrackService {
 	 * 
 	 * @param albums
 	 * @return
-	 * @throws SQLException
-	 * @throws IOException
 	 */
 	public List<AlbumTrackPair> getTracksOfAlbums(List<AlbumSimplified> albums) throws IOException, SQLException {
 		List<AlbumTrackPair> atps = new ArrayList<>();
@@ -70,9 +68,6 @@ public class TrackService {
 	 * 
 	 * @param tracks
 	 * @return
-	 * @throws SpotifyWebApiException
-	 * @throws IOException
-	 * @throws InterruptedException
 	 */
 	public List<AudioFeatures> getAudioFeatures(List<TrackSimplified> tracks) {
 		try {

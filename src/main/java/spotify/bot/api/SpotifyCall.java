@@ -38,12 +38,6 @@ public class SpotifyCall {
 	 * @param requestBuilder
 	 *            the basic, unbuilt request builder
 	 * @return the single result item
-	 * @throws IOException
-	 *             on a Spotify API exception
-	 * @throws SpotifyWebApiException
-	 *             on a Spotify API exception
-	 * @throws InterruptedException
-	 *             if the retry timeout is interrupted
 	 */
 	public static <T, BT> T execute(IRequest.Builder<T, BT> requestBuilder) throws SpotifyWebApiException, IOException, InterruptedException {
 		try {
@@ -70,12 +64,6 @@ public class SpotifyCall {
 	 * @param pagingRequestBuilder
 	 *            the basic, unbuilt request paging builder
 	 * @return the fully exhausted list of result items
-	 * @throws IOException
-	 *             on a Spotify API exception
-	 * @throws SpotifyWebApiException
-	 *             on a Spotify API exception
-	 * @throws InterruptedException
-	 *             if the retry timeout is interrupted
 	 */
 	public static <T, BT> List<T> executePaging(IPagingRequestBuilder<T, BT> pagingRequestBuilder) throws SpotifyWebApiException, IOException, InterruptedException {
 		List<T> resultList = new ArrayList<>();
@@ -103,12 +91,6 @@ public class SpotifyCall {
 	 * @param pagingRequestBuilder
 	 *            the basic, unbuilt request pagingcursor builder
 	 * @return the fully exhausted list of result items
-	 * @throws IOException
-	 *             on a Spotify API exception
-	 * @throws SpotifyWebApiException
-	 *             on a Spotify API exception
-	 * @throws InterruptedException
-	 *             if the retry timeout is interrupted
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T, A, BT> List<T> executePaging(IPagingCursorbasedRequestBuilder<T, A, BT> pagingRequestBuilder) throws SpotifyWebApiException, IOException, InterruptedException {

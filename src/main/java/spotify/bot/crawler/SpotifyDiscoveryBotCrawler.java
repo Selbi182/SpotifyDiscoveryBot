@@ -84,10 +84,6 @@ public class SpotifyDiscoveryBotCrawler {
 	 * 
 	 * @return a result map containing the number of added songs by album type, null
 	 *         if lock wasn't available
-	 * @throws IOException
-	 * @throws InterruptedException
-	 * @throws SpotifyWebApiException
-	 * @throws SQLException
 	 */
 	public Map<AlbumGroupExtended, Integer> tryCrawl() throws SpotifyWebApiException, InterruptedException, IOException, SQLException {
 		if (lock.tryLock()) {
@@ -104,11 +100,6 @@ public class SpotifyDiscoveryBotCrawler {
 	 * Event that will be fired once the Spring application has fully booted. It
 	 * will automatically initiate the first crawling iteration. After completion,
 	 * the bot will be made available for scheduled and external (manual) crawling.
-	 * 
-	 * @throws SQLException
-	 * @throws IOException
-	 * @throws InterruptedException
-	 * @throws SpotifyWebApiException
 	 */
 	@EventListener(ApplicationReadyEvent.class)
 	private void firstCrawlAndEnableReadyState() throws SpotifyWebApiException, InterruptedException, IOException, SQLException {
@@ -128,11 +119,6 @@ public class SpotifyDiscoveryBotCrawler {
 	/**
 	 * Clears obsolete [NEW] notifiers from playlists where applicable. This method
 	 * cannot require the lock.
-	 * 
-	 * @throws InterruptedException
-	 * @throws IOException
-	 * @throws SQLException
-	 * @throws SpotifyWebApiException
 	 */
 	public boolean clearObsoleteNotifiers() throws SpotifyWebApiException, SQLException, IOException, InterruptedException, Exception {
 		if (isReady()) {
@@ -167,10 +153,6 @@ public class SpotifyDiscoveryBotCrawler {
 	 * speed up the future search processes
 	 * 
 	 * @return a result map containing the number of added songs by album type
-	 * @throws SQLException
-	 * @throws InterruptedException
-	 * @throws IOException
-	 * @throws SpotifyWebApiException
 	 */
 	private Map<AlbumGroupExtended, Integer> crawl() throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
 		spotifyApiAuthorization.login();

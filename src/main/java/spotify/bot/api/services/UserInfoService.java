@@ -41,10 +41,6 @@ public class UserInfoService {
 	 * Get all the user's followed artists
 	 * 
 	 * @return
-	 * @throws SQLException
-	 * @throws IOException
-	 * @throws InterruptedException
-	 * @throws SpotifyWebApiException
 	 */
 	public List<String> getFollowedArtistsIds() throws IOException, SQLException, SpotifyWebApiException, InterruptedException {
 		// Try to fetch from cache first

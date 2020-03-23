@@ -48,10 +48,6 @@ public class PlaylistSongsService {
 	 * 
 	 * @param songsByPlaylist
 	 * @param enabledAlbumGroups
-	 * @throws InterruptedException
-	 * @throws IOException
-	 * @throws SQLException
-	 * @throws SpotifyWebApiException
 	 */
 	public void addAllReleasesToSetPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws SpotifyWebApiException, SQLException, IOException, InterruptedException {
 		log.debug("Adding to playlists:");
@@ -104,8 +100,6 @@ public class PlaylistSongsService {
 	 * 
 	 * @param allReleases
 	 * @return
-	 * @throws IOException
-	 * @throws SQLException
 	 */
 	private List<List<TrackSimplified>> batchReleases(List<AlbumTrackPair> allReleases) throws SQLException, IOException {
 		if (config.getUserOptions().isBatchPlaylistAddition()) {
@@ -137,10 +131,6 @@ public class PlaylistSongsService {
 	 * 
 	 * @param playlistId
 	 * @param songsToAddCount
-	 * @throws InterruptedException
-	 * @throws IOException
-	 * @throws SpotifyWebApiException
-	 * @throws SQLException
 	 * @return true on success, false if playlist is full and can't be cleared
 	 */
 	private boolean circularPlaylistFitting(String playlistId, int songsToAddCount) throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
@@ -167,9 +157,6 @@ public class PlaylistSongsService {
 	 * @param playlistId
 	 * @param currentPlaylistCount
 	 * @param songsToAddCount
-	 * @throws InterruptedException
-	 * @throws SpotifyWebApiException
-	 * @throws Exception
 	 */
 	private void deleteSongsFromBottomOnLimit(String playlistId, int currentPlaylistCount, int songsToAddCount) throws SpotifyWebApiException, IOException, InterruptedException {
 		int totalSongsToDeleteCount = currentPlaylistCount + songsToAddCount - PLAYLIST_SIZE_LIMIT;

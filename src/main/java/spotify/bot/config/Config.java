@@ -34,8 +34,6 @@ public class Config {
 
 	/**
 	 * Sets up or refreshes the configuration for the Spotify bot from the database
-	 * 
-	 * @throws SQLException
 	 */
 	@PostConstruct
 	private void init() throws SQLException, IOException {
@@ -50,8 +48,6 @@ public class Config {
 	 * 
 	 * @param accessToken
 	 * @param refreshToken
-	 * @throws IOException
-	 * @throws SQLException
 	 */
 	public void updateTokens(String accessToken, String refreshToken) throws IOException, SQLException {
 		spotifyApiConfig.setAccessToken(accessToken);
@@ -66,8 +62,6 @@ public class Config {
 	 * Retuns the bot configuration. May be created if not present.
 	 * 
 	 * @return
-	 * @throws SQLException
-	 * @throws IOException
 	 */
 	public SpotifyApiConfig getSpotifyApiConfig() throws SQLException, IOException {
 		if (spotifyApiConfig == null) {
@@ -80,8 +74,6 @@ public class Config {
 	 * Retuns the bot configuration. May be created if not present.
 	 * 
 	 * @return
-	 * @throws SQLException
-	 * @throws IOException
 	 */
 	public StaticConfig getStaticConfig() throws SQLException, IOException {
 		if (staticConfig == null) {
@@ -94,8 +86,6 @@ public class Config {
 	 * Returns the user configuration. May be created if not present.
 	 * 
 	 * @return
-	 * @throws SQLException
-	 * @throws IOException
 	 */
 	public UserOptions getUserOptions() throws SQLException, IOException {
 		if (userOptions == null) {
@@ -108,7 +98,6 @@ public class Config {
 	 * Returns the playlist stores as a map. May be created if not present.
 	 * 
 	 * @return
-	 * @throws SQLException
 	 */
 	private Map<AlbumGroupExtended, PlaylistStore> getPlaylistStoreMap() throws SQLException {
 		if (playlistStoreMap == null) {
@@ -124,7 +113,6 @@ public class Config {
 	 * Returns all set playlist stores.
 	 * 
 	 * @return
-	 * @throws SQLException
 	 */
 	public Collection<PlaylistStore> getAllPlaylistStores() throws SQLException {
 		return getPlaylistStoreMap().values();
@@ -136,8 +124,6 @@ public class Config {
 	 * 
 	 * @param albumGroup
 	 * @return
-	 * @throws SQLException
-	 * @throws IOException
 	 */
 	public PlaylistStore getPlaylistStore(AlbumGroup albumGroup) throws SQLException {
 		return getPlaylistStore(AlbumGroupExtended.fromAlbumGroup(albumGroup));
@@ -149,8 +135,6 @@ public class Config {
 	 * 
 	 * @param albumGroup
 	 * @return
-	 * @throws SQLException
-	 * @throws IOException
 	 */
 	public PlaylistStore getPlaylistStore(AlbumGroupExtended albumGroupExtended) throws SQLException {
 		PlaylistStore ps = getPlaylistStoreMap().get(albumGroupExtended);
@@ -161,7 +145,6 @@ public class Config {
 	 * Fetch all album groups that are set in the config
 	 * 
 	 * @param albumGroups
-	 * @throws SQLException
 	 */
 	public List<AlbumGroup> getEnabledAlbumGroups() throws SQLException {
 		List<AlbumGroup> setAlbumGroups = new ArrayList<>();
@@ -180,7 +163,6 @@ public class Config {
 	 * Fetch all album groups that are set in the config
 	 * 
 	 * @param albumGroups
-	 * @throws SQLException
 	 */
 	public List<AlbumGroupExtended> getEnabledSpecialAlbumGroups() throws SQLException {
 		List<AlbumGroupExtended> setAlbumGroups = new ArrayList<>();
@@ -202,7 +184,6 @@ public class Config {
 	 * Updates the playlist store of the given album group by the current timestamp.
 	 * 
 	 * @param albumGroupExtended
-	 * @throws SQLException
 	 */
 	public void refreshPlaylistStore(AlbumGroupExtended albumGroupExtended) throws SQLException {
 		databaseService.refreshPlaylistStore(albumGroupExtended.getGroup());
@@ -214,7 +195,6 @@ public class Config {
 	 * 
 	 * @param albumGroupExtended
 	 * @param addedSongsCount
-	 * @throws SQLException
 	 */
 	public void unsetPlaylistStore(AlbumGroupExtended albumGroupExtended) throws SQLException {
 		databaseService.unsetPlaylistStore(albumGroupExtended);

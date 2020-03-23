@@ -44,7 +44,6 @@ public class RemappingService {
 	 * 
 	 * @param newSongsByGroup
 	 * @return
-	 * @throws SQLException
 	 */
 	public Map<PlaylistStore, List<AlbumTrackPair>> mapToTargetPlaylist(Map<AlbumGroup, List<AlbumTrackPair>> newSongsByGroup) throws SQLException {
 		Map<PlaylistStore, List<AlbumTrackPair>> resultMap = new HashMap<>();
@@ -69,8 +68,6 @@ public class RemappingService {
 	 * 
 	 * @param songsByPS
 	 * @return
-	 * @throws SQLException
-	 * @throws IOException
 	 */
 	public Map<PlaylistStore, List<AlbumTrackPair>> remapIntoExtendedPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPS) throws SQLException, IOException {
 		// Copy map first to retain the input map (makes debugging easier)

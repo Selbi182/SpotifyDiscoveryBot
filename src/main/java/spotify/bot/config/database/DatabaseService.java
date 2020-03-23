@@ -44,7 +44,6 @@ public class DatabaseService {
 	 * 
 	 * @param accessToken
 	 * @param refreshToken
-	 * @throws SQLException
 	 */
 	public void updateTokens(String accessToken, String refreshToken) throws SQLException {
 		database.update(DBConstants.TABLE_SPOTIFY_API, DBConstants.COL_ACCESS_TOKEN, accessToken);
@@ -58,7 +57,6 @@ public class DatabaseService {
 	 * Return the entire contents of the "album_cache" table as Strings
 	 * 
 	 * @return
-	 * @throws SQLException
 	 */
 	public List<String> getAlbumCache() throws SQLException {
 		List<String> albumCacheIds = new ArrayList<>();
@@ -73,8 +71,6 @@ public class DatabaseService {
 	 * Return the entire contents of the "artist_cache" table as Strings
 	 * 
 	 * @return
-	 * @throws IOException
-	 * @throws SQLException
 	 */
 	public List<String> getArtistCache() throws IOException, SQLException {
 		ResultSet rs = database.selectAll(DBConstants.TABLE_CACHE_ARTISTS);
@@ -139,7 +135,6 @@ public class DatabaseService {
 	 * Unset the given recent addition info of the given playlist store
 	 * 
 	 * @param albumGroupString
-	 * @throws SQLException
 	 */
 	public synchronized void unsetPlaylistStore(AlbumGroupExtended albumGroup) throws SQLException {
 		if (albumGroup != null) {
@@ -154,7 +149,6 @@ public class DatabaseService {
 	 * Update the playlist store's given timestamp
 	 * 
 	 * @param albumGroupString
-	 * @throws SQLException
 	 */
 	public synchronized void refreshPlaylistStore(String albumGroupString) throws SQLException {
 		if (albumGroupString != null) {
@@ -170,7 +164,6 @@ public class DatabaseService {
 	 * Cache the album IDs of the given list of albums in a separate thread
 	 * 
 	 * @param albumsSimplified
-	 * @throws SQLException
 	 */
 	public synchronized void cacheAlbumIdsAsync(List<AlbumSimplified> albumsSimplified) throws SQLException {
 		Thread t = new Thread(new Runnable() {
@@ -192,8 +185,6 @@ public class DatabaseService {
 	 * 
 	 * @param followedArtists
 	 * @param cachedArtists
-	 * @throws SQLException
-	 * @throws IOException
 	 */
 	public synchronized void updateFollowedArtistsCacheAsync(List<String> followedArtists, List<String> cachedArtists) throws SQLException, IOException {
 		Thread t = new Thread(new Runnable() {
@@ -226,10 +217,6 @@ public class DatabaseService {
 
 	/**
 	 * Update the update store's given timestamp and set the song count
-	 * 
-	 * @param group
-	 * @param addedSongs
-	 * @throws SQLException
 	 */
 	private synchronized void refreshArtistCacheLastUpdate() throws SQLException {
 		database.update(DBConstants.TABLE_CONFIG_STATIC,

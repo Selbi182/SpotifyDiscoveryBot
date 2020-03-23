@@ -57,10 +57,6 @@ public class CrawlScheduler {
 	 * </ul>
 	 * 
 	 * @return a ResponseEntity defining the result of the crawling process
-	 * @throws SQLException
-	 * @throws IOException
-	 * @throws InterruptedException
-	 * @throws SpotifyWebApiException
 	 */
 	@Scheduled(cron = CRAWL_CRON)
 	@RequestMapping("/crawl")
@@ -83,10 +79,6 @@ public class CrawlScheduler {
 	 * applicable. Will only run while crawler is idle.
 	 * 
 	 * @return a ResponseEntity indicating whether any notifies were cleared
-	 * @throws InterruptedException
-	 * @throws IOException
-	 * @throws SQLException
-	 * @throws SpotifyWebApiException
 	 */
 	@Scheduled(cron = CLEAR_NOTIFIER_CRON)
 	@RequestMapping("/clear-notifiers")

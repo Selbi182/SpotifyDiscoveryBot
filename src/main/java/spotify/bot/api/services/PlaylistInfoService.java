@@ -34,10 +34,24 @@ public class PlaylistInfoService {
 	private final static int MAX_PLAYLIST_TRACK_FETCH_LIMIT = 50;
 
 	/**
-	 * The new-songs indicator as Unicode. This roughly looks like [N][E][W] when
-	 * printed out.
+	 * The old new-songs indicator as Unicode. Roughly looks like [N][E][W]
+	 * 
+	 * @deprecated While usable, it was platform-inconsistent. Use
+	 *             {@link PlaylistInfoService#INDICATOR_NEW} instead
 	 */
+	@SuppressWarnings("unused")
+	@Deprecated
 	private final static String NEW_INDICATOR_TEXT = "\uD83C\uDD7D\uD83C\uDD74\uD83C\uDD86";
+
+	/**
+	 * New-songs indicator (new songs are found), a white circle
+	 */
+	private final static String INDICATOR_NEW = "\u26AA";
+
+	/**
+	 * New-songs indicator (currently no new songs), a black circle
+	 */
+	private final static String INDICATOR_OFF = "\u26AB";
 
 	/**
 	 * The description timestamp. Example: "January 1, 2000 - 00:00"
@@ -58,96 +72,63 @@ public class PlaylistInfoService {
 	 * any songs were added
 	 * 
 	 * @param albumGroup
-	 * @throws SQLException
-	 * @throws InterruptedException
-	 * @throws IOException
-	 * @throws SpotifyWebApiException
 	 */
 	public void showNotifiers(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws SpotifyWebApiException, SQLException, IOException, InterruptedException {
 		List<PlaylistStore> sortedPlaylistStores = songsByPlaylist.keySet().stream().sorted().collect(Collectors.toList());
 		for (PlaylistStore ps : sortedPlaylistStores) {
 			List<AlbumTrackPair> albumTrackPairs = songsByPlaylist.get(ps);
 			if (!albumTrackPairs.isEmpty()) {
-				showSingleNotifier(ps);
+				replaceNotifierSymbol(ps, INDICATOR_OFF, INDICATOR_NEW);
 				config.refreshPlaylistStore(ps.getAlbumGroupExtended());
 			}
 		}
 	}
 
 	/**
-	 * Display the [NEW] notifier of a playlist (if it isn't already set) in the
-	 * playlist's title
-	 * 
-	 * @param albumGroup
-	 * @throws SQLException
-	 * @throws InterruptedException
-	 * @throws IOException
-	 * @throws SpotifyWebApiException
-	 */
-	private void showSingleNotifier(PlaylistStore playlistStore) throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
-		String playlistId = playlistStore.getPlaylistId();
-		if (playlistId != null) {
-			Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
-			String playlistName = p.getName();
-			if (!playlistName.contains(NEW_INDICATOR_TEXT)) {
-				playlistName = playlistName + " " + NEW_INDICATOR_TEXT;
-				SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).name(playlistName));
-			}
-		}
-	}
-
-	////////////////////////////////
-
-	/**
-	 * Timestamp all given playlists that DIDN'T have any songs added
-	 * 
-	 * @param collection
-	 * @throws SQLException
-	 * @throws InterruptedException
-	 * @throws IOException
-	 * @throws SpotifyWebApiException
-	 */
-	public void timestampPlaylists(Collection<PlaylistStore> playlistStores) throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
-		for (PlaylistStore ps : playlistStores) {
-			String playlistId = ps.getPlaylistId();
-			if (playlistId != null) {
-				String newDescription = String.format("Last Search: %s", DESCRIPTION_TIMESTAMP_FORMAT.format(Calendar.getInstance().getTime()));
-				SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).description(newDescription));
-			}
-		}
-	}
-
-	////////////////////////////////
-
-	/**
 	 * Convenience method to try and clear every obsolete New indicator
 	 * 
-	 * @return
-	 * 
-	 * @throws InterruptedException
-	 * @throws IOException
-	 * @throws SQLException
-	 * @throws SpotifyWebApiException
+	 * @return true if at least one playlist name was changed
 	 */
 	public boolean clearObsoleteNotifiers() throws SpotifyWebApiException, SQLException, IOException, InterruptedException, Exception {
 		boolean changed = false;
 		for (PlaylistStore ps : config.getAllPlaylistStores()) {
-			String playlistId = ps.getPlaylistId();
-			if (playlistId != null) {
-				Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
-				String playlistName = p.getName();
-				if (playlistName != null && playlistName.contains(NEW_INDICATOR_TEXT)) {
-					if (isIndicatorMarkedAsRead(ps)) {
-						playlistName = playlistName.replace(NEW_INDICATOR_TEXT, "").trim();
-						SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).name(playlistName));
-						config.unsetPlaylistStore(ps.getAlbumGroupExtended());
-						changed = true;
-					}
+			if (shouldIndicatorBeMarkedAsRead(ps)) {
+				if (replaceNotifierSymbol(ps, INDICATOR_NEW, INDICATOR_OFF)) {
+					config.unsetPlaylistStore(ps.getAlbumGroupExtended());
+					changed = true;
 				}
 			}
 		}
 		return changed;
 	}
+
+	/**
+	 * Update the playlist name by replacing the target symbol with the replacement
+	 * symbol IF it isn't already contained in the playlist's name.
+	 * 
+	 * @param playlistStore
+	 *            the PlaylistStore containing the relevant playlist
+	 * @param target
+	 *            the target String to be replaced
+	 * @param replacement
+	 *            the replacement String
+	 * @return true if the playlist name was changed
+	 */
+	private boolean replaceNotifierSymbol(PlaylistStore playlistStore, String target, String replacement) throws SpotifyWebApiException, IOException, InterruptedException {
+		String playlistId = playlistStore.getPlaylistId();
+		if (playlistId != null) {
+			Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
+			String playlistName = p.getName();
+			if (playlistName != null && playlistName.contains(target)) {
+				playlistName = playlistName.replace(target, replacement).trim();
+				SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).name(playlistName));
+				return true;
+			}
+		}
+		return false;
+	}
+
+	////////////////////////////////
 
 	/**
 	 * Check if the [NEW] indicator for this playlist store should be removed. This
@@ -156,9 +137,8 @@ public class PlaylistInfoService {
 	 * 
 	 * @param playlistId
 	 * @return
-	 * @throws IOException
 	 */
-	private boolean isIndicatorMarkedAsRead(PlaylistStore playlistStore) {
+	private boolean shouldIndicatorBeMarkedAsRead(PlaylistStore playlistStore) {
 		try {
 			// Case 1: Notification timestamp is already unset
 			Date lastUpdated = playlistStore.getLastUpdate();
@@ -201,5 +181,22 @@ public class PlaylistInfoService {
 			log.stackTrace(e);
 		}
 		return false;
+	}
+
+	////////////////////////////////
+
+	/**
+	 * Timestamp all given playlists that DIDN'T have any songs added
+	 * 
+	 * @param collection
+	 */
+	public void timestampPlaylists(Collection<PlaylistStore> playlistStores) throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
+		for (PlaylistStore ps : playlistStores) {
+			String playlistId = ps.getPlaylistId();
+			if (playlistId != null) {
+				String newDescription = String.format("Last Search: %s", DESCRIPTION_TIMESTAMP_FORMAT.format(Calendar.getInstance().getTime()));
+				SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).description(newDescription));
+			}
+		}
 	}
 }

@@ -1,4 +1,4 @@
-package spotify.bot.controller;
+package spotify.controller;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 
-import spotify.bot.crawler.SpotifyDiscoveryBotCrawler;
+import spotify.bot.crawler.SpotifyDiscoveryBot;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -37,7 +37,7 @@ public class CrawlScheduler {
 	private final static String CLEAR_NOTIFIER_CRON = "5/10 * * * * *";
 
 	@Autowired
-	private SpotifyDiscoveryBotCrawler crawler;
+	private SpotifyDiscoveryBot crawler;
 
 	@Autowired
 	private BotLogger log;

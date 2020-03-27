@@ -33,7 +33,7 @@ import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;
 
 @Component
-public class SpotifyDiscoveryBotCrawler {
+public class SpotifyDiscoveryBot {
 
 	@Autowired
 	private SpotifyApiAuthorization spotifyApiAuthorization;
@@ -103,6 +103,7 @@ public class SpotifyDiscoveryBotCrawler {
 	 */
 	@EventListener(ApplicationReadyEvent.class)
 	private void firstCrawlAndEnableReadyState() throws SpotifyWebApiException, InterruptedException, IOException, SQLException {
+		log.printLine();
 		log.info("Executing initial crawl...");
 		long time = System.currentTimeMillis();
 		{
@@ -113,6 +114,7 @@ public class SpotifyDiscoveryBotCrawler {
 			}
 		}
 		log.info("Initial crawl successfully finished in: " + (System.currentTimeMillis() - time) + "ms");
+		log.printLine();
 		lock = new ReentrantLock();
 	}
 

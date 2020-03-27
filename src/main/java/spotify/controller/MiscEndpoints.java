@@ -1,4 +1,4 @@
-package spotify.bot.controller;
+package spotify.controller;
 
 import java.io.IOException;
 import java.util.List;
@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import spotify.bot.crawler.SpotifyDiscoveryBotCrawler;
+import spotify.bot.crawler.SpotifyDiscoveryBot;
 import spotify.bot.util.BotLogger;
 
 @RestController
@@ -26,7 +26,7 @@ public class MiscEndpoints {
 	private BotLogger log;
 
 	@Autowired
-	private SpotifyDiscoveryBotCrawler crawler;
+	private SpotifyDiscoveryBot crawler;
 
 	/**
 	 *

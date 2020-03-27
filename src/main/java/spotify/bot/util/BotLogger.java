@@ -37,7 +37,7 @@ public class BotLogger {
 	private final static String LOG_FILE_PATH = "./spring.log";
 	private final static int DEFAULT_LOG_READ_LINES = 100;
 
-	private final static int MAX_LINE_LENGTH = 120;
+	private final static int MAX_LINE_LENGTH = 160;
 	private final static String ELLIPSIS = "...";
 	private final static String DROPPED_SYMBOL = "x";
 	private final static String LINE_SYMBOL = "-";
@@ -87,7 +87,7 @@ public class BotLogger {
 	 * @return
 	 */
 	private String truncateToEllipsis(String message) {
-		if (message.length() < MAX_LINE_LENGTH - ELLIPSIS.length()) {
+		if (message.length() <= MAX_LINE_LENGTH - ELLIPSIS.length()) {
 			return message;
 		}
 		return message.substring(0, message.length() - ELLIPSIS.length()) + ELLIPSIS;
@@ -97,7 +97,7 @@ public class BotLogger {
 	 * Print a line of hyphens (----) as INFO-level log message
 	 */
 	public void printLine() {
-		info(Strings.repeat(LINE_SYMBOL, MAX_LINE_LENGTH));
+		info(Strings.repeat(LINE_SYMBOL, MAX_LINE_LENGTH - ELLIPSIS.length()));
 	}
 
 	///////////////////////

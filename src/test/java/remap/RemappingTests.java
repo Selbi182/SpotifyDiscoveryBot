@@ -27,7 +27,7 @@ import spotify.bot.api.services.TrackService;
 import spotify.bot.config.Config;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.config.database.DiscoveryDatabase;
-import spotify.bot.filter.remapper.EPRemapper;
+import spotify.bot.filter.remapper.EpRemapper;
 import spotify.bot.filter.remapper.LiveRemapper;
 import spotify.bot.filter.remapper.RemixRemapper;
 import spotify.bot.util.BotLogger;
@@ -53,13 +53,13 @@ public class RemappingTests {
 	@Autowired
 	private TrackService trackService;
 
-	private static EPRemapper epRemapper;
+	private static EpRemapper epRemapper;
 	private static LiveRemapper liveRemapper;
 	private static RemixRemapper remixRemapper;
 
 	@Before
 	public void createRemappers() throws SpotifyWebApiException, InterruptedException, IOException {
-		epRemapper = new EPRemapper();
+		epRemapper = new EpRemapper();
 		liveRemapper = new LiveRemapper();
 		remixRemapper = new RemixRemapper();
 
@@ -127,6 +127,10 @@ public class RemappingTests {
 		assertFalse(qualifiesAsRemappable);
 
 		album = getAlbum("3BOQrewswG2ePGkShTx389"); // Die Aerzte - Drei Mann - Zwei Songs
+		qualifiesAsRemappable = epRemapper.qualifiesAsRemappable(album.getName(), getTracksOfSingleAlbum(album));
+		assertFalse(qualifiesAsRemappable);
+		
+		album = getAlbum("0UaxFieNv1ccs2GCECCUGy"); // Billy Talent - I Beg To Differ (This Will Get Better)
 		qualifiesAsRemappable = epRemapper.qualifiesAsRemappable(album.getName(), getTracksOfSingleAlbum(album));
 		assertFalse(qualifiesAsRemappable);
 	}

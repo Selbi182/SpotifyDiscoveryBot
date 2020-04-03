@@ -11,7 +11,7 @@ import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;
 
 @Component
-public class EPRemapper implements Remapper {
+public class EpRemapper implements Remapper {
 
 	private final static Pattern EP_MATCHER = Pattern.compile("\\bE\\W?P\\W?\\b");
 	private final static int EP_SONG_COUNT_THRESHOLD = 5;
@@ -40,8 +40,7 @@ public class EPRemapper implements Remapper {
 	 * single symbol in between and after the letters)</li>
 	 * <li>min 5 songs</li>
 	 * <li>min 20 minutes</li>
-	 * <li>min 3 songs AND min 10 minutes AND none of the songs are named after the
-	 * release title*</li>
+	 * <li>min 3 songs AND min 10 minutes AND doesn't have a title track*</li>
 	 * </ul>
 	 * *The great majority of EPs are covered by the first three strategies. The
 	 * last one for really silly edge cases in which an artist may release an EP
@@ -65,7 +64,10 @@ public class EPRemapper implements Remapper {
 			return true;
 		}
 		if (trackCount >= EP_SONG_COUNT_THRESHOLD_LESSER && totalDurationMs >= EP_DURATION_THRESHOLD_LESSER) {
-			return true;
+			boolean hasTitleTrack = tracks.stream().anyMatch(t -> t.getName().equalsIgnoreCase(albumTitle));
+			if (!hasTitleTrack) {
+				return true;
+			}
 		}
 		return false;
 	}

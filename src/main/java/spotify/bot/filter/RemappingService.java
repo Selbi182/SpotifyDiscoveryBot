@@ -16,7 +16,7 @@ import com.wrapper.spotify.enums.AlbumGroup;
 import spotify.bot.config.Config;
 import spotify.bot.config.dto.PlaylistStore;
 import spotify.bot.config.dto.UserOptions;
-import spotify.bot.filter.remapper.EPRemapper;
+import spotify.bot.filter.remapper.EpRemapper;
 import spotify.bot.filter.remapper.LiveRemapper;
 import spotify.bot.filter.remapper.Remapper;
 import spotify.bot.filter.remapper.RemixRemapper;
@@ -30,7 +30,7 @@ public class RemappingService {
 	private Config config;
 
 	@Autowired
-	private EPRemapper epRemapper;
+	private EpRemapper epRemapper;
 
 	@Autowired
 	private RemixRemapper remixRemapper;

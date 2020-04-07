@@ -13,8 +13,8 @@ import org.springframework.stereotype.Service;
 
 import com.wrapper.spotify.enums.AlbumGroup;
 
-import spotify.bot.config.Config;
-import spotify.bot.config.dto.PlaylistStore;
+import spotify.bot.config.dto.PlaylistStoreConfig;
+import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.config.dto.UserOptions;
 import spotify.bot.filter.remapper.EpRemapper;
 import spotify.bot.filter.remapper.LiveRemapper;
@@ -27,7 +27,10 @@ import spotify.bot.util.data.AlbumTrackPair;
 public class RemappingService {
 
 	@Autowired
-	private Config config;
+	private PlaylistStoreConfig playlistStoreConfig;
+	
+	@Autowired
+	private UserOptions userOptions;
 
 	@Autowired
 	private EpRemapper epRemapper;
@@ -51,7 +54,7 @@ public class RemappingService {
 			List<AlbumTrackPair> atp = entry.getValue();
 			if (!atp.isEmpty()) {
 				AlbumGroup ag = entry.getKey();
-				PlaylistStore ps = config.getPlaylistStore(ag);
+				PlaylistStore ps = playlistStoreConfig.getPlaylistStore(ag);
 				if (ps != null) {
 					resultMap.put(ps, atp);
 				}
@@ -73,7 +76,6 @@ public class RemappingService {
 		// Copy map first to retain the input map (makes debugging easier)
 		Map<PlaylistStore, List<AlbumTrackPair>> regroupedMap = new HashMap<>(songsByPS);
 
-		UserOptions userOptions = config.getUserOptions();
 		if (userOptions.isRemixSeparation()) {
 			remap(remixRemapper, regroupedMap);
 		}
@@ -92,7 +94,7 @@ public class RemappingService {
 
 	private void remap(Remapper remapper, Map<PlaylistStore, List<AlbumTrackPair>> baseTrackMap) throws SQLException {
 		AlbumGroupExtended age = remapper.getAlbumGroup();
-		PlaylistStore ps = config.getPlaylistStore(age);
+		PlaylistStore ps = playlistStoreConfig.getPlaylistStore(age);
 		if (ps != null && ps.getPlaylistId() != null) {
 			List<AlbumTrackPair> remappedTracks = new ArrayList<>();
 			for (Map.Entry<PlaylistStore, List<AlbumTrackPair>> entry : baseTrackMap.entrySet()) {

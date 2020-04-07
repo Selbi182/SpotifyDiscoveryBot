@@ -22,8 +22,10 @@ import com.wrapper.spotify.model_objects.specification.Playlist;
 import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
 
 import spotify.bot.api.SpotifyCall;
-import spotify.bot.config.Config;
-import spotify.bot.config.dto.PlaylistStore;
+import spotify.bot.config.ConfigUpdate;
+import spotify.bot.config.dto.PlaylistStoreConfig;
+import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
+import spotify.bot.config.dto.StaticConfig;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.data.AlbumTrackPair;
@@ -62,8 +64,14 @@ public class PlaylistInfoService {
 	private SpotifyApi spotifyApi;
 
 	@Autowired
-	private Config config;
-
+	private ConfigUpdate configUpdate;
+	
+	@Autowired
+	private PlaylistStoreConfig playlistStoreConfig;
+	
+	@Autowired
+	private StaticConfig staticConfig;
+	
 	@Autowired
 	private BotLogger log;
 
@@ -79,7 +87,7 @@ public class PlaylistInfoService {
 			List<AlbumTrackPair> albumTrackPairs = songsByPlaylist.get(ps);
 			if (!albumTrackPairs.isEmpty()) {
 				replaceNotifierSymbol(ps, INDICATOR_OFF, INDICATOR_NEW);
-				config.refreshPlaylistStore(ps.getAlbumGroupExtended());
+				configUpdate.refreshPlaylistStore(ps.getAlbumGroupExtended());
 			}
 		}
 	}
@@ -91,10 +99,10 @@ public class PlaylistInfoService {
 	 */
 	public boolean clearObsoleteNotifiers() throws SpotifyWebApiException, SQLException, IOException, InterruptedException, Exception {
 		boolean changed = false;
-		for (PlaylistStore ps : config.getAllPlaylistStores()) {
+		for (PlaylistStore ps : playlistStoreConfig.getAllPlaylistStores()) {
 			if (shouldIndicatorBeMarkedAsRead(ps)) {
 				if (replaceNotifierSymbol(ps, INDICATOR_NEW, INDICATOR_OFF)) {
-					config.unsetPlaylistStore(ps.getAlbumGroupExtended());
+					configUpdate.unsetPlaylistStore(ps.getAlbumGroupExtended());
 					changed = true;
 				}
 			}
@@ -147,7 +155,7 @@ public class PlaylistInfoService {
 			}
 
 			// Case 2: Timeout since playlist was last updated expired
-			int newNotificationTimeout = config.getStaticConfig().getNewNotificationTimeout();
+			int newNotificationTimeout = staticConfig.getNewNotificationTimeout();
 			if (!BotUtils.isWithinTimeoutWindow(lastUpdated, newNotificationTimeout)) {
 				return true;
 			}

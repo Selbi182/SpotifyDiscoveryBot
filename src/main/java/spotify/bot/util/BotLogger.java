@@ -205,6 +205,7 @@ public class BotLogger {
 				.sorted(ALBUM_SIMPLIFIED_COMPARATOR)
 				.collect(Collectors.toList());
 			printAlbumSimplifiedMulti(sortedDifferenceView);
+			printLine();
 		}
 	}
 

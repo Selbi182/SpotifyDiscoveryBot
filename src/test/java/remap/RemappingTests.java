@@ -24,7 +24,8 @@ import spotify.bot.api.SpotifyApiAuthorization;
 import spotify.bot.api.SpotifyApiWrapper;
 import spotify.bot.api.SpotifyCall;
 import spotify.bot.api.services.TrackService;
-import spotify.bot.config.Config;
+import spotify.bot.config.BotConfigFactory;
+import spotify.bot.config.ConfigUpdate;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.config.database.DiscoveryDatabase;
 import spotify.bot.filter.remapper.EpRemapper;
@@ -38,7 +39,8 @@ import spotify.bot.util.BotLogger;
 	TrackService.class,
 	DiscoveryDatabase.class,
 	DatabaseService.class,
-	Config.class,
+	BotConfigFactory.class,
+	ConfigUpdate.class,
 	SpotifyApiWrapper.class,
 	SpotifyApiAuthorization.class })
 @EnableConfigurationProperties

@@ -21,8 +21,8 @@ import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
 import spotify.bot.api.SpotifyCall;
-import spotify.bot.config.Config;
-import spotify.bot.config.dto.PlaylistStore;
+import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
+import spotify.bot.config.dto.UserOptions;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.data.AlbumTrackPair;
 
@@ -38,7 +38,7 @@ public class PlaylistSongsService {
 	private SpotifyApi spotifyApi;
 
 	@Autowired
-	private Config config;
+	private UserOptions userOptions;
 
 	@Autowired
 	private BotLogger log;
@@ -60,6 +60,7 @@ public class PlaylistSongsService {
 				log.printAlbumTrackPairs(albumTrackPairs);
 			}
 		}
+		log.printLine();
 	}
 
 	/**
@@ -102,7 +103,7 @@ public class PlaylistSongsService {
 	 * @return
 	 */
 	private List<List<TrackSimplified>> batchReleases(List<AlbumTrackPair> allReleases) throws SQLException, IOException {
-		if (config.getUserOptions().isBatchPlaylistAddition()) {
+		if (userOptions.isBatchPlaylistAddition()) {
 			List<List<TrackSimplified>> bundled = new ArrayList<>();
 			List<TrackSimplified> subBatch = new ArrayList<>();
 			for (AlbumTrackPair atp : allReleases) {
@@ -138,7 +139,7 @@ public class PlaylistSongsService {
 
 		final int currentPlaylistCount = p.getTracks().getTotal();
 		if (currentPlaylistCount + songsToAddCount > PLAYLIST_SIZE_LIMIT) {
-			if (!config.getUserOptions().isCircularPlaylistFitting()) {
+			if (!userOptions.isCircularPlaylistFitting()) {
 				log.error(p.getName() + " is full! Maximum capacity is " + PLAYLIST_SIZE_LIMIT + ". Enable circularPlaylistFitting or flush the playlist for new songs.");
 				return false;
 			}

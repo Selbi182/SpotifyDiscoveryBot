@@ -21,7 +21,7 @@ import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.exceptions.detailed.BadRequestException;
 import com.wrapper.spotify.model_objects.credentials.AuthorizationCodeCredentials;
 
-import spotify.bot.config.Config;
+import spotify.bot.config.ConfigUpdate;
 import spotify.bot.util.BotLogger;
 
 @Component
@@ -39,7 +39,7 @@ public class SpotifyApiAuthorization {
 	private SpotifyApi spotifyApi;
 
 	@Autowired
-	private Config config;
+	private ConfigUpdate configUpdate;
 
 	@Autowired
 	private BotLogger log;
@@ -143,6 +143,6 @@ public class SpotifyApiAuthorization {
 
 		spotifyApi.setAccessToken(accessToken);
 		spotifyApi.setRefreshToken(refreshToken);
-		config.updateTokens(accessToken, refreshToken);
+		configUpdate.updateTokens(accessToken, refreshToken);
 	}
 }

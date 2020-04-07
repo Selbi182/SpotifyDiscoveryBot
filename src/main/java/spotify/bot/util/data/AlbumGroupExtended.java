@@ -71,10 +71,19 @@ public enum AlbumGroupExtended {
 	 * 
 	 * @return
 	 */
-	public String getGroup() {
+	public String getGroupName() {
 		return group;
 	}
 
+	/**
+	 * Get the (uppercase) String representation of this group used for the database
+	 * 
+	 * @return
+	 */
+	public String getDatabaseName() {
+		return getGroupName().toUpperCase();
+	}
+	
 	/**
 	 * Indicates whether or not this album group is a special extended type (EP,
 	 * Remixe, Live)

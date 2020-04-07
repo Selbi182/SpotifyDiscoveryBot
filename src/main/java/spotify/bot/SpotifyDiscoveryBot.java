@@ -1,4 +1,4 @@
-package spotify.bot.crawler;
+package spotify.bot;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -23,8 +23,8 @@ import spotify.bot.api.services.PlaylistInfoService;
 import spotify.bot.api.services.PlaylistSongsService;
 import spotify.bot.api.services.TrackService;
 import spotify.bot.api.services.UserInfoService;
-import spotify.bot.config.Config;
-import spotify.bot.config.dto.PlaylistStore;
+import spotify.bot.config.dto.PlaylistStoreConfig;
+import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.filter.FilterService;
 import spotify.bot.filter.RemappingService;
 import spotify.bot.util.BotLogger;
@@ -38,11 +38,10 @@ public class SpotifyDiscoveryBot {
 	@Autowired
 	private SpotifyApiAuthorization spotifyApiAuthorization;
 
-	@Autowired
-	private Config config;
-
+	
 	@Autowired
 	private BotLogger log;
+	
 
 	@Autowired
 	private UserInfoService userInfoService;
@@ -64,6 +63,11 @@ public class SpotifyDiscoveryBot {
 
 	@Autowired
 	private RemappingService remappingService;
+	
+	
+	@Autowired
+	private PlaylistStoreConfig playlistStoreConfig;
+	
 
 	/**
 	 * Lock controlling the local single-crawl behavior
@@ -165,7 +169,7 @@ public class SpotifyDiscoveryBot {
 			return null;
 		}
 
-		Collection<PlaylistStore> playlistStores = config.getAllPlaylistStores();
+		Collection<PlaylistStore> playlistStores = playlistStoreConfig.getAllPlaylistStores();
 		List<AlbumSimplified> allAlbums = albumService.getAllAlbumsOfArtists(followedArtists);
 		List<AlbumSimplified> nonCachedAlbums = filterService.getNonCachedAlbums(allAlbums);
 		try {

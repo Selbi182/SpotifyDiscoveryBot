@@ -26,8 +26,9 @@ import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
-import spotify.bot.config.Config;
 import spotify.bot.config.database.DatabaseService;
+import spotify.bot.config.dto.StaticConfig;
+import spotify.bot.config.dto.UserOptions;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -39,8 +40,11 @@ public class FilterService {
 	private final static String VARIOUS_ARTISTS = "Various Artists";
 
 	@Autowired
-	private Config config;
-
+	private StaticConfig staticConfig;
+	
+	@Autowired
+	private UserOptions userOptions;
+	
 	@Autowired
 	private BotLogger log;
 
@@ -133,7 +137,7 @@ public class FilterService {
 	 */
 	public List<AlbumSimplified> filterNewAlbumsOnly(List<AlbumSimplified> unfilteredAlbums) throws SQLException, IOException {
 		Collection<AlbumSimplified> noDuplicates = filterDuplicateAlbums(unfilteredAlbums);
-		int lookbackDays = config.getStaticConfig().getLookbackDays();
+		int lookbackDays = staticConfig.getLookbackDays();
 		LocalDate lowerReleaseDateBoundary = LocalDate.now().minusDays(lookbackDays);
 		List<AlbumSimplified> filteredAlbums = noDuplicates.stream().filter(as -> isValidDate(as, lowerReleaseDateBoundary)).collect(Collectors.toList());
 		log.printDroppedAlbumDifference(noDuplicates, filteredAlbums,
@@ -200,7 +204,7 @@ public class FilterService {
 	 * @return
 	 */
 	public void intelligentAppearsOnSearch(Map<AlbumGroup, List<AlbumTrackPair>> categorizedFilteredAlbums, List<String> followedArtists) throws SQLException, IOException {
-		if (config.getUserOptions().isIntelligentAppearsOnSearch()) {
+		if (userOptions.isIntelligentAppearsOnSearch()) {
 			List<AlbumTrackPair> unfilteredAppearsOnAlbums = categorizedFilteredAlbums.get(AlbumGroup.APPEARS_ON);
 			if (!unfilteredAppearsOnAlbums.isEmpty()) {
 				// Preprocess into HashSet to speed up contains() operations

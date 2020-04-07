@@ -1,10 +1,13 @@
 package spotify.bot.config.dto;
 
+import com.neovisionaries.i18n.CountryCode;
+
 public class SpotifyApiConfig {
 	private String clientId;
 	private String clientSecret;
 	private String accessToken;
 	private String refreshToken;
+	private CountryCode market;
 
 	public String getClientId() {
 		return clientId;
@@ -38,8 +41,17 @@ public class SpotifyApiConfig {
 		this.refreshToken = refreshToken;
 	}
 
+	public CountryCode getMarket() {
+		return market;
+	}
+
+	public void setMarket(CountryCode market) {
+		this.market = market;
+	}
+
 	@Override
 	public String toString() {
-		return "SpotifyApiConfig [clientId=" + clientId + ", clientSecret=" + clientSecret + ", accessToken=" + accessToken + ", refreshToken=" + refreshToken + "]";
+		return "SpotifyApiConfig [clientId=" + clientId + ", clientSecret=" + clientSecret + ", accessToken="
+				+ accessToken + ", refreshToken=" + refreshToken + ", countryCode=" + market + "]";
 	}
 }

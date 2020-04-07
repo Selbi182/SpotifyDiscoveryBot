@@ -29,12 +29,15 @@ public class RemixRemapper implements Remapper {
 	 */
 	@Override
 	public boolean isAllowedAlbumGroup(AlbumGroupExtended albumGroupExtended) {
-		try {
-			AlbumGroup albumGroup = albumGroupExtended.asAlbumGroup();
-			return albumGroup != null;
-		} catch (IllegalArgumentException e) {
-			return false;
+		if (albumGroupExtended.equals(AlbumGroupExtended.APPEARS_ON) ) {
+			try {
+				AlbumGroup albumGroup = albumGroupExtended.asAlbumGroup();
+				return albumGroup != null;
+			} catch (IllegalArgumentException e) {
+				return false;
+			}			
 		}
+		return false;
 	}
 
 	/**

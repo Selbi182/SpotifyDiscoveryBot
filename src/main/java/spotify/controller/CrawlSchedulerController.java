@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 
-import spotify.bot.crawler.SpotifyDiscoveryBot;
+import spotify.bot.SpotifyDiscoveryBot;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -23,7 +23,7 @@ import spotify.bot.util.data.AlbumGroupExtended;
 @RestController
 @Component
 @EnableScheduling
-public class CrawlScheduler {
+public class CrawlSchedulerController {
 
 	/**
 	 * Cron job representing "at every 10th second after every 30 minutes".

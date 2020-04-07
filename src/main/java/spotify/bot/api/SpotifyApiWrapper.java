@@ -11,13 +11,13 @@ import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.SpotifyHttpManager;
 import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 
-import spotify.bot.config.Config;
+import spotify.bot.config.dto.SpotifyApiConfig;
 
 @Configuration
 public class SpotifyApiWrapper {
 
 	@Autowired
-	private Config config;
+	private SpotifyApiConfig spotifyApiConfig;
 
 	/**
 	 * Creates a SpotifyApi instance with the most common settings. A
@@ -28,12 +28,12 @@ public class SpotifyApiWrapper {
 	@Bean
 	SpotifyApi spotifyApi() throws SpotifyWebApiException, InterruptedException, IOException, SQLException {
 		SpotifyApi spotifyApi = new SpotifyApi.Builder()
-			.setClientId(config.getSpotifyApiConfig().getClientId())
-			.setClientSecret(config.getSpotifyApiConfig().getClientSecret())
+			.setClientId(spotifyApiConfig.getClientId())
+			.setClientSecret(spotifyApiConfig.getClientSecret())
 			.setRedirectUri(SpotifyHttpManager.makeUri(SpotifyApiAuthorization.LOGIN_CALLBACK_URI))
 			.build();
-		spotifyApi.setAccessToken(config.getSpotifyApiConfig().getAccessToken());
-		spotifyApi.setRefreshToken(config.getSpotifyApiConfig().getRefreshToken());
+		spotifyApi.setAccessToken(spotifyApiConfig.getAccessToken());
+		spotifyApi.setRefreshToken(spotifyApiConfig.getRefreshToken());
 		return spotifyApi;
 	}
 }

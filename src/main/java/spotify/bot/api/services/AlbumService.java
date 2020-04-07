@@ -16,7 +16,8 @@ import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
 import spotify.bot.api.SpotifyCall;
-import spotify.bot.config.Config;
+import spotify.bot.config.dto.PlaylistStoreConfig;
+import spotify.bot.config.dto.SpotifyApiConfig;
 
 @Service
 public class AlbumService {
@@ -24,7 +25,10 @@ public class AlbumService {
 	private final static int MAX_ALBUM_FETCH_LIMIT = 50;
 
 	@Autowired
-	private Config config;
+	private SpotifyApiConfig spotifyApiConfig;
+	
+	@Autowired
+	private PlaylistStoreConfig playlistStoreConfig;
 
 	@Autowired
 	private SpotifyApi spotifyApi;
@@ -38,7 +42,7 @@ public class AlbumService {
 	 */
 	public List<AlbumSimplified> getAllAlbumsOfArtists(List<String> followedArtists)
 		throws IOException, SQLException, SpotifyWebApiException, InterruptedException {
-		Collection<AlbumGroup> enabledAlbumGroups = config.getEnabledAlbumGroups();
+		Collection<AlbumGroup> enabledAlbumGroups = playlistStoreConfig.getEnabledAlbumGroups();
 		List<AlbumSimplified> allAlbums = getAlbumsOfArtists(followedArtists, enabledAlbumGroups);
 		return allAlbums;
 	}
@@ -83,7 +87,7 @@ public class AlbumService {
 	private List<AlbumSimplified> getAlbumIdsOfSingleArtist(String artistId, String albumGroups) throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
 		List<AlbumSimplified> albumsOfCurrentArtist = SpotifyCall.executePaging(spotifyApi
 			.getArtistsAlbums(artistId)
-			.market(config.getStaticConfig().getMarket())
+			.market(spotifyApiConfig.getMarket())
 			.limit(MAX_ALBUM_FETCH_LIMIT)
 			.album_type(albumGroups));
 		return albumsOfCurrentArtist;

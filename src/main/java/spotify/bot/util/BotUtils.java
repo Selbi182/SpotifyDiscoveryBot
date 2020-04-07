@@ -15,7 +15,7 @@ import java.util.StringJoiner;
 import com.google.common.collect.Ordering;
 import com.wrapper.spotify.enums.AlbumGroup;
 
-import spotify.bot.config.dto.PlaylistStore;
+import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;
 

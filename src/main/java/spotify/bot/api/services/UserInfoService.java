@@ -15,8 +15,9 @@ import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.model_objects.specification.Artist;
 
 import spotify.bot.api.SpotifyCall;
-import spotify.bot.config.Config;
 import spotify.bot.config.database.DatabaseService;
+import spotify.bot.config.dto.StaticConfig;
+import spotify.bot.config.dto.UserOptions;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
 
@@ -29,8 +30,11 @@ public class UserInfoService {
 	private SpotifyApi spotifyApi;
 
 	@Autowired
-	private Config config;
-
+	private UserOptions userOptions;
+	
+	@Autowired
+	private StaticConfig staticConfig;
+	
 	@Autowired
 	private DatabaseService databaseService;
 
@@ -44,7 +48,7 @@ public class UserInfoService {
 	 */
 	public List<String> getFollowedArtistsIds() throws IOException, SQLException, SpotifyWebApiException, InterruptedException {
 		// Try to fetch from cache first
-		boolean cache = config.getUserOptions().isCacheFollowedArtists();
+		boolean cache = userOptions.isCacheFollowedArtists();
 		List<String> cachedArtists = null;
 		if (cache) {
 			cachedArtists = getCachedArtists();
@@ -69,9 +73,9 @@ public class UserInfoService {
 		List<String> cachedArtists = databaseService.getArtistCache();
 		BotUtils.removeNullStrings(cachedArtists);
 		if (cachedArtists != null && !cachedArtists.isEmpty()) {
-			Date lastUpdatedArtistCache = config.getStaticConfig().getArtistCacheLastUpdated();
+			Date lastUpdatedArtistCache = staticConfig.getArtistCacheLastUpdated();
 			if (lastUpdatedArtistCache != null) {
-				int artistCacheTimeout = config.getStaticConfig().getArtistCacheTimeout();
+				int artistCacheTimeout = staticConfig.getArtistCacheTimeout();
 				if (BotUtils.isWithinTimeoutWindow(lastUpdatedArtistCache, artistCacheTimeout)) {
 					return cachedArtists;
 				}

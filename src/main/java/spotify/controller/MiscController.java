@@ -13,13 +13,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import spotify.bot.crawler.SpotifyDiscoveryBot;
+import spotify.bot.SpotifyDiscoveryBot;
+import spotify.bot.config.dto.StaticConfig;
 import spotify.bot.util.BotLogger;
 
 @RestController
 @Component
 @EnableScheduling
-public class MiscEndpoints {
+public class MiscController {
 	private final static int SHUTDOWN_RETRY_SLEEP = 10 * 1000;
 
 	@Autowired
@@ -27,6 +28,9 @@ public class MiscEndpoints {
 
 	@Autowired
 	private SpotifyDiscoveryBot crawler;
+	
+	@Autowired
+	private StaticConfig staticConfig;
 
 	/**
 	 *
@@ -75,7 +79,8 @@ public class MiscEndpoints {
 	 */
 	@Scheduled(cron = "0 50 23 * * THU")
 	private void scheduledShutdown() throws InterruptedException {
-		shutdown("Shutting down Spotify bot by scheduled cron job...");
+		if (staticConfig.isRestartBeforeFriday()) {
+			shutdown("Shutting down Spotify bot by scheduled cron job (restart_before_friday)...");			
+		}
 	}
-
 }

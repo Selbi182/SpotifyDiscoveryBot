@@ -1,6 +1,5 @@
 package spotify.controller;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Map;
 
@@ -13,9 +12,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.wrapper.spotify.exceptions.SpotifyWebApiException;
-
-import spotify.bot.SpotifyDiscoveryBot;
+import spotify.bot.DiscoveryBotCrawler;
+import spotify.bot.api.BotException;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -37,7 +35,7 @@ public class CrawlSchedulerController {
 	private final static String CLEAR_NOTIFIER_CRON = "5/10 * * * * *";
 
 	@Autowired
-	private SpotifyDiscoveryBot crawler;
+	private DiscoveryBotCrawler crawler;
 
 	@Autowired
 	private BotLogger log;
@@ -57,10 +55,12 @@ public class CrawlSchedulerController {
 	 * </ul>
 	 * 
 	 * @return a ResponseEntity defining the result of the crawling process
+	 * @throws BotException on an external exception related to the Spotify Web API
+	 * @throws SQLException on an internal exception related to the SQLite database
 	 */
 	@Scheduled(cron = CRAWL_CRON)
 	@RequestMapping("/crawl")
-	public ResponseEntity<String> runScheduler() throws SpotifyWebApiException, InterruptedException, IOException, SQLException {
+	public ResponseEntity<String> runScheduler() throws BotException, SQLException {
 		if (!crawler.isReady()) {
 			return new ResponseEntity<>("Crawler isn't ready!", HttpStatus.CONFLICT);
 		}
@@ -79,10 +79,12 @@ public class CrawlSchedulerController {
 	 * applicable. Will only run while crawler is idle.
 	 * 
 	 * @return a ResponseEntity indicating whether any notifies were cleared
+	 * @throws BotException on an external exception related to the Spotify Web API
+	 * @throws SQLException on an internal exception related to the SQLite database
 	 */
 	@Scheduled(cron = CLEAR_NOTIFIER_CRON)
 	@RequestMapping("/clear-notifiers")
-	public ResponseEntity<String> clearNewIndicatorScheduler() throws SpotifyWebApiException, SQLException, IOException, InterruptedException, Exception {
+	public ResponseEntity<String> clearNewIndicatorScheduler() throws BotException, SQLException {
 		if (!crawler.isReady()) {
 			return new ResponseEntity<>("Can't clear [NEW] indicators now, as crawler is currently in progress...", HttpStatus.CONFLICT);
 		}

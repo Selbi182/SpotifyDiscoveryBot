@@ -29,23 +29,24 @@ public class BotLogger {
 	 * A comparator for {@link AlbumSimplified} following the order: Album Group >
 	 * (first) Artist > Release Date > Release Name
 	 */
-	private final static Comparator<AlbumSimplified> ALBUM_SIMPLIFIED_COMPARATOR = Comparator.comparing(AlbumSimplified::getAlbumGroup)
+	private final static Comparator<AlbumSimplified> ALBUM_SIMPLIFIED_COMPARATOR = Comparator
+		.comparing(AlbumSimplified::getAlbumGroup)
 		.thenComparing(as -> as.getArtists()[0].getName())
 		.thenComparing(AlbumSimplified::getReleaseDate)
 		.thenComparing(AlbumSimplified::getName);
 
-	private final static String LOG_FILE_PATH = "./spring.log";
+	private final static String LOG_FILE_PATH = "./log.txt";
 	private final static int DEFAULT_LOG_READ_LINES = 100;
 
 	private final static int MAX_LINE_LENGTH = 160;
 	private final static String ELLIPSIS = "...";
-	private final static String DROPPED_SYMBOL = "x";
+	private final static String DROPPED_PREFIX = "x ";
 	private final static String LINE_SYMBOL = "-";
 
 	private Logger log;
 
 	@PostConstruct
-	private void init() throws SecurityException, IOException {
+	private void init() throws SecurityException {
 		this.log = LoggerFactory.getLogger(BotLogger.class);
 	}
 
@@ -105,12 +106,10 @@ public class BotLogger {
 	/**
 	 * Return the content of the default log file (<code>./spring.log</code>).
 	 * 
-	 * @param limit
-	 *            (optional) maximum number of lines to read from the top of the log
-	 *            (default: 100); Use -1 to read the entire file
+	 * @param limit (optional) maximum number of lines to read from the top of the
+	 *              log (default: 100); Use -1 to read the entire file
 	 * @return a list of strings representing a line of logging
-	 * @throws IOException
-	 *             on a read error
+	 * @throws IOException on a read error
 	 */
 	public List<String> readLog(Integer limit) throws IOException {
 		File logFile = new File(LOG_FILE_PATH);
@@ -160,28 +159,13 @@ public class BotLogger {
 	}
 
 	/**
-	 * Build a readable String for dropped AlbumSimplified
-	 * 
-	 * @param as
-	 * @return
-	 */
-	private String printDroppedAlbum(AlbumSimplified as) {
-		return String.format("%s [%s] %s - %s (%s)",
-			DROPPED_SYMBOL,
-			as.getAlbumGroup().toString(),
-			as.getArtists()[0].getName(),
-			as.getName(),
-			as.getReleaseDate());
-	}
-
-	/**
 	 * Print the given list of AlbumSimplifieds
 	 * 
 	 * @param albumTrackPairs
 	 */
 	private void printAlbumSimplifiedMulti(List<AlbumSimplified> albumSimplifieds) {
 		for (AlbumSimplified as : albumSimplifieds) {
-			debug(printDroppedAlbum(as));
+			debug(DROPPED_PREFIX + BotUtils.formatAlbum(as));
 		}
 
 	}
@@ -198,12 +182,9 @@ public class BotLogger {
 		differenceView.removeAll(subtrahend);
 		if (!differenceView.isEmpty()) {
 			if (logDescription != null) {
-				debug(DROPPED_SYMBOL + " " + logDescription);
+				debug(DROPPED_PREFIX + " " + logDescription);
 			}
-			List<AlbumSimplified> sortedDifferenceView = differenceView
-				.stream()
-				.sorted(ALBUM_SIMPLIFIED_COMPARATOR)
-				.collect(Collectors.toList());
+			List<AlbumSimplified> sortedDifferenceView = differenceView.stream().sorted(ALBUM_SIMPLIFIED_COMPARATOR).collect(Collectors.toList());
 			printAlbumSimplifiedMulti(sortedDifferenceView);
 			printLine();
 		}
@@ -217,8 +198,7 @@ public class BotLogger {
 	 * @param logDescription
 	 */
 	public void printDroppedAlbumTrackPairDifference(Collection<AlbumTrackPair> unfilteredAppearsOnAlbums, Collection<AlbumTrackPair> filteredAppearsOnAlbums, String logDescription) {
-		printDroppedAlbumDifference(
-			unfilteredAppearsOnAlbums.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList()),
+		printDroppedAlbumDifference(unfilteredAppearsOnAlbums.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList()),
 			filteredAppearsOnAlbums.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList()),
 			logDescription);
 	}

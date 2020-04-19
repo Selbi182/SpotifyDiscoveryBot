@@ -17,12 +17,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.wrapper.spotify.SpotifyApi;
-import com.wrapper.spotify.exceptions.SpotifyWebApiException;
-import com.wrapper.spotify.exceptions.detailed.BadRequestException;
 import com.wrapper.spotify.model_objects.credentials.AuthorizationCodeCredentials;
 
 import spotify.bot.config.ConfigUpdate;
 import spotify.bot.util.BotLogger;
+import spotify.bot.util.BotUtils;
 
 @Component
 @RestController
@@ -31,7 +30,7 @@ public class SpotifyApiAuthorization {
 	protected final static String LOGIN_CALLBACK_URI = "/login-callback";
 
 	private final static String SCOPES = "user-follow-read playlist-modify-private";
-	private final static int BACKOFF_MAX_TRIES = 10;
+	private final static int BACKOFF_MAX_TRIES = 5;
 	private final static int BACKOFF_TIME_BASE_MS = 1000;
 	private final static int LOGIN_TIMEOUT = 10;
 
@@ -48,14 +47,14 @@ public class SpotifyApiAuthorization {
 	 * Log in to Spotify. Retry up to ten times with exponentially increasing sleep
 	 * intervals on an error.
 	 */
-	public void login() throws SpotifyWebApiException, InterruptedException, IOException {
+	public void login() throws BotException {
 		login(0);
 	}
 
-	private void login(final int retryCount) throws SpotifyWebApiException, IOException, InterruptedException {
+	private void login(final int retryCount) throws BotException {
 		try {
 			authorizationCodeRefresh();
-		} catch (SpotifyWebApiException | IOException | InterruptedException | SQLException e) {
+		} catch (SQLException | BotException e) {
 			if (retryCount >= BACKOFF_MAX_TRIES) {
 				log.error(String.format("Failed to refresh authorization token after %d tries. Log in again!", retryCount));
 				log.stackTrace(e);
@@ -63,7 +62,7 @@ public class SpotifyApiAuthorization {
 				return;
 			}
 			long timeout = Math.round(Math.pow(2, retryCount));
-			Thread.sleep(BACKOFF_TIME_BASE_MS * timeout);
+			BotUtils.sneakySleep(BACKOFF_TIME_BASE_MS * timeout);
 			login(retryCount + 1);
 		}
 	}
@@ -77,10 +76,8 @@ public class SpotifyApiAuthorization {
 
 	/**
 	 * Authentication process
-	 * 
-	 * @param api
 	 */
-	private void authenticate() throws SpotifyWebApiException, IOException, InterruptedException {
+	private void authenticate() throws BotException {
 		URI uri = SpotifyCall.execute(spotifyApi.authorizationCodeUri().scope(SCOPES));
 		try {
 			if (!Desktop.isDesktopSupported()) {
@@ -91,10 +88,14 @@ public class SpotifyApiAuthorization {
 			log.warning("Couldn't open browser window. Please login at this URL:");
 			System.out.println(uri.toString());
 		}
-		boolean loggedIn = lock.tryAcquire(LOGIN_TIMEOUT, TimeUnit.MINUTES);
-		if (!loggedIn) {
-			log.error("Login timeout! Shutting down application in case of a Spotify Web API anomaly.!");
-			System.exit(1);
+		try {
+			boolean loggedIn = lock.tryAcquire(LOGIN_TIMEOUT, TimeUnit.MINUTES);
+			if (!loggedIn) {
+				log.error("Login timeout! Shutting down application in case of a Spotify Web API anomaly.!");
+				System.exit(1);
+			}
+		} catch (InterruptedException e) {
+			throw new BotException(e);
 		}
 	}
 
@@ -105,25 +106,19 @@ public class SpotifyApiAuthorization {
 	 * @return
 	 */
 	@RequestMapping(LOGIN_CALLBACK_URI)
-	private ResponseEntity<String> loginCallback(@RequestParam String code) throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
-		try {
-			AuthorizationCodeCredentials acc = SpotifyCall.execute(spotifyApi.authorizationCode(code));
-			updateTokens(acc);
-			lock.release();
-			return new ResponseEntity<String>("Successfully logged in!", HttpStatus.OK);
-		} catch (BadRequestException e) {
-			return new ResponseEntity<String>("Response code is invalid!", HttpStatus.BAD_REQUEST);
-		}
+	private ResponseEntity<String> loginCallback(@RequestParam String code) throws BotException, SQLException {
+		AuthorizationCodeCredentials acc = SpotifyCall.execute(spotifyApi.authorizationCode(code));
+		updateTokens(acc);
+		lock.release();
+		return new ResponseEntity<String>("Successfully logged in!", HttpStatus.OK);
 	}
 
 	///////////////////////
 
 	/**
 	 * Refresh the access token
-	 * 
-	 * @param api
 	 */
-	private void authorizationCodeRefresh() throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
+	private void authorizationCodeRefresh() throws SQLException, BotException {
 		AuthorizationCodeCredentials acc = SpotifyCall.execute(spotifyApi.authorizationCodeRefresh());
 		updateTokens(acc);
 	}
@@ -131,7 +126,7 @@ public class SpotifyApiAuthorization {
 	/**
 	 * Store the access and refresh tokens in the database
 	 */
-	private void updateTokens(AuthorizationCodeCredentials acc) throws IOException, SQLException {
+	private void updateTokens(AuthorizationCodeCredentials acc) throws SQLException {
 		String accessToken = spotifyApi.getAccessToken();
 		if (acc.getAccessToken() != null) {
 			accessToken = acc.getAccessToken();

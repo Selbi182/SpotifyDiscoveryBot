@@ -1,7 +1,5 @@
 package spotify.bot.api.services;
 
-import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -15,15 +13,16 @@ import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.wrapper.spotify.SpotifyApi;
-import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.model_objects.specification.Playlist;
 import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
+import spotify.bot.api.BotException;
 import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.config.dto.UserOptions;
 import spotify.bot.util.BotLogger;
+import spotify.bot.util.BotUtils;
 import spotify.bot.util.data.AlbumTrackPair;
 
 @Service
@@ -49,7 +48,7 @@ public class PlaylistSongsService {
 	 * @param songsByPlaylist
 	 * @param enabledAlbumGroups
 	 */
-	public void addAllReleasesToSetPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws SpotifyWebApiException, SQLException, IOException, InterruptedException {
+	public void addAllReleasesToSetPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws BotException {
 		log.debug("Adding to playlists:");
 		List<PlaylistStore> sortedPlaylistStores = songsByPlaylist.keySet().stream().sorted().collect(Collectors.toList());
 		for (PlaylistStore ps : sortedPlaylistStores) {
@@ -71,9 +70,11 @@ public class PlaylistSongsService {
 	 * @param songs
 	 * @return
 	 */
-	private void addSongsToPlaylistId(String playlistId, List<AlbumTrackPair> albumTrackPairs) throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
+	private void addSongsToPlaylistId(String playlistId, List<AlbumTrackPair> albumTrackPairs) throws BotException {
 		if (!albumTrackPairs.isEmpty()) {
-			boolean playlistHasCapacity = circularPlaylistFitting(playlistId, albumTrackPairs.stream().mapToInt(AlbumTrackPair::trackCount).sum());
+			boolean playlistHasCapacity = circularPlaylistFitting(playlistId, albumTrackPairs.stream()
+				.mapToInt(AlbumTrackPair::trackCount)
+				.sum());
 			if (playlistHasCapacity) {
 				List<List<TrackSimplified>> bundledReleases = batchReleases(albumTrackPairs);
 				for (List<TrackSimplified> t : bundledReleases) {
@@ -82,8 +83,10 @@ public class PlaylistSongsService {
 						for (TrackSimplified s : partition) {
 							json.add(TRACK_PREFIX + s.getId());
 						}
-						SpotifyCall.execute(spotifyApi.addTracksToPlaylist(playlistId, json).position(TOP_OF_PLAYLIST));
-						Thread.sleep(PLAYLIST_ADDITION_COOLDOWN);
+						SpotifyCall.execute(spotifyApi
+							.addTracksToPlaylist(playlistId, json)
+							.position(TOP_OF_PLAYLIST));
+						BotUtils.sneakySleep(PLAYLIST_ADDITION_COOLDOWN);
 					}
 				}
 			}
@@ -102,7 +105,7 @@ public class PlaylistSongsService {
 	 * @param allReleases
 	 * @return
 	 */
-	private List<List<TrackSimplified>> batchReleases(List<AlbumTrackPair> allReleases) throws SQLException, IOException {
+	private List<List<TrackSimplified>> batchReleases(List<AlbumTrackPair> allReleases) {
 		if (userOptions.isBatchPlaylistAddition()) {
 			List<List<TrackSimplified>> bundled = new ArrayList<>();
 			List<TrackSimplified> subBatch = new ArrayList<>();
@@ -134,13 +137,14 @@ public class PlaylistSongsService {
 	 * @param songsToAddCount
 	 * @return true on success, false if playlist is full and can't be cleared
 	 */
-	private boolean circularPlaylistFitting(String playlistId, int songsToAddCount) throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
+	private boolean circularPlaylistFitting(String playlistId, int songsToAddCount) throws BotException {
 		Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
 
 		final int currentPlaylistCount = p.getTracks().getTotal();
 		if (currentPlaylistCount + songsToAddCount > PLAYLIST_SIZE_LIMIT) {
 			if (!userOptions.isCircularPlaylistFitting()) {
-				log.error(p.getName() + " is full! Maximum capacity is " + PLAYLIST_SIZE_LIMIT + ". Enable circularPlaylistFitting or flush the playlist for new songs.");
+				log.error(p.getName() + " is full! Maximum capacity is " + PLAYLIST_SIZE_LIMIT + ". "
+					+ "Enable circularPlaylistFitting or flush the playlist for new songs.");
 				return false;
 			}
 			deleteSongsFromBottomOnLimit(playlistId, currentPlaylistCount, songsToAddCount);
@@ -159,13 +163,16 @@ public class PlaylistSongsService {
 	 * @param currentPlaylistCount
 	 * @param songsToAddCount
 	 */
-	private void deleteSongsFromBottomOnLimit(String playlistId, int currentPlaylistCount, int songsToAddCount) throws SpotifyWebApiException, IOException, InterruptedException {
+	private void deleteSongsFromBottomOnLimit(String playlistId, int currentPlaylistCount, int songsToAddCount) throws BotException {
 		int totalSongsToDeleteCount = currentPlaylistCount + songsToAddCount - PLAYLIST_SIZE_LIMIT;
 		boolean repeat = totalSongsToDeleteCount > PLAYLIST_ADD_LIMIT;
 		int songsToDeleteCount = repeat ? PLAYLIST_ADD_LIMIT : totalSongsToDeleteCount;
 		final int offset = currentPlaylistCount - songsToDeleteCount;
 
-		List<PlaylistTrack> tracksToDelete = SpotifyCall.executePaging(spotifyApi.getPlaylistsTracks(playlistId).offset(offset).limit(PLAYLIST_ADD_LIMIT));
+		List<PlaylistTrack> tracksToDelete = SpotifyCall.executePaging(spotifyApi
+			.getPlaylistsTracks(playlistId)
+			.offset(offset)
+			.limit(PLAYLIST_ADD_LIMIT));
 
 		JsonArray json = new JsonArray();
 		for (int i = 0; i < tracksToDelete.size(); i++) {

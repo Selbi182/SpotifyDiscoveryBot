@@ -33,17 +33,18 @@ public class LiveRemapper implements Remapper {
 	}
 
 	/**
-	 * Any non-extended album group except appears_on qualifies as relevant for Live remapping
+	 * Any non-extended album group except appears_on qualifies as relevant for Live
+	 * remapping
 	 */
 	@Override
 	public boolean isAllowedAlbumGroup(AlbumGroupExtended albumGroupExtended) {
-		if (!albumGroupExtended.equals(AlbumGroupExtended.APPEARS_ON) ) {
+		if (!albumGroupExtended.equals(AlbumGroupExtended.APPEARS_ON)) {
 			try {
 				AlbumGroup albumGroup = albumGroupExtended.asAlbumGroup();
 				return albumGroup != null;
 			} catch (IllegalArgumentException e) {
 				return false;
-			}			
+			}
 		}
 		return false;
 	}

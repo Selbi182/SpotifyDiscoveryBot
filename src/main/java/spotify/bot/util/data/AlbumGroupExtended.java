@@ -8,14 +8,9 @@ import java.util.Set;
 import com.wrapper.spotify.enums.AlbumGroup;
 
 public enum AlbumGroupExtended {
-	ALBUM("album"),
-	APPEARS_ON("appears_on"),
-	COMPILATION("compilation"),
-	SINGLE("single"),
+	ALBUM("album"), APPEARS_ON("appears_on"), COMPILATION("compilation"), SINGLE("single"),
 
-	EP("ep", true),
-	REMIX("remix", true),
-	LIVE("live", true);
+	EP("ep", true), REMIX("remix", true), LIVE("live", true);
 
 	private static final Map<String, AlbumGroupExtended> map = new HashMap<>();
 	private static final Set<AlbumGroupExtended> extendedTypes = new HashSet<>();
@@ -55,8 +50,7 @@ public enum AlbumGroupExtended {
 	 * Return the base album group representation of the given extended album group.
 	 * 
 	 * @return the base album group
-	 * @throws IllegalArgumentException
-	 *             if this is an extended album group
+	 * @throws IllegalArgumentException if this is an extended album group
 	 */
 	public AlbumGroup asAlbumGroup() throws IllegalArgumentException {
 		AlbumGroup ag = AlbumGroup.keyOf(this.group);
@@ -83,7 +77,7 @@ public enum AlbumGroupExtended {
 	public String getDatabaseName() {
 		return getGroupName().toUpperCase();
 	}
-	
+
 	/**
 	 * Indicates whether or not this album group is a special extended type (EP,
 	 * Remixe, Live)

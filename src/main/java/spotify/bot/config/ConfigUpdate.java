@@ -1,6 +1,5 @@
 package spotify.bot.config;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Map;
 
@@ -17,10 +16,10 @@ import spotify.bot.util.data.AlbumGroupExtended;
 public class ConfigUpdate {
 	@Autowired
 	private SpotifyApiConfig spotifyApiConfig;
-	
+
 	@Autowired
 	private PlaylistStoreConfig playlistStoreConfig;
-	
+
 	@Autowired
 	private DatabaseService databaseService;
 
@@ -31,7 +30,7 @@ public class ConfigUpdate {
 	 * @param accessToken
 	 * @param refreshToken
 	 */
-	public void updateTokens(String accessToken, String refreshToken) throws IOException, SQLException {
+	public void updateTokens(String accessToken, String refreshToken) throws SQLException {
 		spotifyApiConfig.setAccessToken(accessToken);
 		spotifyApiConfig.setRefreshToken(refreshToken);
 		databaseService.updateTokens(accessToken, refreshToken);
@@ -60,14 +59,12 @@ public class ConfigUpdate {
 		databaseService.unsetPlaylistStore(albumGroupExtended);
 		refreshPlaylistStoreMap();
 	}
-	
+
 	/**
 	 * Refresh the local playlist store config map.
-	 * 
-	 * @throws SQLException
 	 */
 	private void refreshPlaylistStoreMap() throws SQLException {
 		Map<AlbumGroupExtended, PlaylistStore> freshPlaylistStoresMap = databaseService.getAllPlaylistStoresMap();
-		playlistStoreConfig.setPlaylistStoreMap(freshPlaylistStoresMap);		
+		playlistStoreConfig.setPlaylistStoreMap(freshPlaylistStoresMap);
 	}
 }

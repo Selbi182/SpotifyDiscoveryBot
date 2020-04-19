@@ -14,6 +14,7 @@ import java.util.StringJoiner;
 
 import com.google.common.collect.Ordering;
 import com.wrapper.spotify.enums.AlbumGroup;
+import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
 import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -37,17 +38,32 @@ public final class BotUtils {
 	/**
 	 * Utility class
 	 */
-	private BotUtils() {}
+	private BotUtils() {
+	}
 
 	///////
 
 	/**
+	 * Performs a <code>Thread.sleep(sleepMs);</code> call in a surrounded try-catch
+	 * that ignores any interrupts. This method mostly exists to reduce the number
+	 * of try-catch and throws clutter throughout the code. Yes, I know it's bad
+	 * practice, cry me a river.
+	 * 
+	 * @param millis the number of milliseconds to sleep
+	 */
+	public static void sneakySleep(long millis) {
+		try {
+			Thread.sleep(millis);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
 	 * Check if the given old date is still within the allowed timeout window
 	 * 
-	 * @param baseDate
-	 *            the date to check "now" against
-	 * @param timeoutInHours
-	 *            the timeout in hours
+	 * @param baseDate       the date to check "now" against
+	 * @param timeoutInHours the timeout in hours
 	 */
 	public static boolean isWithinTimeoutWindow(Date baseDate, int timeoutInHours) {
 		Instant baseTime = Instant.ofEpochMilli(baseDate.getTime());
@@ -144,5 +160,15 @@ public final class BotUtils {
 			targetCountMap.put(entry.getKey().getAlbumGroupExtended(), totalSongsOfGroup);
 		}
 		return targetCountMap;
+	}
+
+	/**
+	 * Build a readable String for dropped AlbumSimplified
+	 * 
+	 * @param as
+	 * @return
+	 */
+	public static String formatAlbum(AlbumSimplified as) {
+		return String.format("[%s] %s - %s (%s)", as.getAlbumGroup().toString(), as.getArtists()[0].getName(), as.getName(), as.getReleaseDate());
 	}
 }

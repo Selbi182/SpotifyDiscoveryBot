@@ -51,7 +51,6 @@ public class SpotifyApiConfig {
 
 	@Override
 	public String toString() {
-		return "SpotifyApiConfig [clientId=" + clientId + ", clientSecret=" + clientSecret + ", accessToken="
-				+ accessToken + ", refreshToken=" + refreshToken + ", countryCode=" + market + "]";
+		return "SpotifyApiConfig [clientId=" + clientId + ", clientSecret=" + clientSecret + ", accessToken=" + accessToken + ", refreshToken=" + refreshToken + ", countryCode=" + market + "]";
 	}
 }

@@ -1,9 +1,8 @@
 package spotify.bot.api.services;
 
-import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.StringJoiner;
 
@@ -12,9 +11,9 @@ import org.springframework.stereotype.Service;
 
 import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.enums.AlbumGroup;
-import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
+import spotify.bot.api.BotException;
 import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.dto.PlaylistStoreConfig;
 import spotify.bot.config.dto.SpotifyApiConfig;
@@ -26,7 +25,7 @@ public class AlbumService {
 
 	@Autowired
 	private SpotifyApiConfig spotifyApiConfig;
-	
+
 	@Autowired
 	private PlaylistStoreConfig playlistStoreConfig;
 
@@ -34,31 +33,28 @@ public class AlbumService {
 	private SpotifyApi spotifyApi;
 
 	/**
-	 * Fetch all albums of the given artists
+	 * Fetch all albums of the given artists. (Note: This will very likely take up
+	 * the majority of the crawling process, as it requires to fire at least one
+	 * Spotify Web API request for EVERY SINGLE ARTIST!)
 	 * 
 	 * @param followedArtists
 	 * @param albumGroups
 	 * @return
 	 */
-	public List<AlbumSimplified> getAllAlbumsOfArtists(List<String> followedArtists)
-		throws IOException, SQLException, SpotifyWebApiException, InterruptedException {
+	public List<AlbumSimplified> getAllAlbumsOfArtists(List<String> followedArtists) throws BotException {
 		Collection<AlbumGroup> enabledAlbumGroups = playlistStoreConfig.getEnabledAlbumGroups();
-		List<AlbumSimplified> allAlbums = getAlbumsOfArtists(followedArtists, enabledAlbumGroups);
-		return allAlbums;
-	}
-
-	/**
-	 * Get all album IDs of the given list of artists, mapped into album group
-	 * 
-	 * @param artists
-	 * @return
-	 */
-	private List<AlbumSimplified> getAlbumsOfArtists(List<String> artists, Collection<AlbumGroup> enabledAlbumGroups) throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
 		String albumGroupString = createAlbumGroupString(enabledAlbumGroups);
+
+		// I've tried just about anything imaginable under the sun. Parallel streams,
+		// threads, thread pools, custom sleep intervals. It doesn't matter, going
+		// through every single artist in a simple for-loop is just as fast while still
+		// being way more straight-forward to comprehend. I wish Spotify's API allowed
+		// for fetching multiple artists' albums at once.
+
 		List<AlbumSimplified> albums = new ArrayList<>();
-		for (String a : artists) {
-			List<AlbumSimplified> albumsOfCurrentArtist = getAlbumIdsOfSingleArtist(a, albumGroupString);
-			albums.addAll(albumsOfCurrentArtist);
+		for (String artist : followedArtists) {
+			List<AlbumSimplified> albumIdsOfSingleArtist = getAlbumIdsOfSingleArtist(artist, albumGroupString);
+			albums.addAll(albumIdsOfSingleArtist);
 		}
 		return albums;
 	}
@@ -84,8 +80,9 @@ public class AlbumService {
 	 * @param albumGroup
 	 * @return
 	 */
-	private List<AlbumSimplified> getAlbumIdsOfSingleArtist(String artistId, String albumGroups) throws SpotifyWebApiException, IOException, InterruptedException, SQLException {
-		List<AlbumSimplified> albumsOfCurrentArtist = SpotifyCall.executePaging(spotifyApi
+	private List<AlbumSimplified> getAlbumIdsOfSingleArtist(String artistId, String albumGroups) throws BotException {
+		List<AlbumSimplified> albumsOfCurrentArtist = Collections.emptyList();
+		albumsOfCurrentArtist = SpotifyCall.executePaging(spotifyApi
 			.getArtistsAlbums(artistId)
 			.market(spotifyApiConfig.getMarket())
 			.limit(MAX_ALBUM_FETCH_LIMIT)

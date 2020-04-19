@@ -1,6 +1,5 @@
 package spotify.bot.config.dto;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -13,7 +12,7 @@ import spotify.bot.util.BotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
 
 public class PlaylistStoreConfig {
-	
+
 	private Map<AlbumGroupExtended, PlaylistStore> playlistStoreMap;
 
 	public PlaylistStoreConfig(Map<AlbumGroupExtended, PlaylistStore> playlistStoreMap) {
@@ -23,7 +22,7 @@ public class PlaylistStoreConfig {
 	public void setPlaylistStoreMap(Map<AlbumGroupExtended, PlaylistStore> playlistStoreMap) {
 		this.playlistStoreMap = playlistStoreMap;
 	}
-	
+
 	/////////////////////////
 	// PLAYLIST STORE READERS
 
@@ -32,7 +31,7 @@ public class PlaylistStoreConfig {
 	 * 
 	 * @return
 	 */
-	private Map<AlbumGroupExtended, PlaylistStore> getPlaylistStoreMap() throws SQLException {
+	private Map<AlbumGroupExtended, PlaylistStore> getPlaylistStoreMap() {
 		return playlistStoreMap;
 	}
 
@@ -41,7 +40,7 @@ public class PlaylistStoreConfig {
 	 * 
 	 * @return
 	 */
-	public Collection<PlaylistStore> getAllPlaylistStores() throws SQLException {
+	public Collection<PlaylistStore> getAllPlaylistStores() {
 		return getPlaylistStoreMap().values();
 	}
 
@@ -52,7 +51,7 @@ public class PlaylistStoreConfig {
 	 * @param albumGroup
 	 * @return
 	 */
-	public PlaylistStore getPlaylistStore(AlbumGroup albumGroup) throws SQLException {
+	public PlaylistStore getPlaylistStore(AlbumGroup albumGroup) {
 		return getPlaylistStore(AlbumGroupExtended.fromAlbumGroup(albumGroup));
 	}
 
@@ -63,7 +62,7 @@ public class PlaylistStoreConfig {
 	 * @param albumGroup
 	 * @return
 	 */
-	public PlaylistStore getPlaylistStore(AlbumGroupExtended albumGroupExtended) throws SQLException {
+	public PlaylistStore getPlaylistStore(AlbumGroupExtended albumGroupExtended) {
 		PlaylistStore ps = getPlaylistStoreMap().get(albumGroupExtended);
 		return ps;
 	}
@@ -73,7 +72,7 @@ public class PlaylistStoreConfig {
 	 * 
 	 * @param albumGroups
 	 */
-	public List<AlbumGroup> getEnabledAlbumGroups() throws SQLException {
+	public List<AlbumGroup> getEnabledAlbumGroups() {
 		List<AlbumGroup> setAlbumGroups = new ArrayList<>();
 		for (AlbumGroup age : AlbumGroup.values()) {
 			PlaylistStore ps = getPlaylistStore(age);
@@ -91,7 +90,7 @@ public class PlaylistStoreConfig {
 	 * 
 	 * @param albumGroups
 	 */
-	public List<AlbumGroupExtended> getEnabledSpecialAlbumGroups() throws SQLException {
+	public List<AlbumGroupExtended> getEnabledSpecialAlbumGroups() {
 		List<AlbumGroupExtended> setAlbumGroups = new ArrayList<>();
 		for (AlbumGroupExtended age : AlbumGroupExtended.values()) {
 			PlaylistStore ps = getPlaylistStore(age);
@@ -103,7 +102,7 @@ public class PlaylistStoreConfig {
 		}
 		return setAlbumGroups;
 	}
-	
+
 	public static class PlaylistStore implements Comparable<PlaylistStore> {
 		private final AlbumGroupExtended albumGroupExtended;
 		private String playlistId;
@@ -148,8 +147,7 @@ public class PlaylistStoreConfig {
 
 		@Override
 		public int compareTo(PlaylistStore o) {
-			return BotUtils.DEFAULT_PLAYLIST_GROUP_ORDER_COMPARATOR.compare(this.getAlbumGroupExtended(),
-					o.getAlbumGroupExtended());
+			return BotUtils.DEFAULT_PLAYLIST_GROUP_ORDER_COMPARATOR.compare(this.getAlbumGroupExtended(), o.getAlbumGroupExtended());
 		}
 	}
 }

@@ -2,7 +2,8 @@ package spotify.bot.config.database;
 
 class DBConstants {
 
-	private DBConstants() {}
+	private DBConstants() {
+	}
 
 	// Database constants
 	public final static String TABLE_CACHE_RELEASES = "cache_releases";

@@ -67,8 +67,8 @@ public class UserOptions {
 
 	@Override
 	public String toString() {
-		return "UserOptions [cacheFollowedArtists=" + cacheFollowedArtists + ", batchPlaylistAddition=" + batchPlaylistAddition + ", intelligentAppearsOnSearch=" + intelligentAppearsOnSearch
-			+ ", circularPlaylistFitting=" + circularPlaylistFitting + ", epSeparation=" + epSeparation + ", remixSeparation=" + remixSeparation + ", liveSeparation=" + liveSeparation + "]";
+		return "UserOptions [cacheFollowedArtists=" + cacheFollowedArtists + ", batchPlaylistAddition=" + batchPlaylistAddition + ", intelligentAppearsOnSearch=" + intelligentAppearsOnSearch + ", circularPlaylistFitting="
+				+ circularPlaylistFitting + ", epSeparation=" + epSeparation + ", remixSeparation=" + remixSeparation + ", liveSeparation=" + liveSeparation + "]";
 	}
 
 }

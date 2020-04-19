@@ -1,6 +1,5 @@
 package spotify.bot.config.database;
 
-import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -73,7 +72,7 @@ public class DatabaseService {
 	 * 
 	 * @return
 	 */
-	public List<String> getArtistCache() throws IOException, SQLException {
+	public List<String> getArtistCache() throws SQLException {
 		ResultSet rs = database.selectAll(DBConstants.TABLE_CACHE_ARTISTS);
 		List<String> cachedArtists = new ArrayList<>();
 		while (rs.next()) {
@@ -121,7 +120,7 @@ public class DatabaseService {
 		PlaylistStoreConfig playlistStoreConfig = new PlaylistStoreConfig(playlistStoreMap);
 		return playlistStoreConfig;
 	}
-	
+
 	public Map<AlbumGroupExtended, PlaylistStore> getAllPlaylistStoresMap() throws SQLException {
 		Map<AlbumGroupExtended, PlaylistStore> playlistStoreMap = new HashMap<>();
 		ResultSet dbPlaylistStore = database.selectAll(DBConstants.TABLE_PLAYLIST_STORE);
@@ -134,7 +133,7 @@ public class DatabaseService {
 		}
 		return playlistStoreMap;
 	}
-	
+
 	////////////////////////
 	// WRITE
 
@@ -145,7 +144,8 @@ public class DatabaseService {
 	 */
 	public synchronized void unsetPlaylistStore(AlbumGroupExtended albumGroup) throws SQLException {
 		if (albumGroup != null) {
-			database.updateNull(DBConstants.TABLE_PLAYLIST_STORE,
+			database.updateNull(
+				DBConstants.TABLE_PLAYLIST_STORE,
 				DBConstants.COL_LAST_UPDATE,
 				DBConstants.COL_ALBUM_GROUP,
 				albumGroup.getGroupName().toUpperCase());
@@ -159,7 +159,8 @@ public class DatabaseService {
 	 */
 	public synchronized void refreshPlaylistStore(AlbumGroupExtended albumGroup) throws SQLException {
 		if (albumGroup != null) {
-			database.updateWithCondition(DBConstants.TABLE_PLAYLIST_STORE,
+			database.updateWithCondition(
+				DBConstants.TABLE_PLAYLIST_STORE,
 				DBConstants.COL_LAST_UPDATE,
 				String.valueOf(BotUtils.currentTime()),
 				DBConstants.COL_ALBUM_GROUP,
@@ -172,13 +173,16 @@ public class DatabaseService {
 	 * 
 	 * @param albumsSimplified
 	 */
-	public synchronized void cacheAlbumIdsAsync(List<AlbumSimplified> albumsSimplified) throws SQLException {
+	public synchronized void cacheAlbumIdsAsync(List<AlbumSimplified> albumsSimplified) {
 		Thread t = new Thread(new Runnable() {
 			@Override
 			public void run() {
 				List<String> albumIds = albumsSimplified.stream().map(AlbumSimplified::getId).collect(Collectors.toList());
 				try {
-					database.insertAll(albumIds, DBConstants.TABLE_CACHE_RELEASES, DBConstants.COL_RELEASE_ID);
+					database.insertAll(
+						albumIds,
+						DBConstants.TABLE_CACHE_RELEASES,
+						DBConstants.COL_RELEASE_ID);
 				} catch (SQLException e) {
 					log.stackTrace(e);
 				}
@@ -191,25 +195,34 @@ public class DatabaseService {
 	 * Cache the artist IDs in a separate thread
 	 * 
 	 * @param followedArtists
-	 * @param cachedArtists
 	 */
-	public synchronized void updateFollowedArtistsCacheAsync(List<String> followedArtists, List<String> cachedArtists) throws SQLException, IOException {
+	public synchronized void updateFollowedArtistsCacheAsync(List<String> followedArtists) {
 		Thread t = new Thread(new Runnable() {
 			@Override
 			public void run() {
 				try {
+					List<String> cachedArtists = getArtistCache();
 					if (cachedArtists == null || cachedArtists.isEmpty()) {
-						database.insertAll(followedArtists, DBConstants.TABLE_CACHE_ARTISTS, DBConstants.COL_ARTIST_ID);
+						database.insertAll(
+							followedArtists,
+							DBConstants.TABLE_CACHE_ARTISTS,
+							DBConstants.COL_ARTIST_ID);
 					} else {
 						Set<String> addedArtists = new HashSet<>(followedArtists);
 						addedArtists.removeAll(cachedArtists);
 						if (!addedArtists.isEmpty()) {
-							database.insertAll(addedArtists, DBConstants.TABLE_CACHE_ARTISTS, DBConstants.COL_ARTIST_ID);
+							database.insertAll(
+								addedArtists,
+								DBConstants.TABLE_CACHE_ARTISTS,
+								DBConstants.COL_ARTIST_ID);
 						}
 						Set<String> removedArtists = new HashSet<>(cachedArtists);
 						removedArtists.removeAll(followedArtists);
 						if (!removedArtists.isEmpty()) {
-							database.deleteAll(removedArtists, DBConstants.TABLE_CACHE_ARTISTS, DBConstants.COL_ARTIST_ID);
+							database.deleteAll(
+								removedArtists,
+								DBConstants.TABLE_CACHE_ARTISTS,
+								DBConstants.COL_ARTIST_ID);
 						}
 					}
 					refreshArtistCacheLastUpdate();
@@ -225,8 +238,6 @@ public class DatabaseService {
 	 * Update the update store's given timestamp and set the song count
 	 */
 	private synchronized void refreshArtistCacheLastUpdate() throws SQLException {
-		database.update(DBConstants.TABLE_CONFIG_STATIC,
-			DBConstants.COL_ARTIST_CACHE_LAST_UPDATE,
-			String.valueOf(BotUtils.currentTime()));
+		database.update(DBConstants.TABLE_CONFIG_STATIC, DBConstants.COL_ARTIST_CACHE_LAST_UPDATE, String.valueOf(BotUtils.currentTime()));
 	}
 }

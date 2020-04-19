@@ -4,7 +4,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.junit.Before;
@@ -16,10 +15,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import com.wrapper.spotify.SpotifyApi;
-import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.model_objects.specification.Album;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
+import spotify.bot.api.BotException;
 import spotify.bot.api.SpotifyApiAuthorization;
 import spotify.bot.api.SpotifyApiWrapper;
 import spotify.bot.api.SpotifyCall;
@@ -34,15 +33,7 @@ import spotify.bot.filter.remapper.RemixRemapper;
 import spotify.bot.util.BotLogger;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = {
-	BotLogger.class,
-	TrackService.class,
-	DiscoveryDatabase.class,
-	DatabaseService.class,
-	BotConfigFactory.class,
-	ConfigUpdate.class,
-	SpotifyApiWrapper.class,
-	SpotifyApiAuthorization.class })
+@SpringBootTest(classes = { BotLogger.class, TrackService.class, DiscoveryDatabase.class, DatabaseService.class, BotConfigFactory.class, ConfigUpdate.class, SpotifyApiWrapper.class, SpotifyApiAuthorization.class })
 @EnableConfigurationProperties
 public class RemappingTests {
 
@@ -60,7 +51,7 @@ public class RemappingTests {
 	private static RemixRemapper remixRemapper;
 
 	@Before
-	public void createRemappers() throws SpotifyWebApiException, InterruptedException, IOException {
+	public void createRemappers() {
 		epRemapper = new EpRemapper();
 		liveRemapper = new LiveRemapper();
 		remixRemapper = new RemixRemapper();
@@ -71,7 +62,7 @@ public class RemappingTests {
 	private void login() {
 		try {
 			spotifyApiAuthorization.login();
-		} catch (SpotifyWebApiException | InterruptedException | IOException e) {
+		} catch (BotException e) {
 			e.printStackTrace();
 			fail("Couldn't log in to Spotify Web API!");
 		}
@@ -82,15 +73,17 @@ public class RemappingTests {
 	private Album getAlbum(String albumId) {
 		try {
 			return SpotifyCall.execute(spotifyApi.getAlbum(albumId));
-		} catch (SpotifyWebApiException | IOException | InterruptedException e) {
+		} catch (BotException e) {
 			return null;
 		}
 	}
 
 	private List<TrackSimplified> getTracksOfSingleAlbum(Album album) {
 		try {
-			return SpotifyCall.executePaging(spotifyApi.getAlbumsTracks(album.getId()).limit(50));
-		} catch (SpotifyWebApiException | IOException | InterruptedException e) {
+			return SpotifyCall.executePaging(spotifyApi
+				.getAlbumsTracks(album.getId())
+				.limit(50));
+		} catch (BotException e) {
 			return null;
 		}
 	}
@@ -131,7 +124,7 @@ public class RemappingTests {
 		album = getAlbum("3BOQrewswG2ePGkShTx389"); // Die Aerzte - Drei Mann - Zwei Songs
 		qualifiesAsRemappable = epRemapper.qualifiesAsRemappable(album.getName(), getTracksOfSingleAlbum(album));
 		assertFalse(qualifiesAsRemappable);
-		
+
 		album = getAlbum("0UaxFieNv1ccs2GCECCUGy"); // Billy Talent - I Beg To Differ (This Will Get Better)
 		qualifiesAsRemappable = epRemapper.qualifiesAsRemappable(album.getName(), getTracksOfSingleAlbum(album));
 		assertFalse(qualifiesAsRemappable);

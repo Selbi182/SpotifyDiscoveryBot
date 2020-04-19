@@ -51,8 +51,7 @@ public class StaticConfig {
 
 	@Override
 	public String toString() {
-		return "StaticConfig [lookbackDays=" + lookbackDays + ", newNotificationTimeout="
-				+ newNotificationTimeout + ", artistCacheTimeout=" + artistCacheTimeout + ", artistCacheLastUpdated="
-				+ artistCacheLastUpdated + ", restartBeforeFriday=" + restartBeforeFriday + "]";
+		return "StaticConfig [lookbackDays=" + lookbackDays + ", newNotificationTimeout=" + newNotificationTimeout + ", artistCacheTimeout=" + artistCacheTimeout + ", artistCacheLastUpdated=" + artistCacheLastUpdated
+				+ ", restartBeforeFriday=" + restartBeforeFriday + "]";
 	}
 }

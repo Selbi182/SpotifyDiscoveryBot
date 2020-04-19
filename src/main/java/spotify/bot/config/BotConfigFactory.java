@@ -1,6 +1,5 @@
 package spotify.bot.config;
 
-import java.io.IOException;
 import java.sql.SQLException;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +14,7 @@ import spotify.bot.config.dto.UserOptions;
 
 @Configuration
 public class BotConfigFactory {
-	
+
 	@Autowired
 	private DatabaseService databaseService;
 
@@ -43,7 +42,6 @@ public class BotConfigFactory {
 	 * Returns the user configuration. May be created if not present.
 	 * 
 	 * @return
-	 * @throws IOException
 	 */
 	@Bean
 	public UserOptions getUserOptions() throws SQLException {
@@ -54,7 +52,6 @@ public class BotConfigFactory {
 	 * Returns the playlist store configuration. May be created if not present.
 	 * 
 	 * @return
-	 * @throws SQLException
 	 */
 	@Bean
 	public PlaylistStoreConfig getPlaylistStoreConfig() throws SQLException {

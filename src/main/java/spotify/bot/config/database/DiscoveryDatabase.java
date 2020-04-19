@@ -15,7 +15,7 @@ import javax.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import spotify.Main;
+import spotify.SpotifyDiscoveryBot;
 import spotify.bot.util.BotLogger;
 
 @Repository
@@ -43,10 +43,10 @@ public class DiscoveryDatabase {
 	private Connection connection;
 
 	@PostConstruct
-	private void init() throws IOException, SQLException {
+	private void init() throws IOException {
 		File setDbFilePath = null;
 
-		File alternateDatabaseFilepath = Main.getAlternateDatabaseFilePath();
+		File alternateDatabaseFilepath = SpotifyDiscoveryBot.getAlternateDatabaseFilePath();
 		if (alternateDatabaseFilepath != null && !alternateDatabaseFilepath.canRead()) {
 			throw new IOException("Could not access alternate SQLite database file! Set location: " + alternateDatabaseFilepath.getAbsolutePath());
 		} else if (alternateDatabaseFilepath != null && alternateDatabaseFilepath.canRead() && alternateDatabaseFilepath.getName().endsWith(".db")) {

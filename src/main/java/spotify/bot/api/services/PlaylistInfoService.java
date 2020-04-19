@@ -1,11 +1,9 @@
 package spotify.bot.api.services;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -16,11 +14,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.wrapper.spotify.SpotifyApi;
-import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.model_objects.miscellaneous.CurrentlyPlaying;
 import com.wrapper.spotify.model_objects.specification.Playlist;
 import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
 
+import spotify.bot.api.BotException;
 import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.ConfigUpdate;
 import spotify.bot.config.dto.PlaylistStoreConfig;
@@ -65,13 +63,13 @@ public class PlaylistInfoService {
 
 	@Autowired
 	private ConfigUpdate configUpdate;
-	
+
 	@Autowired
 	private PlaylistStoreConfig playlistStoreConfig;
-	
+
 	@Autowired
 	private StaticConfig staticConfig;
-	
+
 	@Autowired
 	private BotLogger log;
 
@@ -81,7 +79,7 @@ public class PlaylistInfoService {
 	 * 
 	 * @param albumGroup
 	 */
-	public void showNotifiers(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws SpotifyWebApiException, SQLException, IOException, InterruptedException {
+	public void showNotifiers(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws BotException, SQLException {
 		List<PlaylistStore> sortedPlaylistStores = songsByPlaylist.keySet().stream().sorted().collect(Collectors.toList());
 		for (PlaylistStore ps : sortedPlaylistStores) {
 			List<AlbumTrackPair> albumTrackPairs = songsByPlaylist.get(ps);
@@ -97,7 +95,7 @@ public class PlaylistInfoService {
 	 * 
 	 * @return true if at least one playlist name was changed
 	 */
-	public boolean clearObsoleteNotifiers() throws SpotifyWebApiException, SQLException, IOException, InterruptedException, Exception {
+	public boolean clearObsoleteNotifiers() throws SQLException, BotException {
 		boolean changed = false;
 		for (PlaylistStore ps : playlistStoreConfig.getAllPlaylistStores()) {
 			if (shouldIndicatorBeMarkedAsRead(ps)) {
@@ -114,22 +112,21 @@ public class PlaylistInfoService {
 	 * Update the playlist name by replacing the target symbol with the replacement
 	 * symbol IF it isn't already contained in the playlist's name.
 	 * 
-	 * @param playlistStore
-	 *            the PlaylistStore containing the relevant playlist
-	 * @param target
-	 *            the target String to be replaced
-	 * @param replacement
-	 *            the replacement String
+	 * @param playlistStore the PlaylistStore containing the relevant playlist
+	 * @param target        the target String to be replaced
+	 * @param replacement   the replacement String
 	 * @return true if the playlist name was changed
 	 */
-	private boolean replaceNotifierSymbol(PlaylistStore playlistStore, String target, String replacement) throws SpotifyWebApiException, IOException, InterruptedException {
+	private boolean replaceNotifierSymbol(PlaylistStore playlistStore, String target, String replacement) throws BotException {
 		String playlistId = playlistStore.getPlaylistId();
 		if (playlistId != null) {
 			Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
 			String playlistName = p.getName();
 			if (playlistName != null && playlistName.contains(target)) {
 				playlistName = playlistName.replace(target, replacement).trim();
-				SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).name(playlistName));
+				SpotifyCall.execute(spotifyApi
+					.changePlaylistsDetails(playlistId)
+					.name(playlistName));
 				return true;
 			}
 		}
@@ -179,8 +176,7 @@ public class PlaylistInfoService {
 			// played song is within that list
 			CurrentlyPlaying currentlyPlaying = SpotifyCall.execute(spotifyApi.getUsersCurrentlyPlayingTrack());
 			if (currentlyPlaying != null) {
-				boolean currentlyPlayingSongIsNew = recentlyAddedPlaylistTracks
-					.stream()
+				boolean currentlyPlayingSongIsNew = recentlyAddedPlaylistTracks.stream()
 					.anyMatch(pt -> pt.getTrack().getId().equals(currentlyPlaying.getItem().getId()));
 				return currentlyPlayingSongIsNew;
 			}
@@ -194,16 +190,18 @@ public class PlaylistInfoService {
 	////////////////////////////////
 
 	/**
-	 * Timestamp all given playlists that DIDN'T have any songs added
+	 * Timestamp all given playlists with the last search date
 	 * 
 	 * @param collection
 	 */
-	public void timestampPlaylists(Collection<PlaylistStore> playlistStores) throws SQLException, SpotifyWebApiException, IOException, InterruptedException {
-		for (PlaylistStore ps : playlistStores) {
+	public void timestampPlaylists() throws BotException {
+		for (PlaylistStore ps : playlistStoreConfig.getAllPlaylistStores()) {
 			String playlistId = ps.getPlaylistId();
 			if (playlistId != null) {
 				String newDescription = String.format("Last Search: %s", DESCRIPTION_TIMESTAMP_FORMAT.format(Calendar.getInstance().getTime()));
-				SpotifyCall.execute(spotifyApi.changePlaylistsDetails(playlistId).description(newDescription));
+				SpotifyCall.execute(spotifyApi
+					.changePlaylistsDetails(playlistId)
+					.description(newDescription));
 			}
 		}
 	}

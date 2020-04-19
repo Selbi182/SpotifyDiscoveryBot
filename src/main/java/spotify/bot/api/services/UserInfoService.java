@@ -1,6 +1,5 @@
 package spotify.bot.api.services;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
@@ -11,9 +10,9 @@ import org.springframework.stereotype.Service;
 
 import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.enums.ModelObjectType;
-import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.model_objects.specification.Artist;
 
+import spotify.bot.api.BotException;
 import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.config.dto.StaticConfig;
@@ -31,10 +30,10 @@ public class UserInfoService {
 
 	@Autowired
 	private UserOptions userOptions;
-	
+
 	@Autowired
 	private StaticConfig staticConfig;
-	
+
 	@Autowired
 	private DatabaseService databaseService;
 
@@ -43,33 +42,39 @@ public class UserInfoService {
 
 	/**
 	 * Get all the user's followed artists
-	 * 
-	 * @return
 	 */
-	public List<String> getFollowedArtistsIds() throws IOException, SQLException, SpotifyWebApiException, InterruptedException {
-		// Try to fetch from cache first
-		boolean cache = userOptions.isCacheFollowedArtists();
-		List<String> cachedArtists = null;
-		if (cache) {
-			cachedArtists = getCachedArtists();
+	public List<String> getFollowedArtistsIds() throws SQLException, BotException {
+		// Try to fetch from cache first (if enabled)
+		boolean isCache = userOptions.isCacheFollowedArtists();
+		if (isCache) {
+			List<String> cachedArtists = getCachedArtists();
+			if (cachedArtists != null) {
+				return cachedArtists;
+			}
 		}
 
-		// If cache is outdated, fetch fresh dataset and update cache
+		// If cache is outdated (or disabled), fetch fresh dataset
 		List<Artist> followedArtists = SpotifyCall.executePaging(spotifyApi
 			.getUsersFollowedArtists(ModelObjectType.ARTIST)
 			.limit(MAX_FOLLOWED_ARTIST_FETCH_LIMIT));
-		List<String> followedArtistIds = followedArtists.stream().map(Artist::getId).collect(Collectors.toList());
+		List<String> followedArtistIds = followedArtists.stream()
+			.map(Artist::getId)
+			.collect(Collectors.toList());
 		BotUtils.removeNullStrings(followedArtistIds);
 		if (followedArtistIds.isEmpty()) {
 			log.warning("No followed artists found!");
 		}
-		if (cache) {
-			databaseService.updateFollowedArtistsCacheAsync(followedArtistIds, cachedArtists);
+		if (isCache) {
+			databaseService.updateFollowedArtistsCacheAsync(followedArtistIds);
 		}
 		return followedArtistIds;
 	}
 
-	private List<String> getCachedArtists() throws IOException, SQLException {
+	/**
+	 * Get the list of cached artists from the DB. Returns null if none were found
+	 * or the cache is outdated
+	 */
+	private List<String> getCachedArtists() throws SQLException {
 		List<String> cachedArtists = databaseService.getArtistCache();
 		BotUtils.removeNullStrings(cachedArtists);
 		if (cachedArtists != null && !cachedArtists.isEmpty()) {

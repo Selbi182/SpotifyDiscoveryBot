@@ -1,6 +1,5 @@
 package spotify.bot.filter;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -41,10 +40,10 @@ public class FilterService {
 
 	@Autowired
 	private StaticConfig staticConfig;
-	
+
 	@Autowired
 	private UserOptions userOptions;
-	
+
 	@Autowired
 	private BotLogger log;
 
@@ -53,22 +52,26 @@ public class FilterService {
 
 	private final static DateTimeFormatter RELEASE_DATE_PARSER = new DateTimeFormatterBuilder()
 		.append(DateTimeFormatter.ofPattern("yyyy[-MM[-dd]]"))
-		.parseDefaulting(ChronoField.DAY_OF_MONTH, 1)
-		.parseDefaulting(ChronoField.MONTH_OF_YEAR, 1)
+		.parseDefaulting(ChronoField.DAY_OF_MONTH, 1).parseDefaulting(ChronoField.MONTH_OF_YEAR, 1)
 		.toFormatter();
 
 	///////////////////
 	// FILTER BY CACHED
 
 	/**
-	 * Return non-database-filterd list of albums from the input
+	 * Return non-database-filterd list of albums from the input and adds these to
+	 * the DB cache (if enabled)
 	 * 
 	 * @param allAlbums
+	 * @param cacheReleases
 	 * @return
 	 */
-	public List<AlbumSimplified> getNonCachedAlbums(List<AlbumSimplified> allAlbums) throws IOException, SQLException {
+	public List<AlbumSimplified> getNonCachedAlbumsAndCache(List<AlbumSimplified> allAlbums, boolean cacheReleases) throws SQLException {
 		List<AlbumSimplified> filteredAlbums = filterNonCachedAlbumsOnly(allAlbums);
 		BotUtils.removeNulls(filteredAlbums);
+		if (cacheReleases) {
+			cacheAlbumIds(filteredAlbums);
+		}
 		return filteredAlbums;
 	}
 
@@ -78,7 +81,7 @@ public class FilterService {
 	 * @param albumsSimplified
 	 * @return
 	 */
-	private List<AlbumSimplified> filterNonCachedAlbumsOnly(List<AlbumSimplified> albumsSimplified) throws IOException, SQLException {
+	private List<AlbumSimplified> filterNonCachedAlbumsOnly(List<AlbumSimplified> albumsSimplified) throws SQLException {
 		Map<String, AlbumSimplified> filteredAlbums = new HashMap<>();
 		for (AlbumSimplified as : albumsSimplified) {
 			if (as != null) {
@@ -101,7 +104,7 @@ public class FilterService {
 	 * 
 	 * @param albums
 	 */
-	public void cacheAlbumIds(List<AlbumSimplified> albums) throws SQLException {
+	public void cacheAlbumIds(List<AlbumSimplified> albums) {
 		if (!albums.isEmpty()) {
 			databaseService.cacheAlbumIdsAsync(albums);
 		}
@@ -135,7 +138,7 @@ public class FilterService {
 	 * @param unfilteredAlbums
 	 * @return
 	 */
-	public List<AlbumSimplified> filterNewAlbumsOnly(List<AlbumSimplified> unfilteredAlbums) throws SQLException, IOException {
+	public List<AlbumSimplified> filterNewAlbumsOnly(List<AlbumSimplified> unfilteredAlbums) {
 		Collection<AlbumSimplified> noDuplicates = filterDuplicateAlbums(unfilteredAlbums);
 		int lookbackDays = staticConfig.getLookbackDays();
 		LocalDate lowerReleaseDateBoundary = LocalDate.now().minusDays(lookbackDays);
@@ -203,7 +206,7 @@ public class FilterService {
 	 * @param followedArtists
 	 * @return
 	 */
-	public void intelligentAppearsOnSearch(Map<AlbumGroup, List<AlbumTrackPair>> categorizedFilteredAlbums, List<String> followedArtists) throws SQLException, IOException {
+	public Map<AlbumGroup, List<AlbumTrackPair>> intelligentAppearsOnSearch(Map<AlbumGroup, List<AlbumTrackPair>> categorizedFilteredAlbums, List<String> followedArtists) {
 		if (userOptions.isIntelligentAppearsOnSearch()) {
 			List<AlbumTrackPair> unfilteredAppearsOnAlbums = categorizedFilteredAlbums.get(AlbumGroup.APPEARS_ON);
 			if (!unfilteredAppearsOnAlbums.isEmpty()) {
@@ -212,26 +215,25 @@ public class FilterService {
 
 				// Filter out any collection, samplers, or albums whose primary artist is
 				// already a followee
-				List<AlbumTrackPair> albumsWithoutCollectionsOrSamplers = unfilteredAppearsOnAlbums.stream()
-					.filter(atp -> !isCollectionOrSampler(atp.getAlbum()))
-					.filter(atp -> !containsFeaturedArtist(followedArtistsSet, atp.getAlbum().getArtists()))
-					.collect(Collectors.toList());
+				List<AlbumTrackPair> albumsWithoutCollectionsOrSamplers = unfilteredAppearsOnAlbums.stream().filter(atp -> !isCollectionOrSampler(atp.getAlbum()))
+					.filter(atp -> !containsFeaturedArtist(followedArtistsSet, atp.getAlbum().getArtists())).collect(Collectors.toList());
 
 				// Of those, filter out the actual songs where a featured artist is a followee
 				List<AlbumTrackPair> filteredAppearsOnAlbums = new ArrayList<>();
 				for (AlbumTrackPair atp : albumsWithoutCollectionsOrSamplers) {
-					List<TrackSimplified> selectedSongsOfAlbum = atp.getTracks().stream()
-						.filter(song -> containsFeaturedArtist(followedArtistsSet, song.getArtists()))
-						.collect(Collectors.toList());
+					List<TrackSimplified> selectedSongsOfAlbum = atp.getTracks().stream().filter(song -> containsFeaturedArtist(followedArtistsSet, song.getArtists())).collect(Collectors.toList());
 					filteredAppearsOnAlbums.add(new AlbumTrackPair(atp.getAlbum(), selectedSongsOfAlbum));
 				}
 
 				// Finalize
-				log.printDroppedAlbumTrackPairDifference(unfilteredAppearsOnAlbums, filteredAppearsOnAlbums,
-					String.format("Dropped %d APPEARS_ON release[s]:", unfilteredAppearsOnAlbums.size() - filteredAppearsOnAlbums.size()));
-				categorizedFilteredAlbums.put(AlbumGroup.APPEARS_ON, filteredAppearsOnAlbums);
+				log.printDroppedAlbumTrackPairDifference(unfilteredAppearsOnAlbums, filteredAppearsOnAlbums, String.format("Dropped %d APPEARS_ON release[s]:", unfilteredAppearsOnAlbums.size() - filteredAppearsOnAlbums.size()));
+
+				Map<AlbumGroup, List<AlbumTrackPair>> intelligentAppearsOnFilteredMap = new HashMap<>(categorizedFilteredAlbums);
+				intelligentAppearsOnFilteredMap.put(AlbumGroup.APPEARS_ON, filteredAppearsOnAlbums);
+				return intelligentAppearsOnFilteredMap;
 			}
 		}
+		return categorizedFilteredAlbums;
 	}
 
 	/**

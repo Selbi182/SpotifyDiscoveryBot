@@ -1,7 +1,5 @@
 package spotify.bot.filter;
 
-import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,7 +26,7 @@ public class RemappingService {
 
 	@Autowired
 	private PlaylistStoreConfig playlistStoreConfig;
-	
+
 	@Autowired
 	private UserOptions userOptions;
 
@@ -48,7 +46,7 @@ public class RemappingService {
 	 * @param newSongsByGroup
 	 * @return
 	 */
-	public Map<PlaylistStore, List<AlbumTrackPair>> mapToTargetPlaylist(Map<AlbumGroup, List<AlbumTrackPair>> newSongsByGroup) throws SQLException {
+	public Map<PlaylistStore, List<AlbumTrackPair>> mapToTargetPlaylist(Map<AlbumGroup, List<AlbumTrackPair>> newSongsByGroup) {
 		Map<PlaylistStore, List<AlbumTrackPair>> resultMap = new HashMap<>();
 		for (Map.Entry<AlbumGroup, List<AlbumTrackPair>> entry : newSongsByGroup.entrySet()) {
 			List<AlbumTrackPair> atp = entry.getValue();
@@ -72,7 +70,7 @@ public class RemappingService {
 	 * @param songsByPS
 	 * @return
 	 */
-	public Map<PlaylistStore, List<AlbumTrackPair>> remapIntoExtendedPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPS) throws SQLException, IOException {
+	public Map<PlaylistStore, List<AlbumTrackPair>> remapIntoExtendedPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPS) {
 		// Copy map first to retain the input map (makes debugging easier)
 		Map<PlaylistStore, List<AlbumTrackPair>> regroupedMap = new HashMap<>(songsByPS);
 
@@ -92,7 +90,7 @@ public class RemappingService {
 
 	}
 
-	private void remap(Remapper remapper, Map<PlaylistStore, List<AlbumTrackPair>> baseTrackMap) throws SQLException {
+	private void remap(Remapper remapper, Map<PlaylistStore, List<AlbumTrackPair>> baseTrackMap) {
 		AlbumGroupExtended age = remapper.getAlbumGroup();
 		PlaylistStore ps = playlistStoreConfig.getPlaylistStore(age);
 		if (ps != null && ps.getPlaylistId() != null) {
@@ -101,9 +99,7 @@ public class RemappingService {
 				if (remapper.isAllowedAlbumGroup(entry.getKey().getAlbumGroupExtended())) {
 					List<AlbumTrackPair> releases = entry.getValue();
 					if (releases != null && !releases.isEmpty()) {
-						List<AlbumTrackPair> filteredReleases = releases.stream()
-							.filter(atp -> remapper.qualifiesAsRemappable(atp))
-							.collect(Collectors.toList());
+						List<AlbumTrackPair> filteredReleases = releases.stream().filter(atp -> remapper.qualifiesAsRemappable(atp)).collect(Collectors.toList());
 						if (!filteredReleases.isEmpty()) {
 							remappedTracks.addAll(filteredReleases);
 							releases.removeAll(filteredReleases);

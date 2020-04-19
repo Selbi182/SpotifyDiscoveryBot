@@ -1,7 +1,5 @@
 package spotify.bot.api.services;
 
-import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -10,11 +8,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.wrapper.spotify.SpotifyApi;
-import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.AudioFeatures;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
+import spotify.bot.api.BotException;
 import spotify.bot.api.SpotifyCall;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.data.AlbumTrackPair;
@@ -39,11 +37,12 @@ public class TrackService {
 	 * @param albums
 	 * @return
 	 */
-	public List<AlbumTrackPair> getTracksOfAlbums(List<AlbumSimplified> albums) throws IOException, SQLException {
+	public List<AlbumTrackPair> getTracksOfAlbums(List<AlbumSimplified> albums) throws BotException {
 		List<AlbumTrackPair> atps = new ArrayList<>();
-		albums.parallelStream().forEach(a -> {
-			atps.add(getTracksOfSingleAlbum(a));
-		});
+		for (AlbumSimplified as : albums) {
+			AlbumTrackPair tracksOfSingleAlbum = getTracksOfSingleAlbum(as);
+			atps.add(tracksOfSingleAlbum);
+		}
 		return atps;
 	}
 
@@ -53,14 +52,11 @@ public class TrackService {
 	 * @param album
 	 * @return
 	 */
-	private AlbumTrackPair getTracksOfSingleAlbum(AlbumSimplified album) {
-		try {
-			List<TrackSimplified> tracksOfAlbum = SpotifyCall.executePaging(spotifyApi.getAlbumsTracks(album.getId()).limit(MAX_PLAYLIST_TRACK_FETCH_LIMIT));
-			return new AlbumTrackPair(album, tracksOfAlbum);
-		} catch (Exception e) {
-			log.stackTrace(e);
-		}
-		return null;
+	private AlbumTrackPair getTracksOfSingleAlbum(AlbumSimplified album) throws BotException {
+		List<TrackSimplified> tracksOfAlbum = SpotifyCall.executePaging(spotifyApi
+			.getAlbumsTracks(album.getId())
+			.limit(MAX_PLAYLIST_TRACK_FETCH_LIMIT));
+		return new AlbumTrackPair(album, tracksOfAlbum);
 	}
 
 	/**
@@ -72,10 +68,9 @@ public class TrackService {
 	public List<AudioFeatures> getAudioFeatures(List<TrackSimplified> tracks) {
 		try {
 			String[] trackIds = tracks.stream().map(TrackSimplified::getId).toArray(String[]::new);
-			AudioFeatures[] audioFeatures;
-			audioFeatures = SpotifyCall.execute(spotifyApi.getAudioFeaturesForSeveralTracks(trackIds));
+			AudioFeatures[] audioFeatures = SpotifyCall.execute(spotifyApi.getAudioFeaturesForSeveralTracks(trackIds));
 			return Arrays.asList(audioFeatures);
-		} catch (SpotifyWebApiException | IOException | InterruptedException e) {
+		} catch (BotException e) {
 			log.stackTrace(e);
 		}
 		return null;

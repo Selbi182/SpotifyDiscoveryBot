@@ -60,6 +60,8 @@ public class DiscoveryDatabase {
 			}
 			setDbFilePath = workingDirectoryDatabaseFilepath;
 		}
+		
+		setDbFilePath = setDbFilePath.toPath().normalize().toFile();
 		this.dbUrl = DB_URL_PREFIX + setDbFilePath.getAbsolutePath();
 		log.info("Using SQLite database located at: " + setDbFilePath.getAbsolutePath());
 	}

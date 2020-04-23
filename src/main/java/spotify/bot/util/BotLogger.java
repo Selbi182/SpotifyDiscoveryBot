@@ -1,6 +1,8 @@
 package spotify.bot.util;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -16,15 +18,18 @@ import javax.annotation.PostConstruct;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import com.google.common.base.Strings;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
 import spotify.bot.util.data.AlbumTrackPair;
 
-@Service
+@Component
 public class BotLogger {
+	private enum Level {
+		DEBUG, INFO, WARNING, ERROR
+	}
 	/**
 	 * A comparator for {@link AlbumSimplified} following the order: Album Group >
 	 * (first) Artist > Release Date > Release Name
@@ -57,28 +62,71 @@ public class BotLogger {
 	 * Log a debug message
 	 */
 	public void debug(String message) {
-		log.debug(truncateToEllipsis(message));
+		logAtLevel(message, Level.DEBUG);
 	}
 
 	/**
 	 * Log an info message
 	 */
 	public void info(String message) {
-		log.info(truncateToEllipsis(message));
+		logAtLevel(message, Level.INFO);
 	}
 
 	/**
 	 * Log a warning message
 	 */
 	public void warning(String message) {
-		log.warn(truncateToEllipsis(message));
+		logAtLevel(message, Level.WARNING);
 	}
 
 	/**
 	 * Log an error message
 	 */
 	public void error(String message) {
-		log.error(truncateToEllipsis(message));
+		logAtLevel(message, Level.ERROR);
+	}
+	
+	/**
+	 * Log a message at the given log level (truncate enabled)
+	 */
+	public void logAtLevel(String msg, Level level) {
+		logAtLevel(msg, level, true);
+	}
+	
+	/**
+	 * Log a message at the given log level (truncation optional).
+	 * Also writes to an external log.txt file.
+	 */
+	public void logAtLevel(String msg, Level level, boolean truncate) {
+		if (truncate) {
+			msg = truncateToEllipsis(msg);
+		}
+		switch (level) {
+			case DEBUG:
+				log.debug(msg);
+				break;
+			case INFO:
+				log.info(msg);
+				break;
+			case WARNING:
+				log.warn(msg);
+				break;
+			case ERROR:
+				log.error(msg);
+				break;
+		}
+		try {
+			writeToExternalLog(msg);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Print a line of hyphens (----) as INFO-level log message
+	 */
+	public void printLine() {
+		info(Strings.repeat(LINE_SYMBOL, MAX_LINE_LENGTH - ELLIPSIS.length()));
 	}
 
 	/**
@@ -94,15 +142,28 @@ public class BotLogger {
 		return message.substring(0, message.length() - ELLIPSIS.length()) + ELLIPSIS;
 	}
 
-	/**
-	 * Print a line of hyphens (----) as INFO-level log message
-	 */
-	public void printLine() {
-		info(Strings.repeat(LINE_SYMBOL, MAX_LINE_LENGTH - ELLIPSIS.length()));
-	}
-
 	///////////////////////
 
+	public boolean clearLog() {
+		File logFile = new File(LOG_FILE_PATH);
+		return logFile.delete();
+	}
+
+	private void writeToExternalLog(String message) throws IOException {
+		File logFile = new File(LOG_FILE_PATH);
+		if (!logFile.exists()) {
+			logFile.createNewFile();
+		}
+		if (logFile.canWrite()) {
+			BufferedWriter bw = new BufferedWriter(new FileWriter(logFile, true));
+			bw.write(message);
+			bw.write('\n');
+			bw.close();
+		} else {
+			throw new IOException("Log file is currently locked, likely because it is being written to. Try again.");
+		}
+	}
+	
 	/**
 	 * Return the content of the default log file (<code>./spring.log</code>).
 	 * 

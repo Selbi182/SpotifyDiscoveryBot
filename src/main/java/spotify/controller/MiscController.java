@@ -1,6 +1,7 @@
 package spotify.controller;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,14 +42,29 @@ public class MiscController {
 	 *              log (default: 100); Use -1 to read the entire file
 	 * @return a ResponseEntity containing the entire log content as String, or an
 	 *         error
-	 * @throws IOException on a read error
 	 */
 	@RequestMapping("/log")
-	public ResponseEntity<List<String>> showLog(@RequestParam(value = "limit", required = false) Integer limit) throws IOException {
-		List<String> logFileLines = log.readLog(limit);
-		return new ResponseEntity<List<String>>(logFileLines, HttpStatus.OK);
+	public ResponseEntity<List<String>> showLog(@RequestParam(value = "limit", required = false) Integer limit)
+	{
+		try {
+			List<String> logFileLines = log.readLog(limit);
+			return new ResponseEntity<List<String>>(logFileLines, HttpStatus.OK);			
+		} catch (IOException e) {
+			log.stackTrace(e);
+			List<String> message = Arrays.asList(e.getMessage());
+			return new ResponseEntity<List<String>>(message, HttpStatus.NOT_FOUND);
+		}
 	}
-
+	
+	
+	@RequestMapping("/clearlog")
+	public ResponseEntity<String> clearLog() {
+		if (log.clearLog()) {
+			return new ResponseEntity<>("Log was successfully cleared!", HttpStatus.OK);						
+		}
+		return new ResponseEntity<>("Couldn't find log! Maybe it's already cleared?", HttpStatus.NOT_FOUND);						
+	}
+	
 	/**
 	 * Shut down the bot. If a crawl is still in progress, the shutdown process will
 	 * be retried every ten seconds.

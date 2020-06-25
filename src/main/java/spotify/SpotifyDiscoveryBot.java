@@ -10,7 +10,7 @@ public class SpotifyDiscoveryBot {
 	/**
 	 * If enabled, releases are neither added to playlist nor cached. New
 	 * notifications markers are still set though. (This flag is controlled by the
-	 * presence of a file called <code>DEV_MODE</code> in the working directory.
+	 * presence of a file called <code>DEV_MODE</code> in the working directory.)
 	 */
 	public static final boolean DEVELOPER_MODE;
 	static {

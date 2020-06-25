@@ -104,6 +104,7 @@ public class DiscoveryBotCrawler {
 		log.printLineBold();
 		log.info("Executing initial crawl...");
 		log.printLine();
+		log.reset();
 		long time = System.currentTimeMillis();
 		{
 			Map<AlbumGroupExtended, Integer> results = crawl();
@@ -112,7 +113,9 @@ public class DiscoveryBotCrawler {
 				log.info(response);
 			}
 		}
-		log.printLine();
+		if (log.reset()) {
+			log.printLine();
+		}
 		log.info("Initial crawl successfully finished in: " + (System.currentTimeMillis() - time) + "ms");
 		log.printLineBold();
 		log.reset();

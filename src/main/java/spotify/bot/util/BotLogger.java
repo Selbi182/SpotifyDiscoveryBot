@@ -54,7 +54,7 @@ public class BotLogger {
 	private final static String LINE_SYMBOL = "-";
 	private final static String LINE_SYMBOL_BOLD = "=";
 
-	private final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yy-MM-dd HH:mm:ss");
+	private final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
 	private Logger log;
 

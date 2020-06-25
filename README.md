@@ -22,9 +22,9 @@ This bot does its best effort to filter out any excessive garbage to only leave 
 
 ### Playlists
 
-Results get added into one or multiple playlists, separated by what is called an "Album Group". Playlists with new releases will get also receive a dope 🅽🅴🆆 notification marker:
+Results get added into one or multiple playlists, separated by what is called an "Album Group". Playlists with new releases will get also receive a dope notification marker (lights up!):
 
-![Playlists](https://i.imgur.com/TG7keIF.png)
+![Playlists](https://i.imgur.com/P1GSMTh.png)
 
 This marker automatically disappears when you play any of the recently added songs to the playlist.
 
@@ -61,7 +61,6 @@ There are a couple of customizable features available:
 * *Remix-Separation*: Same drill as the two options above, this option searches for releases that are either named "Remix" or have a certain number of songs with the word "Remix" in them and puts the result into a separate playlist.
 * *Intelligent Appears-On Search*: Basically, Appears-On search but it's actually usable. It throws away anything you probably don't care about – namely samplers and compilations. As a bonus, should an artist you follow be featured on a release by another artist you _don't_ follow, only the featured songs will get added because you probably don't care about the rest.
 * *Circular Playlist-Fitting*: Spotify playlists are limited to 10000 songs. While plenty for most people not to care, eventually it may run out of space. You can either set it to stop any further additions after reaching its limit or use this option to rotate the playlist in a circular fashion (e.g. new goes in, old goes out to make room).
-* *Cache Followed Artists*: It's highly unlikely to have an artist you've literally just started to follow immediately release new music the next minute. To save on bandwidth and also speed up the crawling process, the list of followed artists is cached and refreshed only once per day.
 
 ## Final Notes
 

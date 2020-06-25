@@ -1,2 +1,20 @@
 First setup:
-- An extremely light, yet pleasing way to interactively control
+- An extremely light, yet pleasing way to interactively control the basic setup of the bot
+- Creating playlists should be done automatically (or can be specified by the user? might be too much work)
+- All settings should be toggleable with one of these fancy sliding switches
+- It should be possible to change these settings at any time!
+- Impl note: Since currently the application only works with one user per instance, an extra instance will need to be provided (gotta see how much performance this kills)
+- Settings [brackets denote the default setting]:
+	- The four base release types (albums, singles, compilations, appears_ons) [all enabled]
+	- Separation (EPs, remixes, live) [none enabled, will request to create new playlists when enabled for the first time]
+	- Circular playlist fitting [enabled]
+	- Intelligent appears_on search [enabled]
+	- Show new notification marker [enabled -- extra options when enabling it become available, symbols get removed from all playlists when disabled]
+		- Allow for symbol customization [black/white circles]
+		- Toggle between displaying the symbols before or after the playlist name [before]
+
+	
+Other ideas:
+- Block certain release types for certain artists (for example if you hate remixes by a certain artist but like the basic stuff)
+- Move batch_playlist_addition and cache_followed_artists to config_static (might remove them entirely, you wouldn't ever use them for anything but the current settings)
+- [EPIC] Multi-user support for one instance

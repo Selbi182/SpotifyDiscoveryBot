@@ -45,11 +45,11 @@ public class AlbumService {
 		Collection<AlbumGroup> enabledAlbumGroups = playlistStoreConfig.getEnabledAlbumGroups();
 		String albumGroupString = createAlbumGroupString(enabledAlbumGroups);
 
-		// I've tried just about anything imaginable under the sun. Parallel streams,
-		// threads, thread pools, custom sleep intervals. It doesn't matter, going
-		// through every single artist in a simple for-loop is just as fast while still
-		// being way more straight-forward to comprehend. I wish Spotify's API allowed
-		// for fetching multiple artists' albums at once.
+		// I've tried just about anything you can imagine. Parallel streams, threads,
+		// thread pools, custom sleep intervals. It doesn't matter. Going through
+		// every single artist in a simple for-loop is just as fast as any more advanced
+		// solution, while still being way more straightforward and comprehensible.
+		// I wish Spotify's API allowed for fetching multiple artists' albums at once.
 
 		List<AlbumSimplified> albums = new ArrayList<>();
 		for (String artist : followedArtists) {

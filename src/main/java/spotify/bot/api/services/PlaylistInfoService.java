@@ -8,6 +8,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,7 @@ import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.model_objects.miscellaneous.CurrentlyPlaying;
 import com.wrapper.spotify.model_objects.specification.Playlist;
 import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
+import com.wrapper.spotify.model_objects.specification.Track;
 
 import spotify.bot.api.BotException;
 import spotify.bot.api.SpotifyCall;
@@ -176,8 +178,11 @@ public class PlaylistInfoService {
 			// played song is within that list
 			CurrentlyPlaying currentlyPlaying = SpotifyCall.execute(spotifyApi.getUsersCurrentlyPlayingTrack());
 			if (currentlyPlaying != null) {
+				String currentlyPlayingSongId = currentlyPlaying.getItem().getId();
 				boolean currentlyPlayingSongIsNew = recentlyAddedPlaylistTracks.stream()
-					.anyMatch(pt -> pt.getTrack().getId().equals(currentlyPlaying.getItem().getId()));
+					.map(PlaylistTrack::getTrack)
+					.map(Track::getId)
+					.anyMatch(id -> Objects.equals(id, currentlyPlayingSongId));
 				return currentlyPlayingSongIsNew;
 			}
 		} catch (Exception e) {

@@ -6,9 +6,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -30,6 +34,7 @@ public class BotLogger {
 	private enum Level {
 		DEBUG, INFO, WARNING, ERROR
 	}
+
 	/**
 	 * A comparator for {@link AlbumSimplified} following the order: Album Group >
 	 * (first) Artist > Release Date > Release Name
@@ -41,14 +46,19 @@ public class BotLogger {
 		.thenComparing(AlbumSimplified::getName);
 
 	private final static String LOG_FILE_PATH = "./log.txt";
-	private final static int DEFAULT_LOG_READ_LINES = 100;
+	private final static int DEFAULT_LOG_READ_LINES = 50;
 
 	private final static int MAX_LINE_LENGTH = 160;
 	private final static String ELLIPSIS = "...";
 	private final static String DROPPED_PREFIX = "x ";
 	private final static String LINE_SYMBOL = "-";
+	private final static String LINE_SYMBOL_BOLD = "=";
+
+	private final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yy-MM-dd HH:mm:ss");
 
 	private Logger log;
+
+	private boolean hasUnflushedLogs;
 
 	@PostConstruct
 	private void init() throws SecurityException {
@@ -85,17 +95,17 @@ public class BotLogger {
 	public void error(String message) {
 		logAtLevel(message, Level.ERROR);
 	}
-	
+
 	/**
 	 * Log a message at the given log level (truncate enabled)
 	 */
 	public void logAtLevel(String msg, Level level) {
 		logAtLevel(msg, level, true);
 	}
-	
+
 	/**
-	 * Log a message at the given log level (truncation optional).
-	 * Also writes to an external log.txt file.
+	 * Log a message at the given log level (truncation optional). Also writes to an
+	 * external log.txt file.
 	 */
 	public void logAtLevel(String msg, Level level, boolean truncate) {
 		if (truncate) {
@@ -120,13 +130,28 @@ public class BotLogger {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		hasUnflushedLogs = true;
 	}
-	
+
 	/**
 	 * Print a line of hyphens (----) as INFO-level log message
 	 */
 	public void printLine() {
-		info(Strings.repeat(LINE_SYMBOL, MAX_LINE_LENGTH - ELLIPSIS.length()));
+		printLine(LINE_SYMBOL);
+	}
+
+	/**
+	 * Print a line of equal signs (====) as INFO-level log message
+	 */
+	public void printLineBold() {
+		printLine(LINE_SYMBOL_BOLD);
+	}
+
+	/**
+	 * Print a line of of the given symbol as INFO-level log message
+	 */
+	private void printLine(String lineCharacter) {
+		info(Strings.repeat(lineCharacter, MAX_LINE_LENGTH - ELLIPSIS.length()));
 	}
 
 	/**
@@ -154,16 +179,17 @@ public class BotLogger {
 		if (!logFile.exists()) {
 			logFile.createNewFile();
 		}
+		String logMessage = String.format("[%s] %s", DATE_FORMAT.format(Date.from(Instant.now())), message);
 		if (logFile.canWrite()) {
 			BufferedWriter bw = new BufferedWriter(new FileWriter(logFile, true));
-			bw.write(message);
+			bw.write(logMessage);
 			bw.write('\n');
 			bw.close();
 		} else {
 			throw new IOException("Log file is currently locked, likely because it is being written to. Try again.");
 		}
 	}
-	
+
 	/**
 	 * Return the content of the default log file (<code>./spring.log</code>).
 	 * 
@@ -181,8 +207,9 @@ public class BotLogger {
 				} else if (limit < 0) {
 					limit = Integer.MAX_VALUE;
 				}
-				List<String> logFileLines = Files.lines(logFile.toPath()).limit(limit).collect(Collectors.toList());
-				return logFileLines;
+				List<String> logFileLines = Files.readAllLines(logFile.toPath(), StandardCharsets.UTF_8);
+				List<String> logFileLinesRecent = logFileLines.subList(Math.max(0, logFileLines.size() - limit), logFileLines.size());
+				return logFileLinesRecent;
 			} else {
 				throw new IOException("Log file is currently locked, likely because it is being written to. Try again.");
 			}
@@ -243,7 +270,7 @@ public class BotLogger {
 		differenceView.removeAll(subtrahend);
 		if (!differenceView.isEmpty()) {
 			if (logDescription != null) {
-				debug(DROPPED_PREFIX + " " + logDescription);
+				debug(DROPPED_PREFIX + logDescription);
 			}
 			List<AlbumSimplified> sortedDifferenceView = differenceView.stream().sorted(ALBUM_SIMPLIFIED_COMPARATOR).collect(Collectors.toList());
 			printAlbumSimplifiedMulti(sortedDifferenceView);
@@ -262,5 +289,16 @@ public class BotLogger {
 		printDroppedAlbumDifference(unfilteredAppearsOnAlbums.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList()),
 			filteredAppearsOnAlbums.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList()),
 			logDescription);
+	}
+
+	/**
+	 * Flushes this log
+	 * 
+	 * @return true if anything was flushed
+	 */
+	public boolean reset() {
+		boolean hasBeenReset = this.hasUnflushedLogs;
+		this.hasUnflushedLogs = false;
+		return hasBeenReset;
 	}
 }

@@ -39,7 +39,7 @@ public class AlbumTrackPair implements Comparable<AlbumTrackPair>, Comparator<Al
 	private final static Comparator<AlbumTrackPair> COMPARATOR_ALBUM_NAME = Comparator.comparing(atp -> atp.getAlbum().getName(), Comparator.reverseOrder());
 
 	private final static Comparator<AlbumTrackPair> ATP_COMPARATOR = COMPARATOR_ALBUM_GROUP.thenComparing(COMPARATOR_RELEASE_DATE).thenComparing(COMPARATOR_TRACK_COUNT).thenComparing(COMPARATOR_FIRST_ARTIST_NAME)
-			.thenComparing(COMPARATOR_ALBUM_NAME);
+		.thenComparing(COMPARATOR_ALBUM_NAME);
 
 	@Override
 	public int compare(AlbumTrackPair o1, AlbumTrackPair o2) {

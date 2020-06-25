@@ -25,6 +25,7 @@ import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
+import spotify.SpotifyDiscoveryBot;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.config.dto.StaticConfig;
 import spotify.bot.config.dto.UserOptions;
@@ -37,6 +38,8 @@ import spotify.bot.util.data.AlbumTrackPair;
 public class FilterService {
 
 	private final static String VARIOUS_ARTISTS = "Various Artists";
+
+	private final static boolean SHOW_DROPPED_APPEARS_ON_RELEASES = false;
 
 	@Autowired
 	private StaticConfig staticConfig;
@@ -60,16 +63,15 @@ public class FilterService {
 
 	/**
 	 * Return non-database-filterd list of albums from the input and adds these to
-	 * the DB cache (if enabled)
+	 * the DB cache
 	 * 
 	 * @param allAlbums
-	 * @param cacheReleases
 	 * @return
 	 */
-	public List<AlbumSimplified> getNonCachedAlbumsAndCache(List<AlbumSimplified> allAlbums, boolean cacheReleases) throws SQLException {
+	public List<AlbumSimplified> getNonCachedAlbumsAndCache(List<AlbumSimplified> allAlbums) throws SQLException {
 		List<AlbumSimplified> filteredAlbums = filterNonCachedAlbumsOnly(allAlbums);
 		BotUtils.removeNulls(filteredAlbums);
-		if (cacheReleases) {
+		if (!SpotifyDiscoveryBot.DEVELOPER_MODE) {
 			cacheAlbumIds(filteredAlbums);
 		}
 		return filteredAlbums;
@@ -215,19 +217,31 @@ public class FilterService {
 
 				// Filter out any collection, samplers, or albums whose primary artist is
 				// already a followee
-				List<AlbumTrackPair> albumsWithoutCollectionsOrSamplers = unfilteredAppearsOnAlbums.stream().filter(atp -> !isCollectionOrSampler(atp.getAlbum()))
-					.filter(atp -> !containsFeaturedArtist(followedArtistsSet, atp.getAlbum().getArtists())).collect(Collectors.toList());
+				List<AlbumTrackPair> albumsWithoutCollectionsOrSamplers = unfilteredAppearsOnAlbums.stream()
+					.filter(atp -> !isCollectionOrSampler(atp.getAlbum()))
+					.filter(atp -> !containsFeaturedArtist(followedArtistsSet, atp.getAlbum().getArtists()))
+					.collect(Collectors.toList());
 
 				// Of those, filter out the actual songs where a featured artist is a followee
 				List<AlbumTrackPair> filteredAppearsOnAlbums = new ArrayList<>();
 				for (AlbumTrackPair atp : albumsWithoutCollectionsOrSamplers) {
-					List<TrackSimplified> selectedSongsOfAlbum = atp.getTracks().stream().filter(song -> containsFeaturedArtist(followedArtistsSet, song.getArtists())).collect(Collectors.toList());
+					List<TrackSimplified> selectedSongsOfAlbum = atp.getTracks().stream()
+						.filter(song -> containsFeaturedArtist(followedArtistsSet, song.getArtists()))
+						.collect(Collectors.toList());
 					filteredAppearsOnAlbums.add(new AlbumTrackPair(atp.getAlbum(), selectedSongsOfAlbum));
 				}
 
-				// Finalize
-				log.printDroppedAlbumTrackPairDifference(unfilteredAppearsOnAlbums, filteredAppearsOnAlbums, String.format("Dropped %d APPEARS_ON release[s]:", unfilteredAppearsOnAlbums.size() - filteredAppearsOnAlbums.size()));
+				// Show log message
+				int droppedAppearsOnCount = unfilteredAppearsOnAlbums.size() - filteredAppearsOnAlbums.size();
+				if (SHOW_DROPPED_APPEARS_ON_RELEASES) {
+					log.printDroppedAlbumTrackPairDifference(unfilteredAppearsOnAlbums, filteredAppearsOnAlbums, String.format("Dropped %d APPEARS_ON release[s]:", droppedAppearsOnCount));
+				} else {
+					log.info(String.format("Dropped %d APPEARS_ON release[s]", droppedAppearsOnCount));
+					log.info("(...omitted)");
+					log.printLine();
+				}
 
+				// Finalize
 				Map<AlbumGroup, List<AlbumTrackPair>> intelligentAppearsOnFilteredMap = new HashMap<>(categorizedFilteredAlbums);
 				intelligentAppearsOnFilteredMap.put(AlbumGroup.APPEARS_ON, filteredAppearsOnAlbums);
 				return intelligentAppearsOnFilteredMap;

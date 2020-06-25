@@ -41,3 +41,5 @@ templates/READY
 /database.db
 /spring.log
 /application.properties
+/log.txt
+/DEV_MODE

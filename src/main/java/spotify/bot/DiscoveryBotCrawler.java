@@ -59,11 +59,6 @@ public class DiscoveryBotCrawler {
 	private RemappingService remappingService;
 
 	/**
-	 * Whether new releases should be put into the DB or not (for debugging)
-	 */
-	private static final boolean CACHE_RELEASES = true;
-
-	/**
 	 * Lock controlling the local single-crawl behavior
 	 */
 	private ReentrantLock lock;
@@ -106,8 +101,9 @@ public class DiscoveryBotCrawler {
 	 */
 	@EventListener(ApplicationReadyEvent.class)
 	private void firstCrawlAndEnableReadyState() throws BotException, SQLException {
-		log.printLine();
+		log.printLineBold();
 		log.info("Executing initial crawl...");
+		log.printLine();
 		long time = System.currentTimeMillis();
 		{
 			Map<AlbumGroupExtended, Integer> results = crawl();
@@ -116,8 +112,10 @@ public class DiscoveryBotCrawler {
 				log.info(response);
 			}
 		}
-		log.info("Initial crawl successfully finished in: " + (System.currentTimeMillis() - time) + "ms");
 		log.printLine();
+		log.info("Initial crawl successfully finished in: " + (System.currentTimeMillis() - time) + "ms");
+		log.printLineBold();
+		log.reset();
 		lock = new ReentrantLock();
 	}
 
@@ -129,10 +127,7 @@ public class DiscoveryBotCrawler {
 	 * @throws SQLException on an internal exception related to the SQLite database
 	 */
 	public boolean clearObsoleteNotifiers() throws BotException, SQLException {
-		if (isReady()) {
-			return playlistInfoService.clearObsoleteNotifiers();
-		}
-		return false;
+		return playlistInfoService.clearObsoleteNotifiers();
 	}
 
 	///////////////////
@@ -169,7 +164,7 @@ public class DiscoveryBotCrawler {
 	 * Main crawl script with fail-fast mechanisms to save bandwidth
 	 */
 	private Map<AlbumGroupExtended, Integer> crawlScript() throws BotException, SQLException {
-		List<String> followedArtists = userInfoService.getFollowedArtistsIds();
+		List<String> followedArtists = getFollowedArtists();
 		if (!followedArtists.isEmpty()) {
 			List<AlbumSimplified> filteredAlbums = getNewAlbumsFromArtists(followedArtists);
 			if (!filteredAlbums.isEmpty()) {
@@ -184,11 +179,18 @@ public class DiscoveryBotCrawler {
 	}
 
 	/**
+	 * Phase 0: Get all followed artists
+	 */
+	private List<String> getFollowedArtists() throws SQLException, BotException {
+		return userInfoService.getFollowedArtistsIds();
+	}
+
+	/**
 	 * Phase 1: Get all new releases from the list of followed artists
 	 */
 	private List<AlbumSimplified> getNewAlbumsFromArtists(List<String> followedArtists) throws BotException, SQLException {
 		List<AlbumSimplified> allAlbums = albumService.getAllAlbumsOfArtists(followedArtists);
-		List<AlbumSimplified> nonCachedAlbums = filterService.getNonCachedAlbumsAndCache(allAlbums, CACHE_RELEASES);
+		List<AlbumSimplified> nonCachedAlbums = filterService.getNonCachedAlbumsAndCache(allAlbums);
 		List<AlbumSimplified> filteredAlbums = filterService.filterNewAlbumsOnly(nonCachedAlbums);
 		return filteredAlbums;
 	}

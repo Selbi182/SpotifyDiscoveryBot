@@ -1,5 +1,6 @@
 package spotify.bot.util;
 
+import java.io.File;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -170,5 +171,19 @@ public final class BotUtils {
 	 */
 	public static String formatAlbum(AlbumSimplified as) {
 		return String.format("[%s] %s - %s (%s)", as.getAlbumGroup().toString(), as.getArtists()[0].getName(), as.getName(), as.getReleaseDate());
+	}
+
+	/**
+	 * Normalizes a file by converting it to a Path object, calling .normalize(),
+	 * and returning it back as file.
+	 * 
+	 * @param file
+	 * @return
+	 */
+	public static File normalizeFile(File file) {
+		if (file != null) {
+			return file.toPath().normalize().toFile();
+		}
+		return null;
 	}
 }

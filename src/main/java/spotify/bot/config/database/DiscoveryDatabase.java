@@ -17,6 +17,7 @@ import org.springframework.stereotype.Repository;
 
 import spotify.SpotifyDiscoveryBot;
 import spotify.bot.util.BotLogger;
+import spotify.bot.util.BotUtils;
 
 @Repository
 public class DiscoveryDatabase {
@@ -42,28 +43,47 @@ public class DiscoveryDatabase {
 	private String dbUrl;
 	private Connection connection;
 
+	/**
+	 * Initialize the Database connection to the local <code>database.db</code>
+	 * file.
+	 * 
+	 * @throws IOException  if the database couldn't be found or accessed
+	 * @throws SQLException if the database is invalid
+	 */
 	@PostConstruct
-	private void init() throws IOException {
-		File setDbFilePath = null;
-
-		File alternateDatabaseFilepath = SpotifyDiscoveryBot.getAlternateDatabaseFilePath();
-		if (alternateDatabaseFilepath != null && !alternateDatabaseFilepath.canRead()) {
-			throw new IOException("Could not access alternate SQLite database file! Set location: " + alternateDatabaseFilepath.getAbsolutePath());
-		} else if (alternateDatabaseFilepath != null && alternateDatabaseFilepath.canRead() && alternateDatabaseFilepath.getName().endsWith(".db")) {
-			setDbFilePath = alternateDatabaseFilepath;
-		} else {
-			File workingDirectoryDatabaseFilepath = new File(WORKSPACE_LOCATION, DB_FILE_NAME);
-			if (workingDirectoryDatabaseFilepath == null || !workingDirectoryDatabaseFilepath.canRead() || !workingDirectoryDatabaseFilepath.getName().endsWith(".db")) {
-				throw new IOException(String.format("Could not find SQLite database file! Generated location was: WORKDIR[%s] or ALTERNATE[%s]",
-					workingDirectoryDatabaseFilepath.getAbsolutePath(),
-					alternateDatabaseFilepath.getAbsolutePath()));
-			}
-			setDbFilePath = workingDirectoryDatabaseFilepath;
+	private void init() {
+		try {
+			File dbFilePath = BotUtils.normalizeFile(getDbFilePath());
+			this.dbUrl = DB_URL_PREFIX + dbFilePath.getAbsolutePath();
+			log.info("Establishing SQLite database connection: " + dbFilePath.getAbsolutePath());
+			getConnectionInstance();
+		} catch (IOException | SQLException e) {
+			log.error("=== FAILED TO ESTABLISH DATABASE CONNECTION! APPLICATION IS HALTING! ===");
+			System.exit(1);
 		}
-		
-		setDbFilePath = setDbFilePath.toPath().normalize().toFile();
-		this.dbUrl = DB_URL_PREFIX + setDbFilePath.getAbsolutePath();
-		log.info("Using SQLite database located at: " + setDbFilePath.getAbsolutePath());
+	}
+
+	private File getDbFilePath() throws IOException {
+		File alternateDatabaseFilepath = SpotifyDiscoveryBot.getAlternateDatabaseFilePath();
+		if (alternateDatabaseFilepath != null) {
+			if (alternateDatabaseFilepath.exists()) {
+				if (alternateDatabaseFilepath.canRead()) {
+					return alternateDatabaseFilepath;
+				}
+				throw new IOException("Could not access ALTERNATE database (file is locked)!");
+			} else {
+				log.warning("ALTERNATE database file path has been specified but doesn't exist!");
+			}
+		}
+
+		File workingDirectoryDatabaseFilepath = new File(WORKSPACE_LOCATION, DB_FILE_NAME);
+		if (workingDirectoryDatabaseFilepath.exists()) {
+			if (workingDirectoryDatabaseFilepath.canRead()) {
+				return workingDirectoryDatabaseFilepath;
+			}
+			throw new IOException("Could not access WORKDIR database (file is locked)!");
+		}
+		throw new IOException("WORKDIR database not found!");
 	}
 
 	//////////////

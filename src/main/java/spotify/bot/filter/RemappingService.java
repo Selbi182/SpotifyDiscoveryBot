@@ -74,15 +74,9 @@ public class RemappingService {
 		// Copy map first to retain the input map (makes debugging easier)
 		Map<PlaylistStore, List<AlbumTrackPair>> regroupedMap = new HashMap<>(songsByPS);
 
-		if (userOptions.isRemixSeparation()) {
-			remap(remixRemapper, regroupedMap);
-		}
-		if (userOptions.isLiveSeparation()) {
-			remap(liveRemapper, regroupedMap);
-		}
-		if (userOptions.isEpSeparation()) {
-			remap(epRemapper, regroupedMap);
-		}
+		remap(userOptions.isRemixSeparation(), remixRemapper, regroupedMap);
+		remap(userOptions.isLiveSeparation(), liveRemapper, regroupedMap);
+		remap(userOptions.isEpSeparation(), epRemapper, regroupedMap);
 
 		// Remove entries with empty lists (also makes debugging easier)
 		regroupedMap.entrySet().removeIf(e -> e.getValue().isEmpty());
@@ -90,25 +84,27 @@ public class RemappingService {
 
 	}
 
-	private void remap(Remapper remapper, Map<PlaylistStore, List<AlbumTrackPair>> baseTrackMap) {
-		AlbumGroupExtended age = remapper.getAlbumGroup();
-		PlaylistStore ps = playlistStoreConfig.getPlaylistStore(age);
-		if (ps != null && ps.getPlaylistId() != null) {
-			List<AlbumTrackPair> remappedTracks = new ArrayList<>();
-			for (Map.Entry<PlaylistStore, List<AlbumTrackPair>> entry : baseTrackMap.entrySet()) {
-				if (remapper.isAllowedAlbumGroup(entry.getKey().getAlbumGroupExtended())) {
-					List<AlbumTrackPair> releases = entry.getValue();
-					if (releases != null && !releases.isEmpty()) {
-						List<AlbumTrackPair> filteredReleases = releases.stream().filter(atp -> remapper.qualifiesAsRemappable(atp)).collect(Collectors.toList());
-						if (!filteredReleases.isEmpty()) {
-							remappedTracks.addAll(filteredReleases);
-							releases.removeAll(filteredReleases);
+	private void remap(boolean enabled, Remapper remapper, Map<PlaylistStore, List<AlbumTrackPair>> baseTrackMap) {
+		if (enabled) {
+			AlbumGroupExtended age = remapper.getAlbumGroup();
+			PlaylistStore ps = playlistStoreConfig.getPlaylistStore(age);
+			if (ps != null && ps.getPlaylistId() != null) {
+				List<AlbumTrackPair> remappedTracks = new ArrayList<>();
+				for (Map.Entry<PlaylistStore, List<AlbumTrackPair>> entry : baseTrackMap.entrySet()) {
+					if (remapper.isAllowedAlbumGroup(entry.getKey().getAlbumGroupExtended())) {
+						List<AlbumTrackPair> releases = entry.getValue();
+						if (releases != null && !releases.isEmpty()) {
+							List<AlbumTrackPair> filteredReleases = releases.stream().filter(atp -> remapper.qualifiesAsRemappable(atp)).collect(Collectors.toList());
+							if (!filteredReleases.isEmpty()) {
+								remappedTracks.addAll(filteredReleases);
+								releases.removeAll(filteredReleases);
+							}
 						}
 					}
 				}
-			}
-			if (!remappedTracks.isEmpty()) {
-				baseTrackMap.put(ps, remappedTracks);
+				if (!remappedTracks.isEmpty()) {
+					baseTrackMap.put(ps, remappedTracks);
+				}
 			}
 		}
 	}

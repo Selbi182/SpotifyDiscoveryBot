@@ -23,17 +23,6 @@ import spotify.bot.util.data.AlbumGroupExtended;
 @EnableScheduling
 public class CrawlSchedulerController {
 
-	/**
-	 * Cron job representing "at every 10th second after every 30 minutes".
-	 */
-	private final static String CRAWL_CRON = "10 */30 * * * *";
-
-	/**
-	 * Cron job representing "every 10th second starting at the 5th second of a
-	 * minute"
-	 */
-	private final static String CLEAR_NOTIFIER_CRON = "5/10 * * * * *";
-
 	@Autowired
 	private DiscoveryBotCrawler crawler;
 
@@ -41,8 +30,8 @@ public class CrawlSchedulerController {
 	private BotLogger log;
 
 	/**
-	 * Run the scheduler every nth minute, starting at minute :01 to offset
-	 * Spotify's timezone deviation.<br/>
+	 * Run the scheduler every 30 minutes (with a few seconds extra to offset
+	 * timezone deviations).<br/>
 	 * Can be manually refreshed at: http://localhost:8080/refresh<br/>
 	 * <br/>
 	 * Possible ResponseEntities:
@@ -58,32 +47,37 @@ public class CrawlSchedulerController {
 	 * @throws BotException on an external exception related to the Spotify Web API
 	 * @throws SQLException on an internal exception related to the SQLite database
 	 */
-	@Scheduled(cron = CRAWL_CRON)
+	@Scheduled(cron = "5 */30 * * * *")
 	@RequestMapping("/crawl")
 	public ResponseEntity<String> runScheduler() throws BotException, SQLException {
-		if (!crawler.isReady()) {
-			return new ResponseEntity<>("Crawler isn't ready!", HttpStatus.CONFLICT);
+		if (crawler.isReady()) {
+			try {
+				Map<AlbumGroupExtended, Integer> results = crawler.tryCrawl();
+				String response = BotUtils.compileResultString(results);
+				if (response != null) {
+					log.info(response);
+					return new ResponseEntity<>(response, HttpStatus.CREATED);
+				}
+			} finally {
+				if (log.reset()) {
+					log.printLineBold();
+				}
+			}
+			return new ResponseEntity<>("No new releases found.", HttpStatus.OK);
 		}
-		Map<AlbumGroupExtended, Integer> results = crawler.tryCrawl();
-		String response = BotUtils.compileResultString(results);
-		if (response != null) {
-			log.info(response);
-			log.printLine();
-			return new ResponseEntity<>(response, HttpStatus.CREATED);
-		}
-		return new ResponseEntity<>("No new releases found.", HttpStatus.OK);
+		return new ResponseEntity<>("Crawler isn't ready!", HttpStatus.CONFLICT);
 	}
 
 	/**
-	 * Periodic task running every 10 seconds to remove the [NEW] indicator where
+	 * Periodic task running every 5 seconds to remove the [NEW] indicator where
 	 * applicable. Will only run while crawler is idle.
 	 * 
 	 * @return a ResponseEntity indicating whether any notifies were cleared
 	 * @throws BotException on an external exception related to the Spotify Web API
 	 * @throws SQLException on an internal exception related to the SQLite database
 	 */
-	@Scheduled(cron = CLEAR_NOTIFIER_CRON)
-	@RequestMapping("/clear-notifiers")
+	@Scheduled(fixedDelay = 5 * 1000)
+	@RequestMapping("/clearnotifiers")
 	public ResponseEntity<String> clearNewIndicatorScheduler() throws BotException, SQLException {
 		if (!crawler.isReady()) {
 			return new ResponseEntity<>("Can't clear [NEW] indicators now, as crawler is currently in progress...", HttpStatus.CONFLICT);

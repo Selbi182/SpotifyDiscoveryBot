@@ -6,6 +6,8 @@ import java.util.List;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
+import spotify.bot.util.BotUtils;
+
 /**
  * Container class to map a simplified album by its simplified tracks
  */
@@ -35,7 +37,7 @@ public class AlbumTrackPair implements Comparable<AlbumTrackPair>, Comparator<Al
 	private final static Comparator<AlbumTrackPair> COMPARATOR_ALBUM_GROUP = Comparator.comparing(atp -> atp.getAlbum().getAlbumGroup());
 	private final static Comparator<AlbumTrackPair> COMPARATOR_RELEASE_DATE = Comparator.comparing(atp -> atp.getAlbum().getReleaseDate());
 	private final static Comparator<AlbumTrackPair> COMPARATOR_TRACK_COUNT = Comparator.comparing(atp -> atp.getTracks().size(), Comparator.reverseOrder());
-	private final static Comparator<AlbumTrackPair> COMPARATOR_FIRST_ARTIST_NAME = Comparator.comparing(atp -> atp.getAlbum().getArtists()[0].getName(), Comparator.reverseOrder());
+	private final static Comparator<AlbumTrackPair> COMPARATOR_FIRST_ARTIST_NAME = Comparator.comparing(atp -> BotUtils.getFirstArtistName(atp.getAlbum()), Comparator.reverseOrder());
 	private final static Comparator<AlbumTrackPair> COMPARATOR_ALBUM_NAME = Comparator.comparing(atp -> atp.getAlbum().getName(), Comparator.reverseOrder());
 
 	private final static Comparator<AlbumTrackPair> ATP_COMPARATOR = COMPARATOR_ALBUM_GROUP.thenComparing(COMPARATOR_RELEASE_DATE).thenComparing(COMPARATOR_TRACK_COUNT).thenComparing(COMPARATOR_FIRST_ARTIST_NAME)
@@ -56,7 +58,7 @@ public class AlbumTrackPair implements Comparable<AlbumTrackPair>, Comparator<Al
 		if (album == null || tracks == null) {
 			return super.toString();
 		}
-		return String.format("[%s] %s - %s (%s) <%d>", album.getAlbumGroup().toString(), album.getArtists()[0].getName(), album.getName(), album.getReleaseDate(), tracks.size());
+		return String.format("[%s] %s - %s (%s) <%d>", album.getAlbumGroup().toString(), BotUtils.joinArtists(album.getArtists()), album.getName(), album.getReleaseDate(), tracks.size());
 	}
 
 	@Override

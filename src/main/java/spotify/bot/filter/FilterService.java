@@ -39,7 +39,7 @@ public class FilterService {
 
 	private final static String VARIOUS_ARTISTS = "Various Artists";
 
-	private final static boolean SHOW_DROPPED_APPEARS_ON_RELEASES = false;
+	private final static boolean SHOW_DROPPED_APPEARS_ON_RELEASES = true;
 
 	@Autowired
 	private StaticConfig staticConfig;
@@ -173,8 +173,11 @@ public class FilterService {
 
 	private String getAlbumIdentifierString(AlbumSimplified as) {
 		StringJoiner sj = new StringJoiner("_");
+		if (as == null || as.getAlbumGroup() == null || as.getAlbumGroup().getGroup() == null) {
+			System.out.println();
+		}
 		sj.add(as.getAlbumGroup().getGroup());
-		sj.add(as.getArtists()[0].getName());
+		sj.add(BotUtils.getFirstArtistName(as));
 		sj.add(as.getName());
 		return sj.toString();
 	}
@@ -237,8 +240,7 @@ public class FilterService {
 					log.printDroppedAlbumTrackPairDifference(unfilteredAppearsOnAlbums, filteredAppearsOnAlbums, String.format("Dropped %d APPEARS_ON release[s]:", droppedAppearsOnCount));
 				} else {
 					log.info(String.format("Dropped %d APPEARS_ON release[s]", droppedAppearsOnCount));
-					log.info("(...omitted)");
-					log.printLine();
+					log.info("x (...omitted)");
 				}
 
 				// Finalize

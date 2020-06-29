@@ -12,10 +12,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.collect.Ordering;
 import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
+import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
 
 import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -170,7 +173,33 @@ public final class BotUtils {
 	 * @return
 	 */
 	public static String formatAlbum(AlbumSimplified as) {
-		return String.format("[%s] %s - %s (%s)", as.getAlbumGroup().toString(), as.getArtists()[0].getName(), as.getName(), as.getReleaseDate());
+		return String.format("[%s] %s - %s (%s)",
+			as.getAlbumGroup().toString(),
+			joinArtists(as.getArtists()),
+			as.getName(),
+			as.getReleaseDate());
+	}
+
+	/**
+	 * Return a string representation of all artist names, separated by ", "
+	 * 
+	 * @param artists
+	 * @return
+	 */
+	public static String joinArtists(ArtistSimplified[] artists) {
+		return Stream.of(artists)
+			.map(ArtistSimplified::getName)
+			.collect(Collectors.joining(", "));
+	}
+
+	/**
+	 * Returns the name of the first artist of this album (usually the only one)
+	 * 
+	 * @param as
+	 * @return
+	 */
+	public static String getFirstArtistName(AlbumSimplified as) {
+		return as.getArtists()[0].getName();
 	}
 
 	/**

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
+import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
 
 import spotify.bot.api.BotException;
 import spotify.bot.api.SpotifyCall;
@@ -47,7 +48,7 @@ public class AlbumService {
 
 		// I've tried just about anything you can imagine. Parallel streams, threads,
 		// thread pools, custom sleep intervals. It doesn't matter. Going through
-		// every single artist in a simple for-loop is just as fast as any more advanced
+		// every single artist in a simple for-each is just as fast as any more advanced
 		// solution, while still being way more straightforward and comprehensible.
 		// I wish Spotify's API allowed for fetching multiple artists' albums at once.
 
@@ -87,6 +88,60 @@ public class AlbumService {
 			.market(spotifyApiConfig.getMarket())
 			.limit(MAX_ALBUM_FETCH_LIMIT)
 			.album_type(albumGroups));
-		return albumsOfCurrentArtist;
+		return attachOriginArtistIdForAppearsOnReleases(artistId, albumsOfCurrentArtist);
+	}
+
+	/**
+	 * Attach the artist ID for any appears_on releases so they won't get lost down
+	 * the way. For performance reasons, the proper conversion to an Artist object
+	 * is done after the majority of filtering is completed (see
+	 * {@link TrackService#getTracksOfAlbums}).
+	 * 
+	 * @param artistId
+	 * @param albumsOfArtist
+	 * @return
+	 */
+	private List<AlbumSimplified> attachOriginArtistIdForAppearsOnReleases(String artistId, List<AlbumSimplified> albumsOfArtist) {
+		List<AlbumSimplified> albumsExtended = new ArrayList<>();
+		for (AlbumSimplified as : albumsOfArtist) {
+			as = as.getAlbumGroup().equals(AlbumGroup.APPEARS_ON)
+				? prependStringToArtist(artistId, as)
+				: as;
+			albumsExtended.add(as);
+		}
+		return albumsExtended;
+	}
+
+	/**
+	 * Quick (and dirty) way to wrap the artist ID inside an ArtistSimplified and
+	 * prepend it to the list of actual artists of this AlbumSimplified.
+	 * 
+	 * @param artistId
+	 * @param as
+	 * @return
+	 */
+	private AlbumSimplified prependStringToArtist(String artistId, AlbumSimplified as) {
+		ArtistSimplified[] appendedArtists = new ArtistSimplified[as.getArtists().length + 1];
+
+		ArtistSimplified wrappedArtistId = new ArtistSimplified.Builder()
+			.setName(artistId)
+			.build();
+		appendedArtists[0] = wrappedArtistId;
+		for (int i = 1; i < appendedArtists.length; i++) {
+			appendedArtists[i] = as.getArtists()[i - 1];
+		}
+
+		// Builders don't copy-construct for some reason, so I
+		// gotta copy everything else over as well... Only keeping it to the important
+		// parts though
+		return as.builder()
+			.setArtists(appendedArtists)
+			.setAlbumGroup(as.getAlbumGroup())
+			.setAlbumType(as.getAlbumType())
+			.setId(as.getId())
+			.setName(as.getName())
+			.setReleaseDate(as.getReleaseDate())
+			.setReleaseDatePrecision(as.getReleaseDatePrecision())
+			.build();
 	}
 }

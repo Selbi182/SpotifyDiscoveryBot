@@ -62,7 +62,6 @@ public class PlaylistSongsService {
 				log.printAlbumTrackPairs(albumTrackPairs);
 			}
 		}
-		log.printLine();
 	}
 
 	/**

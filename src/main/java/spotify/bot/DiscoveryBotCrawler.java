@@ -17,10 +17,10 @@ import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import spotify.bot.api.BotException;
 import spotify.bot.api.SpotifyApiAuthorization;
 import spotify.bot.api.services.AlbumService;
+import spotify.bot.api.services.ArtistService;
 import spotify.bot.api.services.PlaylistInfoService;
 import spotify.bot.api.services.PlaylistSongsService;
 import spotify.bot.api.services.TrackService;
-import spotify.bot.api.services.UserInfoService;
 import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.filter.FilterService;
 import spotify.bot.filter.RemappingService;
@@ -38,7 +38,7 @@ public class DiscoveryBotCrawler {
 	private BotLogger log;
 
 	@Autowired
-	private UserInfoService userInfoService;
+	private ArtistService artistService;
 
 	@Autowired
 	private AlbumService albumService;
@@ -101,10 +101,8 @@ public class DiscoveryBotCrawler {
 	 */
 	@EventListener(ApplicationReadyEvent.class)
 	private void firstCrawlAndEnableReadyState() throws BotException, SQLException {
-		log.printLineBold();
-		log.info("Executing initial crawl...");
 		log.printLine();
-		log.reset();
+		log.info("Executing initial crawl...");
 		long time = System.currentTimeMillis();
 		{
 			Map<AlbumGroupExtended, Integer> results = crawl();
@@ -113,12 +111,8 @@ public class DiscoveryBotCrawler {
 				log.info(response);
 			}
 		}
-		if (log.reset()) {
-			log.printLine();
-		}
 		log.info("Initial crawl successfully finished in: " + (System.currentTimeMillis() - time) + "ms");
-		log.printLineBold();
-		log.reset();
+		log.resetAndPrintLine();
 		lock = new ReentrantLock();
 	}
 
@@ -185,7 +179,7 @@ public class DiscoveryBotCrawler {
 	 * Phase 0: Get all followed artists
 	 */
 	private List<String> getFollowedArtists() throws SQLException, BotException {
-		return userInfoService.getFollowedArtistsIds();
+		return artistService.getFollowedArtistsIds();
 	}
 
 	/**
@@ -195,7 +189,8 @@ public class DiscoveryBotCrawler {
 		List<AlbumSimplified> allAlbums = albumService.getAllAlbumsOfArtists(followedArtists);
 		List<AlbumSimplified> nonCachedAlbums = filterService.getNonCachedAlbumsAndCache(allAlbums);
 		List<AlbumSimplified> filteredAlbums = filterService.filterNewAlbumsOnly(nonCachedAlbums);
-		return filteredAlbums;
+		List<AlbumSimplified> insertedAppearOnArtistsAlbums = artistService.insertViaAppearsOnArtists(filteredAlbums);
+		return insertedAppearOnArtistsAlbums;
 	}
 
 	/**

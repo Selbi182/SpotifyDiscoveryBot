@@ -41,7 +41,7 @@ public class BotLogger {
 	 */
 	private final static Comparator<AlbumSimplified> ALBUM_SIMPLIFIED_COMPARATOR = Comparator
 		.comparing(AlbumSimplified::getAlbumGroup)
-		.thenComparing(as -> as.getArtists()[0].getName())
+		.thenComparing(BotUtils::getFirstArtistName)
 		.thenComparing(AlbumSimplified::getReleaseDate)
 		.thenComparing(AlbumSimplified::getName);
 
@@ -52,7 +52,6 @@ public class BotLogger {
 	private final static String ELLIPSIS = "...";
 	private final static String DROPPED_PREFIX = "x ";
 	private final static String LINE_SYMBOL = "-";
-	private final static String LINE_SYMBOL_BOLD = "=";
 
 	private final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -130,6 +129,7 @@ public class BotLogger {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
 		hasUnflushedLogs = true;
 	}
 
@@ -138,13 +138,6 @@ public class BotLogger {
 	 */
 	public void printLine() {
 		printLine(LINE_SYMBOL);
-	}
-
-	/**
-	 * Print a line of equal signs (====) as INFO-level log message
-	 */
-	public void printLineBold() {
-		printLine(LINE_SYMBOL_BOLD);
 	}
 
 	/**
@@ -274,7 +267,6 @@ public class BotLogger {
 			}
 			List<AlbumSimplified> sortedDifferenceView = differenceView.stream().sorted(ALBUM_SIMPLIFIED_COMPARATOR).collect(Collectors.toList());
 			printAlbumSimplifiedMulti(sortedDifferenceView);
-			printLine();
 		}
 	}
 
@@ -300,5 +292,15 @@ public class BotLogger {
 		boolean hasBeenReset = this.hasUnflushedLogs;
 		this.hasUnflushedLogs = false;
 		return hasBeenReset;
+	}
+	
+	/**
+	 * Flush the log and print a line if anything was flushed
+	 */
+	public void resetAndPrintLine() {
+		if (reset()) {
+			printLine();
+			reset();
+		}
 	}
 }

@@ -59,9 +59,7 @@ public class CrawlSchedulerController {
 					return new ResponseEntity<>(response, HttpStatus.CREATED);
 				}
 			} finally {
-				if (log.reset()) {
-					log.printLineBold();
-				}
+				log.resetAndPrintLine();
 			}
 			return new ResponseEntity<>("No new releases found.", HttpStatus.OK);
 		}

@@ -1,4 +1,4 @@
-![Banner](https://i.imgur.com/uqtMyq3.png)
+![Banner]()
 
 # Spotify Discovery Bot
 

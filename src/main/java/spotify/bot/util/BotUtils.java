@@ -201,6 +201,16 @@ public final class BotUtils {
 	public static String getFirstArtistName(AlbumSimplified as) {
 		return as.getArtists()[0].getName();
 	}
+	
+	/**
+	 * Returns the name of the last artist of this album
+	 * 
+	 * @param as
+	 * @return
+	 */
+	public static String getLastArtistName(AlbumSimplified as) {
+		return as.getArtists()[as.getArtists().length - 1].getName();
+	}
 
 	/**
 	 * Normalizes a file by converting it to a Path object, calling .normalize(),

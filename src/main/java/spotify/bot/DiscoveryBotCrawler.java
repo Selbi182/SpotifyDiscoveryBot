@@ -189,7 +189,7 @@ public class DiscoveryBotCrawler {
 		List<AlbumSimplified> allAlbums = albumService.getAllAlbumsOfArtists(followedArtists);
 		List<AlbumSimplified> nonCachedAlbums = filterService.getNonCachedAlbumsAndCache(allAlbums);
 		List<AlbumSimplified> filteredAlbums = filterService.filterNewAlbumsOnly(nonCachedAlbums);
-		List<AlbumSimplified> insertedAppearOnArtistsAlbums = artistService.insertViaAppearsOnArtists(filteredAlbums);
+		List<AlbumSimplified> insertedAppearOnArtistsAlbums = albumService.resolvetViaAppearsOnArtistNames(filteredAlbums);
 		return insertedAppearOnArtistsAlbums;
 	}
 

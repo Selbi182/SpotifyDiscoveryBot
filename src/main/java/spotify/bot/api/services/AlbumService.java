@@ -3,21 +3,27 @@ package spotify.bot.api.services;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.StringJoiner;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.google.common.collect.Lists;
 import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
+import com.wrapper.spotify.model_objects.specification.Artist;
 import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
 
 import spotify.bot.api.BotException;
 import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.dto.PlaylistStoreConfig;
 import spotify.bot.config.dto.SpotifyApiConfig;
+import spotify.bot.util.BotUtils;
 
 @Service
 public class AlbumService {
@@ -92,10 +98,10 @@ public class AlbumService {
 	}
 
 	/**
-	 * Attach the artist ID for any appears_on releases so they won't get lost down
+	 * Attach the artist IDs for any appears_on releases so they won't get lost down
 	 * the way. For performance reasons, the proper conversion to an Artist object
-	 * is done after the majority of filtering is completed (see
-	 * {@link TrackService#getTracksOfAlbums}).
+	 * is done after the majority of filtering is completed (more specifically, in
+	 * {@link AlbumService#insertViaAppearsOnArtists}).
 	 * 
 	 * @param artistId
 	 * @param albumsOfArtist
@@ -105,7 +111,7 @@ public class AlbumService {
 		List<AlbumSimplified> albumsExtended = new ArrayList<>();
 		for (AlbumSimplified as : albumsOfArtist) {
 			as = as.getAlbumGroup().equals(AlbumGroup.APPEARS_ON)
-				? prependStringToArtist(artistId, as)
+				? appendStringToArtist(artistId, as)
 				: as;
 			albumsExtended.add(as);
 		}
@@ -114,21 +120,21 @@ public class AlbumService {
 
 	/**
 	 * Quick (and dirty) way to wrap the artist ID inside an ArtistSimplified and
-	 * prepend it to the list of actual artists of this AlbumSimplified.
+	 * append it to the list of actual artists of this AlbumSimplified.
 	 * 
 	 * @param artistId
 	 * @param as
 	 * @return
 	 */
-	private AlbumSimplified prependStringToArtist(String artistId, AlbumSimplified as) {
+	private AlbumSimplified appendStringToArtist(String artistId, AlbumSimplified as) {
 		ArtistSimplified[] appendedArtists = new ArtistSimplified[as.getArtists().length + 1];
 
 		ArtistSimplified wrappedArtistId = new ArtistSimplified.Builder()
 			.setName(artistId)
 			.build();
-		appendedArtists[0] = wrappedArtistId;
-		for (int i = 1; i < appendedArtists.length; i++) {
-			appendedArtists[i] = as.getArtists()[i - 1];
+		appendedArtists[appendedArtists.length - 1] = wrappedArtistId;
+		for (int i = 0; i < appendedArtists.length - 1; i++) {
+			appendedArtists[i] = as.getArtists()[i];
 		}
 
 		// Builders don't copy-construct for some reason, so I
@@ -143,5 +149,43 @@ public class AlbumService {
 			.setReleaseDate(as.getReleaseDate())
 			.setReleaseDatePrecision(as.getReleaseDatePrecision())
 			.build();
+	}
+
+	/**
+	 * Replace any appears_on releases' artists that were preserved in
+	 * {@link AlbumService#attachOriginArtistIdForAppearsOnReleases}.
+	 * 
+	 * @param filteredAlbums
+	 * @return
+	 * @throws BotException
+	 */
+	public List<AlbumSimplified> resolvetViaAppearsOnArtistNames(List<AlbumSimplified> filteredAlbums) throws BotException {
+		List<String> relevantAppearsOnArtistsIds = filteredAlbums.stream()
+			.filter(album -> AlbumGroup.APPEARS_ON.equals(album.getAlbumGroup()))
+			.map(BotUtils::getLastArtistName)
+			.collect(Collectors.toList());
+
+		Map<String, String> artistIdToName = new HashMap<>();
+		for (List<String> sublistArtistIds : Lists.partition(relevantAppearsOnArtistsIds, 50)) {
+			Artist[] execute = SpotifyCall.execute(spotifyApi.getSeveralArtists(sublistArtistIds.toArray(String[]::new)));
+			for (Artist a : execute) {
+				artistIdToName.put(a.getId(), a.getName());
+			}
+		}
+
+		for (AlbumSimplified as : filteredAlbums) {
+			if (AlbumGroup.APPEARS_ON.equals(as.getAlbumGroup())) {
+				String viaArtistId = BotUtils.getLastArtistName(as);
+				String viaArtistName = artistIdToName.get(viaArtistId);
+				if (viaArtistName != null) {
+					ArtistSimplified viaArtistWithName = new ArtistSimplified.Builder()
+						.setName(String.format("(%s)", viaArtistName))
+						.build();
+					ArtistSimplified[] artists = as.getArtists();
+					artists[artists.length - 1] = viaArtistWithName;
+				}
+			}
+		}
+		return filteredAlbums;
 	}
 }

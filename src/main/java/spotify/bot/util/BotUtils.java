@@ -201,7 +201,7 @@ public final class BotUtils {
 	public static String getFirstArtistName(AlbumSimplified as) {
 		return as.getArtists()[0].getName();
 	}
-	
+
 	/**
 	 * Returns the name of the last artist of this album
 	 * 

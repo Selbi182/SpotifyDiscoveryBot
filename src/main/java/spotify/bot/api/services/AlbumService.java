@@ -100,8 +100,11 @@ public class AlbumService {
 	/**
 	 * Attach the artist IDs for any appears_on releases so they won't get lost down
 	 * the way. For performance reasons, the proper conversion to an Artist object
-	 * is done after the majority of filtering is completed (more specifically, in
-	 * {@link AlbumService#insertViaAppearsOnArtists}).
+	 * is done after the majority of filtering is completed (more specifically,
+	 * after the previously cached releases have been removed).<br/>
+	 * <br/>
+	 * 
+	 * See also {@link AlbumService#insertViaAppearsOnArtists}.
 	 * 
 	 * @param artistId
 	 * @param albumsOfArtist
@@ -137,9 +140,8 @@ public class AlbumService {
 			appendedArtists[i] = as.getArtists()[i];
 		}
 
-		// Builders don't copy-construct for some reason, so I
-		// gotta copy everything else over as well... Only keeping it to the important
-		// parts though
+		// Builders can't copy-construct for some reason, so I gotta copy everything
+		// else over as well... Only keeping it to the important attributes though
 		return as.builder()
 			.setArtists(appendedArtists)
 			.setAlbumGroup(as.getAlbumGroup())
@@ -159,7 +161,7 @@ public class AlbumService {
 	 * @return
 	 * @throws BotException
 	 */
-	public List<AlbumSimplified> resolvetViaAppearsOnArtistNames(List<AlbumSimplified> filteredAlbums) throws BotException {
+	public List<AlbumSimplified> resolveViaAppearsOnArtistNames(List<AlbumSimplified> filteredAlbums) throws BotException {
 		List<String> relevantAppearsOnArtistsIds = filteredAlbums.stream()
 			.filter(album -> AlbumGroup.APPEARS_ON.equals(album.getAlbumGroup()))
 			.map(BotUtils::getLastArtistName)

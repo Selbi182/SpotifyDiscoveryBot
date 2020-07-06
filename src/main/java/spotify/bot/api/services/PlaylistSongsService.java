@@ -17,9 +17,9 @@ import com.wrapper.spotify.model_objects.specification.Playlist;
 import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
-import spotify.SpotifyDiscoveryBot;
 import spotify.bot.api.BotException;
 import spotify.bot.api.SpotifyCall;
+import spotify.bot.config.DeveloperMode;
 import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.config.dto.UserOptions;
 import spotify.bot.util.BotLogger;
@@ -56,7 +56,7 @@ public class PlaylistSongsService {
 			List<AlbumTrackPair> albumTrackPairs = songsByPlaylist.get(ps);
 			if (!albumTrackPairs.isEmpty()) {
 				Collections.sort(albumTrackPairs);
-				if (!SpotifyDiscoveryBot.DEVELOPER_MODE) {
+				if (!DeveloperMode.isPlaylistAdditionDisabled()) {
 					addSongsToPlaylistId(ps.getPlaylistId(), albumTrackPairs);
 				}
 				log.printAlbumTrackPairs(albumTrackPairs);

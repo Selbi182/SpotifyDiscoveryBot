@@ -129,7 +129,7 @@ public class BotLogger {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+
 		hasUnflushedLogs = true;
 	}
 
@@ -293,7 +293,7 @@ public class BotLogger {
 		this.hasUnflushedLogs = false;
 		return hasBeenReset;
 	}
-	
+
 	/**
 	 * Flush the log and print a line if anything was flushed
 	 */

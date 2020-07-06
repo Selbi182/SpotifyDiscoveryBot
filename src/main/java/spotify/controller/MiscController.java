@@ -3,6 +3,7 @@ package spotify.controller;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -35,16 +36,16 @@ public class MiscController {
 	private StaticConfig staticConfig;
 
 	/**
-	 * Displays the contents of the automatically configurated, most recent Spring
-	 * logging file (<code>./spring.log</code>).
+	 * Displays the contents of the of the most recent log entries in a raw JSON
+	 * format.
 	 * 
-	 * @param limit (optional) maximum number of lines to read from the top of the
-	 *              log (default: 100); Use -1 to read the entire file
-	 * @return a ResponseEntity containing the entire log content as String, or an
-	 *         error
+	 * @param limit (optional) maximum number of lines to read from the bottom of
+	 *              the log (default: 50); Use -1 to read the entire file
+	 * @return a ResponseEntity containing the entire log content as a list of
+	 *         Strings, or an error (will be the first and only entry)
 	 */
-	@RequestMapping("/log")
-	public ResponseEntity<List<String>> showLog(@RequestParam(value = "limit", required = false) Integer limit) {
+	@RequestMapping("/lograw")
+	public ResponseEntity<List<String>> showLogRaw(@RequestParam(value = "limit", required = false) Integer limit) {
 		try {
 			List<String> logFileLines = log.readLog(limit);
 			return new ResponseEntity<List<String>>(logFileLines, HttpStatus.OK);
@@ -52,6 +53,27 @@ public class MiscController {
 			log.stackTrace(e);
 			List<String> message = Arrays.asList(e.getMessage());
 			return new ResponseEntity<List<String>>(message, HttpStatus.NOT_FOUND);
+		}
+	}
+
+	/**
+	 * Displays the contents of the of the most recent log entries in a humanly
+	 * readable form (simply using HTML {@code pre} tags).
+	 * 
+	 * @param limit (optional) maximum number of lines to read from the bottom of
+	 *              the log (default: 100); Use -1 to read the entire file
+	 * @return a ResponseEntity containing the entire log content as single String,
+	 *         or an error
+	 */
+	@RequestMapping("/log")
+	public ResponseEntity<String> showLog(@RequestParam(value = "limit", required = false) Integer limit) {
+		try {
+			String logFileLinesImploded = String.format("<pre>%s</pre>",
+				log.readLog(limit).stream().collect(Collectors.joining("\n")));
+			return new ResponseEntity<String>(logFileLinesImploded, HttpStatus.OK);
+		} catch (IOException e) {
+			log.stackTrace(e);
+			return new ResponseEntity<String>(e.getMessage(), HttpStatus.NOT_FOUND);
 		}
 	}
 

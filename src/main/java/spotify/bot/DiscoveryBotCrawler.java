@@ -188,9 +188,9 @@ public class DiscoveryBotCrawler {
 	private List<AlbumSimplified> getNewAlbumsFromArtists(List<String> followedArtists) throws BotException, SQLException {
 		List<AlbumSimplified> allAlbums = albumService.getAllAlbumsOfArtists(followedArtists);
 		List<AlbumSimplified> nonCachedAlbums = filterService.getNonCachedAlbumsAndCache(allAlbums);
-		List<AlbumSimplified> filteredAlbums = filterService.filterNewAlbumsOnly(nonCachedAlbums);
-		List<AlbumSimplified> insertedAppearOnArtistsAlbums = albumService.resolvetViaAppearsOnArtistNames(filteredAlbums);
-		return insertedAppearOnArtistsAlbums;
+		List<AlbumSimplified> insertedAppearOnArtistsAlbums = albumService.resolveViaAppearsOnArtistNames(nonCachedAlbums);
+		List<AlbumSimplified> filteredAlbums = filterService.filterNewAlbumsOnly(insertedAppearOnArtistsAlbums);
+		return filteredAlbums;
 	}
 
 	/**

@@ -20,8 +20,8 @@ import spotify.bot.util.BotUtils;
 
 public class SpotifyCall {
 
-	private final static long RETRY_TIMEOUT_4XX = 1000;
-	private final static long RETRY_TIMEOUT_5XX = 60 * 1000;
+	private final static long RETRY_TIMEOUT_429 = 1000;
+	private final static long RETRY_TIMEOUT_GENERIC_ERROR = 60 * 1000;
 
 	/**
 	 * Utility class
@@ -34,7 +34,7 @@ public class SpotifyCall {
 	 * <i>429 Too many requests</i> errors the request will be retried ad-infinitum
 	 * until it succeeds. Any attempts will be delayed by the response body's given
 	 * <code>retryAfter</code> parameter in seconds (with an extra second due to
-	 * occasional inaccuracies with that value). Server errors will be retried too.
+	 * occasional inaccuracies with that value). Generic errors will be retried too.
 	 * 
 	 * @param <T>            the injected return type
 	 * @param <BT>           the injected Builder
@@ -53,10 +53,10 @@ public class SpotifyCall {
 			}
 		} catch (TooManyRequestsException e) {
 			int timeout = e.getRetryAfter();
-			long sleepMs = (timeout * RETRY_TIMEOUT_4XX) + RETRY_TIMEOUT_4XX;
+			long sleepMs = (timeout * RETRY_TIMEOUT_429) + RETRY_TIMEOUT_429;
 			BotUtils.sneakySleep(sleepMs);
-		} catch (SpotifyWebApiException e) {
-			BotUtils.sneakySleep(RETRY_TIMEOUT_5XX);
+		} catch (SpotifyWebApiException | RuntimeException e) {
+			BotUtils.sneakySleep(RETRY_TIMEOUT_GENERIC_ERROR);
 		}
 		return execute(requestBuilder);
 	}

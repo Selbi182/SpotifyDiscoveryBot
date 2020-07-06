@@ -25,7 +25,7 @@ import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
-import spotify.SpotifyDiscoveryBot;
+import spotify.bot.config.DeveloperMode;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.config.dto.StaticConfig;
 import spotify.bot.config.dto.UserOptions;
@@ -71,7 +71,7 @@ public class FilterService {
 	public List<AlbumSimplified> getNonCachedAlbumsAndCache(List<AlbumSimplified> allAlbums) throws SQLException {
 		List<AlbumSimplified> filteredAlbums = filterNonCachedAlbumsOnly(allAlbums);
 		BotUtils.removeNulls(filteredAlbums);
-		if (!SpotifyDiscoveryBot.DEVELOPER_MODE) {
+		if (!DeveloperMode.isCacheDisabled()) {
 			cacheAlbumIds(filteredAlbums);
 		}
 		return filteredAlbums;
@@ -144,7 +144,10 @@ public class FilterService {
 		Collection<AlbumSimplified> noDuplicates = filterDuplicateAlbums(unfilteredAlbums);
 		int lookbackDays = staticConfig.getLookbackDays();
 		LocalDate lowerReleaseDateBoundary = LocalDate.now().minusDays(lookbackDays);
-		List<AlbumSimplified> filteredAlbums = noDuplicates.stream().filter(as -> isValidDate(as, lowerReleaseDateBoundary)).collect(Collectors.toList());
+		List<AlbumSimplified> filteredAlbums = noDuplicates
+			.stream()
+			.filter(as -> isValidDate(as, lowerReleaseDateBoundary))
+			.collect(Collectors.toList());
 		log.printDroppedAlbumDifference(noDuplicates, filteredAlbums,
 			String.format("Dropped %d non-cached but too-old release[s] (lower boundary was %s):", unfilteredAlbums.size() - filteredAlbums.size(), lowerReleaseDateBoundary.toString()));
 		return filteredAlbums;

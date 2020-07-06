@@ -42,4 +42,4 @@ templates/READY
 /spring.log
 /application.properties
 /log.txt
-/DEV_MODE
+/DEV_MODE.txt

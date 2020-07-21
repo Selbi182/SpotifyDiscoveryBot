@@ -3,6 +3,7 @@ package spotify.bot.config;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -46,7 +47,7 @@ public class DeveloperMode {
 		SKIP_INITIAL_CRAWL
 	}
 
-	private static Set<DevMode> devModes;
+	private static Set<DevMode> devModes = Collections.emptySet();
 	static {
 		File devModeFile = new File("./DEV_MODE.txt");
 		if (devModeFile.canRead()) {
@@ -61,6 +62,7 @@ public class DeveloperMode {
 			}
 		}
 
+		
 		if (!devModes.isEmpty()) {
 			String devModesString = devModes
 				.stream()

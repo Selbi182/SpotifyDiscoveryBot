@@ -55,10 +55,18 @@ public class AlbumTrackPair implements Comparable<AlbumTrackPair>, Comparator<Al
 
 	@Override
 	public String toString() {
+		return toStringExtended(AlbumGroupExtended.fromAlbumGroup(album.getAlbumGroup()));
+	}
+
+	public String toStringExtended(AlbumGroupExtended albumGroupExtended) {
 		if (album == null || tracks == null) {
 			return super.toString();
 		}
-		return String.format("[%s] %s - %s (%s) <%d>", album.getAlbumGroup().toString(), BotUtils.joinArtists(album.getArtists()), album.getName(), album.getReleaseDate(), tracks.size());
+		String baseRepresentation = String.format("[%s] %s - %s (%s)", albumGroupExtended.toString(), BotUtils.joinArtists(album.getArtists()), album.getName(), album.getReleaseDate());
+		if (tracks.size() > 1) {
+			return String.format("%s <%d>", baseRepresentation, tracks.size());
+		}
+		return baseRepresentation;
 	}
 
 	@Override

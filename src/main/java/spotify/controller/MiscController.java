@@ -24,6 +24,17 @@ import spotify.bot.util.BotUtils;
 @Component
 @EnableScheduling
 public class MiscController {
+
+	private final static String LOG_TITLE_AND_STLYE = "<title>Spotify Discovery Bot - Logs</title>"
+		+ "<style>"
+		+ "  body {"
+		+ "    white-space: pre;"
+		+ "    background-color: #222;"
+		+ "    color: #ddd;"
+		+ "    font-family: 'Consolas';"
+		+ "  }"
+		+ "</style>";
+
 	private final static int SHUTDOWN_RETRY_SLEEP = 10 * 1000;
 
 	@Autowired
@@ -58,7 +69,7 @@ public class MiscController {
 
 	/**
 	 * Displays the contents of the of the most recent log entries in a humanly
-	 * readable form (simply using HTML {@code pre} tags).
+	 * readable form (simply using HTML {@code pre} tags and some basic style).
 	 * 
 	 * @param limit (optional) maximum number of lines to read from the bottom of
 	 *              the log (default: 100); Use -1 to read the entire file
@@ -68,9 +79,8 @@ public class MiscController {
 	@RequestMapping("/log")
 	public ResponseEntity<String> showLog(@RequestParam(value = "limit", required = false) Integer limit) {
 		try {
-			String logFileLinesImploded = String.format("<pre>%s</pre>",
-				log.readLog(limit).stream().collect(Collectors.joining("\n")));
-			return new ResponseEntity<String>(logFileLinesImploded, HttpStatus.OK);
+			String logs = log.readLog(limit).stream().collect(Collectors.joining("\n"));
+			return new ResponseEntity<String>(LOG_TITLE_AND_STLYE + logs, HttpStatus.OK);
 		} catch (IOException e) {
 			log.stackTrace(e);
 			return new ResponseEntity<String>(e.getMessage(), HttpStatus.NOT_FOUND);
@@ -78,7 +88,7 @@ public class MiscController {
 	}
 
 	@RequestMapping("/clearlog")
-	public ResponseEntity<String> clearLog() {
+	public ResponseEntity<?> clearLog() {
 		if (log.clearLog()) {
 			return new ResponseEntity<>("Log was successfully cleared!", HttpStatus.OK);
 		}

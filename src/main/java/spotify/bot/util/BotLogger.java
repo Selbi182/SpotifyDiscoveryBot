@@ -27,6 +27,7 @@ import org.springframework.stereotype.Component;
 import com.google.common.base.Strings;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
+import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;
 
 @Component
@@ -187,7 +188,7 @@ public class BotLogger {
 	 * Return the content of the default log file (<code>./spring.log</code>).
 	 * 
 	 * @param limit (optional) maximum number of lines to read from the top of the
-	 *              log (default: 100); Use -1 to read the entire file
+	 *              log (default: 50); Use -1 to read the entire file
 	 * @return a list of strings representing a line of logging
 	 * @throws IOException on a read error
 	 */
@@ -200,9 +201,13 @@ public class BotLogger {
 				} else if (limit < 0) {
 					limit = Integer.MAX_VALUE;
 				}
-				List<String> logFileLines = Files.readAllLines(logFile.toPath(), StandardCharsets.UTF_8);
-				List<String> logFileLinesRecent = logFileLines.subList(Math.max(0, logFileLines.size() - limit), logFileLines.size());
-				return logFileLinesRecent;
+				try {
+					List<String> logFileLines = Files.readAllLines(logFile.toPath(), StandardCharsets.UTF_8);
+					List<String> logFileLinesRecent = logFileLines.subList(Math.max(0, logFileLines.size() - limit), logFileLines.size());
+					return logFileLinesRecent;
+				} catch (IOException e) {
+					throw new IOException("Failed to read log file (malformed encoding?): " + e.toString());
+				}
 			} else {
 				throw new IOException("Log file is currently locked, likely because it is being written to. Try again.");
 			}
@@ -236,6 +241,19 @@ public class BotLogger {
 	public void printAlbumTrackPairs(List<AlbumTrackPair> albumTrackPairs) {
 		for (AlbumTrackPair as : albumTrackPairs) {
 			debug(as.toString());
+		}
+	}
+
+	/**
+	 * Print the given list of album track pairs and override their internal album
+	 * group with the given extension
+	 * 
+	 * @param albumTrackPairs
+	 * @param albumGroupExtended
+	 */
+	public void printAlbumTrackPairs(List<AlbumTrackPair> albumTrackPairs, AlbumGroupExtended albumGroupExtended) {
+		for (AlbumTrackPair as : albumTrackPairs) {
+			debug(as.toStringExtended(albumGroupExtended));
 		}
 	}
 

@@ -2,13 +2,15 @@ package spotify.bot.config;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.StringJoiner;
+import java.nio.file.Files;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.context.annotation.Configuration;
 
 import com.google.common.base.Strings;
-import com.google.common.io.Files;
 
 /**
  * This class controls the developer mode state of the application. Cache and
@@ -18,12 +20,9 @@ import com.google.common.io.Files;
  */
 @Configuration
 public class DeveloperMode {
-	private enum DevMode {
-		/**
-		 * No dev mode, used for Live/Production, also the default case
-		 */
-		OFF,
+	private static final String COMMENT_SYMBOL = "#";
 
+	private enum DevMode {
 		/**
 		 * Releases won't be cached (meaning they will get reclassified as "new" with
 		 * each crawl), but they will still be added to any playlists as usual
@@ -36,36 +35,39 @@ public class DeveloperMode {
 		DISABLE_PLAYLIST_ADDITIONS,
 
 		/**
-		 * Releases are neither cached nor added to playlist (default dev mode)
+		 * Scheduled crawls that run once every 30 minutes will be completely disabled.
+		 * Only manual calls at {@code /crawl} will be executed.
 		 */
-		DISABLE_ALL
+		DISABLE_SCHEDULED_CRAWLS,
+
+		/**
+		 * The initial crawl when first starting the bot will be skipped entirely
+		 */
+		SKIP_INITIAL_CRAWL
 	}
 
-	private static DevMode DEVELOPER_MODE;
+	private static Set<DevMode> devModes;
 	static {
 		File devModeFile = new File("./DEV_MODE.txt");
-		DevMode devMode = DevMode.OFF;
 		if (devModeFile.canRead()) {
-			try {
-				String firstLine = Files.asCharSource(devModeFile, StandardCharsets.UTF_8).readFirstLine();
-				devMode = DevMode.valueOf(firstLine.trim());
-			} catch (IOException | NullPointerException e) {
-				System.out.println("Found DEV_MODE.txt file but couldn't read it. Defaulting to DISABLE_ALL!");
-				devMode = DevMode.DISABLE_ALL;
+			try (Stream<String> lines = Files.lines(devModeFile.toPath())) {
+				devModes = lines
+					.map(DeveloperMode::parseDevModeLine)
+					.filter(Objects::nonNull)
+					.collect(Collectors.toSet());
+			} catch (IOException e) {
+				System.out.println("Found DEV_MODE.txt file but couldn't read it. Defaulting to NO developer settings!");
 				e.printStackTrace();
 			}
 		}
-		DEVELOPER_MODE = devMode;
 
-		if (isAnyDevMode()) {
-			StringJoiner sj = new StringJoiner(" or ");
-			if (isCacheDisabled()) {
-				sj.add("cached");
-			}
-			if (isPlaylistAdditionDisabled()) {
-				sj.add("added to playlists");
-			}
-			String devModeText = String.format(">>> DEVELOPER MODE -- releases will NOT be %s <<<", sj.toString());
+		if (!devModes.isEmpty()) {
+			String devModesString = devModes
+				.stream()
+				.map(DevMode::toString)
+				.collect(Collectors.joining(", "));
+
+			String devModeText = String.format(">>> DEVELOPER MODE [%s] <<<", devModesString);
 
 			System.out.println(Strings.repeat("=", devModeText.length()));
 			System.out.println(devModeText);
@@ -73,32 +75,40 @@ public class DeveloperMode {
 		}
 	}
 
-	/**
-	 * Return true if ANY dev mode except is set (anything except OFF)
-	 */
-	public static boolean isAnyDevMode() {
-		return !DEVELOPER_MODE.equals(DevMode.OFF);
+	private static DevMode parseDevModeLine(String line) {
+		String trimmed = line.strip();
+		if (!trimmed.isBlank() && !trimmed.startsWith(COMMENT_SYMBOL)) {
+			DevMode parsedDevMode = DevMode.valueOf(trimmed);
+			return parsedDevMode;
+		}
+		return null;
 	}
 
 	/**
-	 * Return true if caching is disabled in the current dev mode
+	 * Return true if caching is disabled
 	 */
 	public static boolean isCacheDisabled() {
-		return isFullDevMode() || DEVELOPER_MODE.equals(DevMode.DISABLE_CACHE);
+		return devModes.contains(DevMode.DISABLE_CACHE);
 	}
 
 	/**
-	 * Return true if playlist additions are disabled in the current dev mode
+	 * Return true if playlist additions are disabled
 	 */
 	public static boolean isPlaylistAdditionDisabled() {
-		return isFullDevMode() || DEVELOPER_MODE.equals(DevMode.DISABLE_PLAYLIST_ADDITIONS);
+		return devModes.contains(DevMode.DISABLE_PLAYLIST_ADDITIONS);
 	}
 
 	/**
-	 * Return true if the full dev mode is enabled (BOTH caching and playlist
-	 * additions are disabled)
+	 * Return true if scheduled crawls are disabled
 	 */
-	public static boolean isFullDevMode() {
-		return DEVELOPER_MODE.equals(DevMode.DISABLE_ALL);
+	public static boolean isScheduledCrawlDisabled() {
+		return devModes.contains(DevMode.DISABLE_SCHEDULED_CRAWLS);
+	}
+
+	/**
+	 * Return true if the initial crawl should be skipped
+	 */
+	public static boolean isInitialCrawlSkipped() {
+		return devModes.contains(DevMode.SKIP_INITIAL_CRAWL);
 	}
 }

@@ -21,6 +21,7 @@ import spotify.bot.api.services.ArtistService;
 import spotify.bot.api.services.PlaylistInfoService;
 import spotify.bot.api.services.PlaylistSongsService;
 import spotify.bot.api.services.TrackService;
+import spotify.bot.config.DeveloperMode;
 import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.filter.FilterService;
 import spotify.bot.filter.RemappingService;
@@ -104,12 +105,14 @@ public class DiscoveryBotCrawler {
 		log.printLine();
 		log.info("Executing initial crawl...");
 		long time = System.currentTimeMillis();
-		{
+		if (!DeveloperMode.isInitialCrawlSkipped()) {
 			Map<AlbumGroupExtended, Integer> results = crawl();
 			String response = BotUtils.compileResultString(results);
 			if (response != null) {
 				log.info(response);
 			}
+		} else {
+			log.info(">>> SKIPPED <<<");
 		}
 		log.info("Initial crawl successfully finished in: " + (System.currentTimeMillis() - time) + "ms");
 		log.resetAndPrintLine();

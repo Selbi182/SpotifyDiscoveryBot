@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import spotify.bot.DiscoveryBotCrawler;
 import spotify.bot.api.BotException;
+import spotify.bot.config.DeveloperMode;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -31,8 +32,21 @@ public class CrawlSchedulerController {
 
 	/**
 	 * Run the scheduler every 30 minutes (with a few seconds extra to offset
-	 * timezone deviations).<br/>
-	 * Can be manually refreshed at: http://localhost:8080/refresh<br/>
+	 * timezone deviations).
+	 * 
+	 * @throws BotException on an external exception related to the Spotify Web API
+	 * @throws SQLException on an internal exception related to the SQLite database
+	 */
+	@Scheduled(cron = "5 */30 * * * *")
+	private void scheduledCrawl() throws BotException, SQLException {
+		if (!DeveloperMode.isScheduledCrawlDisabled()) {
+			runCrawler();
+		}
+	}
+
+	/**
+	 * Entry point for the bot crawler. May be called by the scheduler, but may also
+	 * be manually called from: http://localhost:8080/refresh<br/>
 	 * <br/>
 	 * Possible ResponseEntities:
 	 * <ul>
@@ -47,9 +61,8 @@ public class CrawlSchedulerController {
 	 * @throws BotException on an external exception related to the Spotify Web API
 	 * @throws SQLException on an internal exception related to the SQLite database
 	 */
-	@Scheduled(cron = "5 */30 * * * *")
 	@RequestMapping("/crawl")
-	public ResponseEntity<String> runScheduler() throws BotException, SQLException {
+	public ResponseEntity<String> runCrawler() throws BotException, SQLException {
 		if (crawler.isReady()) {
 			try {
 				Map<AlbumGroupExtended, Integer> results = crawler.tryCrawl();

@@ -59,7 +59,7 @@ public class PlaylistSongsService {
 				if (!DeveloperMode.isPlaylistAdditionDisabled()) {
 					addSongsToPlaylistId(ps.getPlaylistId(), albumTrackPairs);
 				}
-				log.printAlbumTrackPairs(albumTrackPairs);
+				log.printAlbumTrackPairs(albumTrackPairs, ps.getAlbumGroupExtended());
 			}
 		}
 	}

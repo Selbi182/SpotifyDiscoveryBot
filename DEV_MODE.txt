@@ -1,0 +1,25 @@
+#######################################################################################################
+# Developer Settings
+#######################################################################################################
+# DISABLE_CACHE
+#   No albums or artists are ever added to the cache, meaning releases will be rediscovered
+#   during every crawl and classified as new. This will also not prevent these albums getting
+#   added to the target playlists over and over again.
+#
+# DISABLE_PLAYLIST_ADDITIONS
+#   Newly discovered releases will not be added to any target playlists. They will still be marked
+#   with a notifier though and the "Last Search" description will still be set.
+#
+# DISABLE_SCHEDULED_CRAWLS
+#   Scheduled crawls that run once every 30 minutes will be completely disabled. Only manual calls
+#   at /crawl will be executed.
+#
+# SKIP_INITIAL_CRAWL
+#   The initial crawl when first starting the bot will be skipped entirely.
+#
+#######################################################################################################
+
+#DISABLE_PLAYLIST_ADDITIONS
+#DISABLE_CACHE
+#DISABLE_SCHEDULED_CRAWLS
+#SKIP_INITIAL_CRAWL

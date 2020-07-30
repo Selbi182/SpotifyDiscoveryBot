@@ -63,7 +63,7 @@ public class AlbumTrackPair implements Comparable<AlbumTrackPair>, Comparator<Al
 			return super.toString();
 		}
 		String baseRepresentation = String.format("[%s] %s - %s (%s)", albumGroupExtended.toString(), BotUtils.joinArtists(album.getArtists()), album.getName(), album.getReleaseDate());
-		if (tracks.size() > 1) {
+		if (tracks.size() != 1) {
 			return String.format("%s <%d>", baseRepresentation, tracks.size());
 		}
 		return baseRepresentation;

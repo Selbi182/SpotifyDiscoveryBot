@@ -4,6 +4,7 @@ import java.io.File;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Comparator;
@@ -30,7 +31,7 @@ public final class BotUtils {
 	 * A common order of the different playlist groups: Album > Single > EP > Remix
 	 * > Live > Compilation > Appears On
 	 */
-	public final static Comparator<AlbumGroupExtended> DEFAULT_PLAYLIST_GROUP_ORDER_COMPARATOR = Ordering.explicit(
+	public final static List<AlbumGroupExtended> DEFAULT_PLAYLIST_GROUP_ORDER = Arrays.asList(
 		AlbumGroupExtended.ALBUM,
 		AlbumGroupExtended.SINGLE,
 		AlbumGroupExtended.EP,
@@ -38,6 +39,11 @@ public final class BotUtils {
 		AlbumGroupExtended.LIVE,
 		AlbumGroupExtended.COMPILATION,
 		AlbumGroupExtended.APPEARS_ON);
+
+	/**
+	 * {@link BotUtils#DEFAULT_PLAYLIST_GROUP_ORDER} as explicit Comparator
+	 */
+	public final static Comparator<AlbumGroupExtended> DEFAULT_PLAYLIST_GROUP_ORDER_COMPARATOR = Ordering.explicit(DEFAULT_PLAYLIST_GROUP_ORDER);
 
 	/**
 	 * Utility class
@@ -130,12 +136,13 @@ public final class BotUtils {
 			int totalSongsAdded = songsAddedPerAlbumGroups.values().stream().mapToInt(Integer::intValue).sum();
 			if (totalSongsAdded > 0) {
 				StringJoiner sj = new StringJoiner(" / ");
-				songsAddedPerAlbumGroups.entrySet().stream().forEach(sapat -> {
-					if (sapat.getValue() > 0) {
-						sj.add(sapat.getValue() + " " + sapat.getKey());
+				for (AlbumGroupExtended age : DEFAULT_PLAYLIST_GROUP_ORDER) {
+					Integer songsAdded = songsAddedPerAlbumGroups.get(age);
+					if (songsAdded != null && songsAdded > 0) {
+						sj.add(songsAdded + " " + age);
 					}
-				});
-				return (String.format("%d new song%s added! [%s]", totalSongsAdded, totalSongsAdded > 1 ? "s" : "", sj.toString()));
+				}
+				return (String.format("%d new song%s added! [%s]", totalSongsAdded, totalSongsAdded != 1 ? "s" : "", sj.toString()));
 			}
 		}
 		return null;
@@ -224,5 +231,20 @@ public final class BotUtils {
 			return file.toPath().normalize().toFile();
 		}
 		return null;
+	}
+
+	/**
+	 * Adds all the items of the given (primitive) array to the specified List, if
+	 * and only if the item array is not null and contains at least one item.
+	 * 
+	 * @param <T>    the shared class type
+	 * @param source the items to add
+	 * @param target the target list
+	 */
+	public static <T> void addToListIfNotBlank(T[] source, List<T> target) {
+		if (source != null && source.length > 0) {
+			List<T> asList = Arrays.asList(source);
+			target.addAll(asList);
+		}
 	}
 }

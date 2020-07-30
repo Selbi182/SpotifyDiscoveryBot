@@ -8,9 +8,14 @@ import java.util.Set;
 import com.wrapper.spotify.enums.AlbumGroup;
 
 public enum AlbumGroupExtended {
-	ALBUM("album"), APPEARS_ON("appears_on"), COMPILATION("compilation"), SINGLE("single"),
+	ALBUM("album"),
+	APPEARS_ON("appears_on"),
+	COMPILATION("compilation"),
+	SINGLE("single"),
 
-	EP("ep", true), REMIX("remix", true), LIVE("live", true);
+	EP("ep", true),
+	REMIX("remix", true),
+	LIVE("live", true);
 
 	private static final Map<String, AlbumGroupExtended> map = new HashMap<>();
 	private static final Set<AlbumGroupExtended> extendedTypes = new HashSet<>();
@@ -54,7 +59,7 @@ public enum AlbumGroupExtended {
 	 */
 	public AlbumGroup asAlbumGroup() throws IllegalArgumentException {
 		AlbumGroup ag = AlbumGroup.keyOf(this.group);
-		if (ag == null) {
+		if (ag == null || isExtendedType()) {
 			throw new IllegalArgumentException("This is a special album group and cannot be converted back into a regular one!");
 		}
 		return ag;

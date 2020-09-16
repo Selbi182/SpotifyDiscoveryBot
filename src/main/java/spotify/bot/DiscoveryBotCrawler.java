@@ -18,7 +18,7 @@ import spotify.bot.api.BotException;
 import spotify.bot.api.SpotifyApiAuthorization;
 import spotify.bot.api.services.AlbumService;
 import spotify.bot.api.services.ArtistService;
-import spotify.bot.api.services.PlaylistInfoService;
+import spotify.bot.api.services.PlaylistMetaService;
 import spotify.bot.api.services.PlaylistSongsService;
 import spotify.bot.api.services.TrackService;
 import spotify.bot.config.DeveloperMode;
@@ -51,7 +51,7 @@ public class DiscoveryBotCrawler {
 	private PlaylistSongsService playlistSongsService;
 
 	@Autowired
-	private PlaylistInfoService playlistInfoService;
+	private PlaylistMetaService playlistInfoService;
 
 	@Autowired
 	private FilterService filterService;
@@ -154,7 +154,6 @@ public class DiscoveryBotCrawler {
 	private Map<AlbumGroupExtended, Integer> crawl() throws BotException, SQLException {
 		spotifyApiAuthorization.login();
 		Map<AlbumGroupExtended, Integer> crawlResults = crawlScript();
-		playlistInfoService.timestampPlaylists();
 		return crawlResults;
 	}
 

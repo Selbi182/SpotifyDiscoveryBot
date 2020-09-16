@@ -10,7 +10,6 @@ import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.bot.util.data.AlbumTrackPair;
 
 @Component
 public class RemixRemapper implements Remapper {
@@ -45,10 +44,6 @@ public class RemixRemapper implements Remapper {
 	 * "REMIX" in their titles (one word, case insenstive)
 	 */
 	@Override
-	public boolean qualifiesAsRemappable(AlbumTrackPair atp) {
-		return qualifiesAsRemappable(atp.getAlbum().getName(), atp.getTracks());
-	}
-
 	public boolean qualifiesAsRemappable(String albumTitle, List<TrackSimplified> tracks) {
 		boolean hasRemixInTitle = REMIX_MATCHER.matcher(albumTitle).find();
 		List<String> trackIds = tracks.stream().map(TrackSimplified::getName).collect(Collectors.toList());

@@ -19,6 +19,7 @@ import com.wrapper.spotify.model_objects.miscellaneous.CurrentlyPlaying;
 import com.wrapper.spotify.model_objects.specification.Playlist;
 import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
 import com.wrapper.spotify.model_objects.specification.Track;
+import com.wrapper.spotify.requests.data.playlists.ChangePlaylistsDetailsRequest;
 
 import spotify.bot.api.BotException;
 import spotify.bot.api.SpotifyCall;
@@ -31,19 +32,9 @@ import spotify.bot.util.BotUtils;
 import spotify.bot.util.data.AlbumTrackPair;
 
 @Service
-public class PlaylistInfoService {
+public class PlaylistMetaService {
 
 	private final static int MAX_PLAYLIST_TRACK_FETCH_LIMIT = 50;
-
-	/**
-	 * The old new-songs indicator as Unicode. Roughly looks like [N][E][W]
-	 * 
-	 * @deprecated While usable, it was platform-inconsistent. Use
-	 *             {@link PlaylistInfoService#INDICATOR_NEW} instead
-	 */
-	@SuppressWarnings("unused")
-	@Deprecated
-	private final static String NEW_INDICATOR_TEXT = "\uD83C\uDD7D\uD83C\uDD74\uD83C\uDD86";
 
 	/**
 	 * New-songs indicator (new songs are found), a white circle
@@ -86,7 +77,7 @@ public class PlaylistInfoService {
 		for (PlaylistStore ps : sortedPlaylistStores) {
 			List<AlbumTrackPair> albumTrackPairs = songsByPlaylist.get(ps);
 			if (!albumTrackPairs.isEmpty()) {
-				replaceNotifierSymbol(ps, INDICATOR_OFF, INDICATOR_NEW);
+				updatePlaylistTitleAndDescription(ps, INDICATOR_OFF, INDICATOR_NEW, true);
 				configUpdate.refreshPlaylistStore(ps.getAlbumGroupExtended());
 			}
 		}
@@ -101,7 +92,7 @@ public class PlaylistInfoService {
 		boolean changed = false;
 		for (PlaylistStore ps : playlistStoreConfig.getAllPlaylistStores()) {
 			if (shouldIndicatorBeMarkedAsRead(ps)) {
-				if (replaceNotifierSymbol(ps, INDICATOR_NEW, INDICATOR_OFF)) {
+				if (updatePlaylistTitleAndDescription(ps, INDICATOR_NEW, INDICATOR_OFF, false)) {
 					configUpdate.unsetPlaylistStore(ps.getAlbumGroupExtended());
 					changed = true;
 				}
@@ -112,27 +103,47 @@ public class PlaylistInfoService {
 
 	/**
 	 * Update the playlist name by replacing the target symbol with the replacement
-	 * symbol IF it isn't already contained in the playlist's name.
+	 * symbol IF it isn't already contained in the playlist's name. Also timestamp
+	 * the playlist, if specified.
 	 * 
-	 * @param playlistStore the PlaylistStore containing the relevant playlist
-	 * @param target        the target String to be replaced
-	 * @param replacement   the replacement String
-	 * @return true if the playlist name was changed
+	 * @param playlistStore       the PlaylistStore containing the relevant playlist
+	 * @param notifierTarget      the target String to be replaced
+	 * @param notifierReplacement the replacement String
+	 * @param timestamp           write the "Last Discovery" timestamp in the
+	 *                            description
+	 * @return true if the playlist name was changed (a changed playlist description
+	 *         has no effect on its own)
 	 */
-	private boolean replaceNotifierSymbol(PlaylistStore playlistStore, String target, String replacement) throws BotException {
+	private boolean updatePlaylistTitleAndDescription(PlaylistStore playlistStore, String notifierTarget, String notifierReplacement, boolean timestamp) throws BotException {
+		boolean changed = false;
 		String playlistId = playlistStore.getPlaylistId();
 		if (playlistId != null) {
+			String newPlaylistName = null;
+			String newDescription = null;
+
+			if (timestamp) {
+				newDescription = "Last Discovery: " + DESCRIPTION_TIMESTAMP_FORMAT.format(Calendar.getInstance().getTime());
+			}
+
 			Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
 			String playlistName = p.getName();
-			if (playlistName != null && playlistName.contains(target)) {
-				playlistName = playlistName.replace(target, replacement).trim();
-				SpotifyCall.execute(spotifyApi
-					.changePlaylistsDetails(playlistId)
-					.name(playlistName));
-				return true;
+			if (playlistName != null && playlistName.contains(notifierTarget)) {
+				newPlaylistName = playlistName.replace(notifierTarget, notifierReplacement).trim();
+				changed = true;
+			}
+
+			if (newPlaylistName != null || newDescription != null) {
+				ChangePlaylistsDetailsRequest.Builder playlistDetailsBuilder = spotifyApi.changePlaylistsDetails(playlistId);
+				if (newPlaylistName != null) {
+					playlistDetailsBuilder = playlistDetailsBuilder.name(newPlaylistName);
+				}
+				if (newDescription != null) {
+					playlistDetailsBuilder = playlistDetailsBuilder.description(newDescription);
+				}
+				SpotifyCall.execute(playlistDetailsBuilder);
 			}
 		}
-		return false;
+		return changed;
 	}
 
 	////////////////////////////////
@@ -190,24 +201,5 @@ public class PlaylistInfoService {
 			log.stackTrace(e);
 		}
 		return false;
-	}
-
-	////////////////////////////////
-
-	/**
-	 * Timestamp all given playlists with the last search date
-	 * 
-	 * @param collection
-	 */
-	public void timestampPlaylists() throws BotException {
-		for (PlaylistStore ps : playlistStoreConfig.getAllPlaylistStores()) {
-			String playlistId = ps.getPlaylistId();
-			if (playlistId != null) {
-				String newDescription = String.format("Last Search: %s", DESCRIPTION_TIMESTAMP_FORMAT.format(Calendar.getInstance().getTime()));
-				SpotifyCall.execute(spotifyApi
-					.changePlaylistsDetails(playlistId)
-					.description(newDescription));
-			}
-		}
 	}
 }

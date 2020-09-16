@@ -3,7 +3,6 @@ package spotify.bot.filter.remapper;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.wrapper.spotify.enums.AlbumGroup;
@@ -12,18 +11,20 @@ import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
 import spotify.bot.api.services.TrackService;
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.bot.util.data.AlbumTrackPair;
 
 @Component
 public class LiveRemapper implements Remapper {
 
-	@Autowired
-	private TrackService trackService;
+	private final TrackService trackService;
+	
+	public LiveRemapper(TrackService trackService) {
+		this.trackService = trackService;
+	}
 
-	private final static Pattern LIVE_MATCHER = Pattern.compile("\\bLIVE\\b", Pattern.CASE_INSENSITIVE);
+	private final static Pattern LIVE_MATCHER = Pattern.compile("\\b(LIVE|SHOW|TOUR)\\b", Pattern.CASE_INSENSITIVE);
 	private final static double LIVE_SONG_COUNT_PERCENTAGE_THRESHOLD_DEFINITE = 0.9;
 	private final static double LIVENESS_THRESHOLD = 0.55;
-	private final static double LIVENESS_THRESHOLD_LESSER = 0.3;
+	private final static double LIVENESS_THRESHOLD_LESSER = 0.4;
 	private final static double EPSILON = 0.01;
 	private final static int MIN_SONG_COUNT_FOR_SHORTCUT = 3;
 
@@ -66,11 +67,7 @@ public class LiveRemapper implements Remapper {
 	 * @return
 	 */
 	@Override
-	public boolean qualifiesAsRemappable(AlbumTrackPair atp) {
-		return qualifiesAsRemappable(atp.getAlbum().getName(), atp.getTracks(), trackService);
-	}
-
-	public boolean qualifiesAsRemappable(String albumTitle, List<TrackSimplified> tracks, TrackService ts) {
+	public boolean qualifiesAsRemappable(String albumTitle, List<TrackSimplified> tracks) {
 		double trackCount = tracks.size();
 		double liveTracks = tracks.stream().filter(t -> LIVE_MATCHER.matcher(t.getName()).find()).count();
 		double liveTrackPercentage = liveTracks / trackCount;
@@ -82,7 +79,7 @@ public class LiveRemapper implements Remapper {
 		boolean hasLiveInTracks = liveTrackPercentage > EPSILON;
 
 		if (hasLiveInTitle || hasLiveInTracks) {
-			List<AudioFeatures> audioFeatures = ts.getAudioFeatures(tracks);
+			List<AudioFeatures> audioFeatures = trackService.getAudioFeatures(tracks);
 			double averageLiveness = audioFeatures.stream().mapToDouble(AudioFeatures::getLiveness).average().getAsDouble();
 			boolean isLive = averageLiveness > LIVENESS_THRESHOLD;
 			if (!isLive && hasLiveInTitle) {

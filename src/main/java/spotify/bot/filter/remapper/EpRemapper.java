@@ -7,8 +7,8 @@ import org.springframework.stereotype.Component;
 
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
+import spotify.bot.util.BotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.bot.util.data.AlbumTrackPair;
 
 @Component
 public class EpRemapper implements Remapper {
@@ -50,10 +50,6 @@ public class EpRemapper implements Remapper {
 	 * @return
 	 */
 	@Override
-	public boolean qualifiesAsRemappable(AlbumTrackPair atp) {
-		return qualifiesAsRemappable(atp.getAlbum().getName(), atp.getTracks());
-	}
-
 	public boolean qualifiesAsRemappable(String albumTitle, List<TrackSimplified> tracks) {
 		if (EP_MATCHER.matcher(albumTitle).find()) {
 			return true;
@@ -64,10 +60,11 @@ public class EpRemapper implements Remapper {
 			return true;
 		}
 		if (trackCount >= EP_SONG_COUNT_THRESHOLD_LESSER && totalDurationMs >= EP_DURATION_THRESHOLD_LESSER) {
-			boolean hasTitleTrack = tracks.stream().anyMatch(t -> t.getName().equalsIgnoreCase(albumTitle));
-			if (!hasTitleTrack) {
-				return true;
-			}
+			String strippedAlbumTitle = BotUtils.strippedTrackIdentifier(albumTitle);
+			return !tracks.stream()
+				.map(TrackSimplified::getName)
+				.map(BotUtils::strippedTrackIdentifier)
+				.anyMatch(t -> t.equalsIgnoreCase(strippedAlbumTitle));
 		}
 		return false;
 	}

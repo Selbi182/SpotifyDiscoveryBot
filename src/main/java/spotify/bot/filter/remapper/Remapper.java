@@ -1,5 +1,9 @@
 package spotify.bot.filter.remapper;
 
+import java.util.List;
+
+import com.wrapper.spotify.model_objects.specification.TrackSimplified;
+
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;
 
@@ -28,5 +32,17 @@ public interface Remapper {
 	 * @param atp
 	 * @return
 	 */
-	boolean qualifiesAsRemappable(AlbumTrackPair atp);
+	default boolean qualifiesAsRemappable(AlbumTrackPair atp) {
+		return qualifiesAsRemappable(atp.getAlbum().getName(), atp.getTracks());
+	}
+	
+	/**
+	 * Returns true if the given release qualifies as a remappable candidate. This
+	 * is the main logic of the remappers and largely implementation-specific; see
+	 * the respective implementation Javadocs for more details.
+	 * 
+	 * @param atp
+	 * @return
+	 */
+	boolean qualifiesAsRemappable(String albumTitle, List<TrackSimplified> tracks);
 }

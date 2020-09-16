@@ -247,4 +247,25 @@ public final class BotUtils {
 			target.addAll(asList);
 		}
 	}
+
+	/**
+	 * Creates a string that tries to be as normalized and generic as possible,
+	 * based on the given track. The track's name will be lowercased, stripped off
+	 * any white space and special characters, and anything in brackets such as
+	 * "feat.", "bonus track", "remastered" will be removed.
+	 * 
+	 * @param track a string that is assumed to be the title of a track or an album
+	 * @return the stripped title
+	 */
+	public static String strippedTrackIdentifier(String track) {
+		return track
+			.toLowerCase()
+			.replaceAll(",", " ")
+			.replaceAll("bonus track", "")
+			.replaceAll("\\(.+\\)", "")
+			.replaceAll("\\s+", "")
+			.replaceAll("\\W+", "")
+			.replaceAll("\\W+.*$", "");
+
+	}
 }

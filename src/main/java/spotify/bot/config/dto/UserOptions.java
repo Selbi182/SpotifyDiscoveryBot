@@ -8,6 +8,7 @@ public class UserOptions {
 	private boolean epSeparation;
 	private boolean remixSeparation;
 	private boolean liveSeparation;
+	private boolean rereleaseSeparation;
 
 	public boolean isCacheFollowedArtists() {
 		return cacheFollowedArtists;
@@ -65,10 +66,18 @@ public class UserOptions {
 		this.liveSeparation = liveSeparation;
 	}
 
+	public boolean isRereleaseSeparation() {
+		return rereleaseSeparation;
+	}
+
+	public void setRereleaseSeparation(boolean rereleaseSeparation) {
+		this.rereleaseSeparation = rereleaseSeparation;
+	}
+
 	@Override
 	public String toString() {
 		return "UserOptions [cacheFollowedArtists=" + cacheFollowedArtists + ", batchPlaylistAddition=" + batchPlaylistAddition + ", intelligentAppearsOnSearch=" + intelligentAppearsOnSearch + ", circularPlaylistFitting="
-			+ circularPlaylistFitting + ", epSeparation=" + epSeparation + ", remixSeparation=" + remixSeparation + ", liveSeparation=" + liveSeparation + "]";
+			+ circularPlaylistFitting + ", epSeparation=" + epSeparation + ", remixSeparation=" + remixSeparation + ", liveSeparation=" + liveSeparation + ", rereleaseSeparation=" + rereleaseSeparation + "]";
 	}
 
 }

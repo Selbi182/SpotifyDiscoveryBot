@@ -18,6 +18,7 @@ import spotify.bot.filter.remapper.EpRemapper;
 import spotify.bot.filter.remapper.LiveRemapper;
 import spotify.bot.filter.remapper.Remapper;
 import spotify.bot.filter.remapper.RemixRemapper;
+import spotify.bot.filter.remapper.RereleaseRemapper;
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;
 
@@ -35,6 +36,9 @@ public class RemappingService {
 
 	@Autowired
 	private RemixRemapper remixRemapper;
+	
+	@Autowired
+	private RereleaseRemapper rereleaseRemapper;
 
 	@Autowired
 	private LiveRemapper liveRemapper;
@@ -74,6 +78,7 @@ public class RemappingService {
 		// Copy map first to retain the input map (makes debugging easier)
 		Map<PlaylistStore, List<AlbumTrackPair>> regroupedMap = new HashMap<>(songsByPS);
 
+		remap(userOptions.isRereleaseSeparation(), rereleaseRemapper, regroupedMap);
 		remap(userOptions.isRemixSeparation(), remixRemapper, regroupedMap);
 		remap(userOptions.isLiveSeparation(), liveRemapper, regroupedMap);
 		remap(userOptions.isEpSeparation(), epRemapper, regroupedMap);
@@ -94,7 +99,9 @@ public class RemappingService {
 					if (remapper.isAllowedAlbumGroup(entry.getKey().getAlbumGroupExtended())) {
 						List<AlbumTrackPair> releases = entry.getValue();
 						if (releases != null && !releases.isEmpty()) {
-							List<AlbumTrackPair> filteredReleases = releases.stream().filter(atp -> remapper.qualifiesAsRemappable(atp)).collect(Collectors.toList());
+							List<AlbumTrackPair> filteredReleases = releases.stream()
+								.filter(remapper::qualifiesAsRemappable)
+								.collect(Collectors.toList());
 							if (!filteredReleases.isEmpty()) {
 								remappedTracks.addAll(filteredReleases);
 								releases.removeAll(filteredReleases);

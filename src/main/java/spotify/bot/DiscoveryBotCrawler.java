@@ -191,7 +191,8 @@ public class DiscoveryBotCrawler {
 		List<AlbumSimplified> allAlbums = albumService.getAllAlbumsOfArtists(followedArtists);
 		List<AlbumSimplified> nonCachedAlbums = filterService.getNonCachedAlbumsAndCache(allAlbums);
 		List<AlbumSimplified> insertedAppearOnArtistsAlbums = albumService.resolveViaAppearsOnArtistNames(nonCachedAlbums);
-		List<AlbumSimplified> filteredAlbums = filterService.filterNewAlbumsOnly(insertedAppearOnArtistsAlbums);
+		List<AlbumSimplified> filteredNoDuplicatesAlbums = filterService.filterDuplicateAlbums(insertedAppearOnArtistsAlbums);
+		List<AlbumSimplified> filteredAlbums = filterService.filterNewAlbumsOnly(filteredNoDuplicatesAlbums);
 		return filteredAlbums;
 	}
 

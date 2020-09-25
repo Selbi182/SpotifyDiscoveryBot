@@ -27,6 +27,7 @@ class DBConstants {
 	public final static String COL_EP_SEPARATION = "ep_separation";
 	public final static String COL_REMIX_SEPARATION = "remix_separation";
 	public final static String COL_LIVE_SEPARATION = "live_separation";
+	public final static String COL_RERELEASE_SEPARATION = "rerelease_separation";
 
 	public final static String TABLE_PLAYLIST_STORE = "playlist_store";
 	public final static String COL_ALBUM_GROUP = "album_group";

@@ -38,6 +38,7 @@ public final class BotUtils {
 		AlbumGroupExtended.REMIX,
 		AlbumGroupExtended.LIVE,
 		AlbumGroupExtended.COMPILATION,
+		AlbumGroupExtended.RE_RELEASE,
 		AlbumGroupExtended.APPEARS_ON);
 
 	/**

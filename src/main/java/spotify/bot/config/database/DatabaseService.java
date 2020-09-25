@@ -112,6 +112,7 @@ public class DatabaseService {
 		userOptions.setEpSeparation(db.getBoolean(DBConstants.COL_EP_SEPARATION));
 		userOptions.setRemixSeparation(db.getBoolean(DBConstants.COL_REMIX_SEPARATION));
 		userOptions.setLiveSeparation(db.getBoolean(DBConstants.COL_LIVE_SEPARATION));
+		userOptions.setRereleaseSeparation(db.getBoolean(DBConstants.COL_RERELEASE_SEPARATION));
 		return userOptions;
 	}
 

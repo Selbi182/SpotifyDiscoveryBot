@@ -15,7 +15,8 @@ public enum AlbumGroupExtended {
 
 	EP("ep", true),
 	REMIX("remix", true),
-	LIVE("live", true);
+	LIVE("live", true),
+	RE_RELEASE("re_release", true);
 
 	private static final Map<String, AlbumGroupExtended> map = new HashMap<>();
 	private static final Set<AlbumGroupExtended> extendedTypes = new HashSet<>();

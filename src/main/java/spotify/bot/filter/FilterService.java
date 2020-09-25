@@ -133,26 +133,7 @@ public class FilterService {
 		}
 		return categorized;
 	}
-
-	/**
-	 * Filter out all albums not released within the lookbackDays range
-	 * 
-	 * @param unfilteredAlbums
-	 * @return
-	 */
-	public List<AlbumSimplified> filterNewAlbumsOnly(List<AlbumSimplified> unfilteredAlbums) {
-		Collection<AlbumSimplified> noDuplicates = filterDuplicateAlbums(unfilteredAlbums);
-		int lookbackDays = staticConfig.getLookbackDays();
-		LocalDate lowerReleaseDateBoundary = LocalDate.now().minusDays(lookbackDays);
-		List<AlbumSimplified> filteredAlbums = noDuplicates
-			.stream()
-			.filter(as -> isValidDate(as, lowerReleaseDateBoundary))
-			.collect(Collectors.toList());
-		log.printDroppedAlbumDifference(noDuplicates, filteredAlbums,
-			String.format("Dropped %d non-cached but too-old release[s] (lower boundary was %s):", unfilteredAlbums.size() - filteredAlbums.size(), lowerReleaseDateBoundary.toString()));
-		return filteredAlbums;
-	}
-
+	
 	/**
 	 * Filter duplicate albums. This is done by converting the most important meta
 	 * data into a String and making sure those are unique.
@@ -160,7 +141,7 @@ public class FilterService {
 	 * @param unfilteredAlbums
 	 * @return
 	 */
-	private Collection<AlbumSimplified> filterDuplicateAlbums(List<AlbumSimplified> unfilteredAlbums) {
+	public List<AlbumSimplified> filterDuplicateAlbums(List<AlbumSimplified> unfilteredAlbums) {
 		Map<String, AlbumSimplified> uniqueMap = new HashMap<>();
 		for (AlbumSimplified as : unfilteredAlbums) {
 			String identifier = getAlbumIdentifierString(as);
@@ -171,7 +152,7 @@ public class FilterService {
 		Collection<AlbumSimplified> leftoverAlbums = uniqueMap.values();
 		log.printDroppedAlbumDifference(unfilteredAlbums, leftoverAlbums,
 			String.format("Dropped %d duplicate[s] released at the same time:", unfilteredAlbums.size() - leftoverAlbums.size()));
-		return leftoverAlbums;
+		return new ArrayList<>(leftoverAlbums);
 	}
 
 	private String getAlbumIdentifierString(AlbumSimplified as) {
@@ -186,15 +167,35 @@ public class FilterService {
 	}
 
 	/**
+	 * Filter out all albums not released within the lookbackDays range (if
+	 * rerelease remapping isn't enabled)
+	 * 
+	 * @param unfilteredAlbums
+	 * @return
+	 */
+	public List<AlbumSimplified> filterNewAlbumsOnly(List<AlbumSimplified> unfilteredAlbums) {
+		if (!userOptions.isRereleaseSeparation()) {
+			List<AlbumSimplified> filteredAlbums = unfilteredAlbums.stream()
+				.filter(this::isValidDate)
+				.collect(Collectors.toList());
+			log.printDroppedAlbumDifference(unfilteredAlbums, filteredAlbums,
+				String.format("Dropped %d non-cached but too-old release[s] (lower boundary was %s):", unfilteredAlbums.size() - filteredAlbums.size()));
+			return filteredAlbums;
+		}
+		return unfilteredAlbums;
+	}
+
+	/**
 	 * Evaluate whether a release is new enough to consider it valid for addition to
 	 * the playlist
 	 * 
 	 * @param album
-	 * @param lowerReleaseDateBoundary
 	 * @return
 	 */
-	private boolean isValidDate(AlbumSimplified album, LocalDate lowerReleaseDateBoundary) {
+	public boolean isValidDate(AlbumSimplified album) {
 		try {
+			int lookbackDays = staticConfig.getLookbackDays();
+			LocalDate lowerReleaseDateBoundary = LocalDate.now().minusDays(lookbackDays);
 			LocalDate releaseDate = LocalDate.parse(album.getReleaseDate(), RELEASE_DATE_PARSER);
 			return releaseDate.isAfter(lowerReleaseDateBoundary);
 		} catch (DateTimeParseException e) {

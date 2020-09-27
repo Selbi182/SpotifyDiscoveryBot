@@ -55,7 +55,7 @@ public class DiscoveryDatabase {
 		try {
 			File dbFilePath = BotUtils.normalizeFile(getDbFilePath());
 			this.dbUrl = DB_URL_PREFIX + dbFilePath.getAbsolutePath();
-			log.info("Establishing SQLite database connection: " + dbFilePath.getAbsolutePath());
+			log.debug("Establishing SQLite database connection: " + dbFilePath.getAbsolutePath());
 			getConnectionInstance();
 		} catch (IOException | SQLException e) {
 			log.error("=== FAILED TO ESTABLISH DATABASE CONNECTION! APPLICATION IS HALTING! ===");

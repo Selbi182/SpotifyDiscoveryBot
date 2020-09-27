@@ -24,11 +24,12 @@ public class RereleaseRemapper implements Remapper {
 	}
 
 	/**
-	 * All types are allowed
+	 * Only rereleased albums are relevent. While singles and EPs get rereleased
+	 * too, they are well less interesting.
 	 */
 	@Override
 	public boolean isAllowedAlbumGroup(AlbumGroupExtended albumGroupExtended) {
-		return true;
+		return AlbumGroupExtended.ALBUM.equals(albumGroupExtended);
 	}
 
 	/**

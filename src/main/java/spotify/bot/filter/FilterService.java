@@ -167,22 +167,21 @@ public class FilterService {
 	}
 
 	/**
-	 * Filter out all albums not released within the lookbackDays range (if
-	 * rerelease remapping isn't enabled)
+	 * Filter out all releases not released within the lookbackDays range. If
+	 * rerelease remapping is enabled, this will only be applied to non-albums
 	 * 
-	 * @param unfilteredAlbums
+	 * @param unfilteredReleases
 	 * @return
 	 */
-	public List<AlbumSimplified> filterNewAlbumsOnly(List<AlbumSimplified> unfilteredAlbums) {
-		if (!userOptions.isRereleaseSeparation()) {
-			List<AlbumSimplified> filteredAlbums = unfilteredAlbums.stream()
-				.filter(this::isValidDate)
-				.collect(Collectors.toList());
-			log.printDroppedAlbumDifference(unfilteredAlbums, filteredAlbums,
-				String.format("Dropped %d non-cached but too-old release[s] (lower boundary was %s):", unfilteredAlbums.size() - filteredAlbums.size()));
-			return filteredAlbums;
-		}
-		return unfilteredAlbums;
+	public List<AlbumSimplified> filterNewAlbumsOnly(List<AlbumSimplified> unfilteredReleases) {
+		List<AlbumSimplified> filteredReleases = unfilteredReleases.stream()
+			.filter(release ->
+				(userOptions.isRereleaseSeparation() && AlbumGroup.ALBUM.equals(release.getAlbumGroup()))
+				|| isValidDate(release))
+			.collect(Collectors.toList());
+		log.printDroppedAlbumDifference(unfilteredReleases, filteredReleases,
+			String.format("Dropped %d non-cached but too-old release[s]:", unfilteredReleases.size() - filteredReleases.size()));
+		return filteredReleases;
 	}
 
 	/**

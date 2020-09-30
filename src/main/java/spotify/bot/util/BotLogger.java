@@ -52,6 +52,7 @@ public class BotLogger {
 	private final static int MAX_LINE_LENGTH = 160;
 	private final static String ELLIPSIS = "...";
 	private final static String DROPPED_PREFIX = "x ";
+	private final static String INDENT = " ";
 	private final static String LINE_SYMBOL = "-";
 
 	private final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -253,20 +254,33 @@ public class BotLogger {
 	 */
 	public void printAlbumTrackPairs(List<AlbumTrackPair> albumTrackPairs, AlbumGroupExtended albumGroupExtended) {
 		for (AlbumTrackPair as : albumTrackPairs) {
-			debug(as.toStringExtended(albumGroupExtended));
+			debug(INDENT + as.toStringExtended(albumGroupExtended));
 		}
 	}
 
 	/**
-	 * Print the given list of AlbumSimplifieds
+	 * Print the given list of AlbumTrackPairs with a prefix indicating that they
+	 * were dropped
 	 * 
 	 * @param albumTrackPairs
 	 */
-	private void printAlbumSimplifiedMulti(List<AlbumSimplified> albumSimplifieds) {
-		for (AlbumSimplified as : albumSimplifieds) {
-			debug(DROPPED_PREFIX + BotUtils.formatAlbum(as));
-		}
+	public void printDroppedAlbumTrackPairs(List<AlbumTrackPair> albumTrackPairs) {
+		List<AlbumSimplified> collect = albumTrackPairs.stream()
+			.map(AlbumTrackPair::getAlbum)
+			.collect(Collectors.toList());
+		printDroppedAlbumSimplified(collect);
+	}
 
+	/**
+	 * Print the given list of AlbumSimplifieds with a prefix indicating that they
+	 * were dropped
+	 * 
+	 * @param albumTrackPairs
+	 */
+	private void printDroppedAlbumSimplified(List<AlbumSimplified> albumSimplifieds) {
+		for (AlbumSimplified as : albumSimplifieds) {
+			debug(DROPPED_PREFIX + INDENT + BotUtils.formatAlbum(as));
+		}
 	}
 
 	/**
@@ -279,12 +293,33 @@ public class BotLogger {
 	public void printDroppedAlbumDifference(Collection<AlbumSimplified> base, Collection<AlbumSimplified> subtrahend, String logDescription) {
 		Set<AlbumSimplified> differenceView = new HashSet<>(base);
 		differenceView.removeAll(subtrahend);
-		if (!differenceView.isEmpty()) {
+		printDroppedAlbums(differenceView, logDescription);
+	}
+
+	/**
+	 * Log the dropped album track pairs
+	 * 
+	 * @param droppedAlbums
+	 * @param logDescription
+	 */
+	public void printDroppedAlbumTrackPairs(Collection<AlbumTrackPair> droppedAlbums, String logDescription) {
+		List<AlbumSimplified> collect = droppedAlbums.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList());
+		printDroppedAlbums(collect, logDescription);
+	}
+	
+	/**
+	 * Log the dropped albums
+	 * 
+	 * @param droppedAlbums
+	 * @param logDescription
+	 */
+	public void printDroppedAlbums(Collection<AlbumSimplified> droppedAlbums, String logDescription) {
+		if (!droppedAlbums.isEmpty()) {
 			if (logDescription != null) {
 				debug(DROPPED_PREFIX + logDescription);
 			}
-			List<AlbumSimplified> sortedDifferenceView = differenceView.stream().sorted(ALBUM_SIMPLIFIED_COMPARATOR).collect(Collectors.toList());
-			printAlbumSimplifiedMulti(sortedDifferenceView);
+			List<AlbumSimplified> sortedDroppedAlbums = droppedAlbums.stream().sorted(ALBUM_SIMPLIFIED_COMPARATOR).collect(Collectors.toList());
+			printDroppedAlbumSimplified(sortedDroppedAlbums);
 		}
 	}
 

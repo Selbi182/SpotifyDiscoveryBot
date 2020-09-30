@@ -32,6 +32,11 @@ public class EpRemapper implements Remapper {
 		return AlbumGroupExtended.SINGLE.equals(albumGroupExtended);
 	}
 
+	@Override
+	public Action determineRemapAction(String albumTitle, List<TrackSimplified> tracks) {
+		return Action.of(qualifiesAsRemappable(albumTitle, tracks));
+	}
+
 	/**
 	 * Returns true if the given single qualifies as EP. The definition of an EP is
 	 * a single that fulfills ANY of the following attributes:
@@ -49,8 +54,7 @@ public class EpRemapper implements Remapper {
 	 * @param atp
 	 * @return
 	 */
-	@Override
-	public boolean qualifiesAsRemappable(String albumTitle, List<TrackSimplified> tracks) {
+	private boolean qualifiesAsRemappable(String albumTitle, List<TrackSimplified> tracks) {
 		if (EP_MATCHER.matcher(albumTitle).find()) {
 			return true;
 		}

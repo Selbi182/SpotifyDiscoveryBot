@@ -39,12 +39,16 @@ public class RemixRemapper implements Remapper {
 		return false;
 	}
 
+	@Override
+	public Action determineRemapAction(String albumTitle, List<TrackSimplified> tracks) {
+		return Action.of(qualifiesAsRemappable(albumTitle, tracks));
+	}
+
 	/**
 	 * Returns true if the release OR at least half of the release's tracks have
 	 * "REMIX" in their titles (one word, case insenstive)
 	 */
-	@Override
-	public boolean qualifiesAsRemappable(String albumTitle, List<TrackSimplified> tracks) {
+	private boolean qualifiesAsRemappable(String albumTitle, List<TrackSimplified> tracks) {
 		boolean hasRemixInTitle = REMIX_MATCHER.matcher(albumTitle).find();
 		List<String> trackIds = tracks.stream().map(TrackSimplified::getName).collect(Collectors.toList());
 		double trackCountRemix = trackIds.stream().filter(t -> REMIX_MATCHER.matcher(t).find()).count();

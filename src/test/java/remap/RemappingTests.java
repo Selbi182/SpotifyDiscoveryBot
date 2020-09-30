@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -30,6 +31,7 @@ import spotify.bot.config.database.DiscoveryDatabase;
 import spotify.bot.filter.remapper.EpRemapper;
 import spotify.bot.filter.remapper.LiveRemapper;
 import spotify.bot.filter.remapper.Remapper;
+import spotify.bot.filter.remapper.Remapper.Action;
 import spotify.bot.filter.remapper.RemixRemapper;
 import spotify.bot.util.BotLogger;
 
@@ -74,7 +76,8 @@ public class RemappingTests {
 	private boolean willRemap(Remapper remapper, String albumId) {
 		try {
 			Album album = getAlbum(albumId);
-			return remapper.qualifiesAsRemappable(album.getName(), getTracksOfSingleAlbum(album));
+			Action remapAction = remapper.determineRemapAction(album.getName(), getTracksOfSingleAlbum(album));
+			return Objects.equals(remapAction, Remapper.Action.REMAP);
 		} catch (BotException e) {
 			e.printStackTrace();
 		}

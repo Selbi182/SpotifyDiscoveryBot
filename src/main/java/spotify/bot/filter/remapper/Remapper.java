@@ -8,10 +8,46 @@ import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;
 
 public interface Remapper {
+
+	/**
+	 * An Action describes what to do with a release after
+	 * {@link Remapper#determineRemapAction} has been called
+	 */
+	enum Action {
+
+		/**
+		 * Denotes that this release is no remappable candidate -> leave it untouched
+		 */
+		NONE,
+
+		/**
+		 * Denotes that this release is a remappable candidate and should be remapped
+		 * into their respective playlist
+		 */
+		REMAP,
+
+		/**
+		 * Denotes that this release is should be filtered entirely from the releases to
+		 * be added. While the majority of filtering is done in other classes, there may
+		 * be cases where it's more efficient to do it in the remapping service.
+		 */
+		ERASE;
+
+		/**
+		 * Convenience function to convert a boolean into the most common Actions
+		 * 
+		 * @param remap the boolean to apply
+		 * @return {@link Action#REMAP} if true, {@link Action#NONE} if false
+		 */
+		static Action of(boolean remap) {
+			return remap ? REMAP : NONE;
+		}
+	}
+
 	/**
 	 * Fetch the AlbumGroupExtended of this remapper
 	 * 
-	 * @return
+	 * @return the extended album group
 	 */
 	AlbumGroupExtended getAlbumGroup();
 
@@ -19,30 +55,31 @@ public interface Remapper {
 	 * Returns true if the given AlbumGroupExtended is allowed for this remapper
 	 * (e.g. EPs only allow Singles)
 	 * 
-	 * @param albumGroupExtended
-	 * @return
+	 * @param albumGroupExtended the extended album group to check
+	 * @return true if this is a valid type
 	 */
 	boolean isAllowedAlbumGroup(AlbumGroupExtended albumGroupExtended);
 
 	/**
-	 * Returns true if the given release qualifies as a remappable candidate. This
-	 * is the main logic of the remappers and largely implementation-specific; see
-	 * the respective implementation Javadocs for more details.
+	 * Check if the given release is a remappable candidate and return the
+	 * {@link Action} to be applied. This is the main logic of the remappers and
+	 * largely implementation-specific; see the respective implementation Javadocs
+	 * for more details.
 	 * 
-	 * @param atp
-	 * @return
+	 * @param albumTitle the plaintext name of this release
+	 * @param tracks     the tracks of this album
+	 * @return the action to be applied
 	 */
-	default boolean qualifiesAsRemappable(AlbumTrackPair atp) {
-		return qualifiesAsRemappable(atp.getAlbum().getName(), atp.getTracks());
-	}
-	
+	Action determineRemapAction(String albumTitle, List<TrackSimplified> tracks);
+
 	/**
-	 * Returns true if the given release qualifies as a remappable candidate. This
-	 * is the main logic of the remappers and largely implementation-specific; see
-	 * the respective implementation Javadocs for more details.
+	 * Convenience function for AlbumTrackPairs. See
+	 * {@link Remapper#determineRemapAction(String, List)} for more details.
 	 * 
-	 * @param atp
-	 * @return
+	 * @param atp the album track pair to check
+	 * @return the action to be applied
 	 */
-	boolean qualifiesAsRemappable(String albumTitle, List<TrackSimplified> tracks);
+	default Action determineRemapAction(AlbumTrackPair atp) {
+		return determineRemapAction(atp.getAlbum().getName(), atp.getTracks());
+	}
 }

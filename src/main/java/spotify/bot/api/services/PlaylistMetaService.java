@@ -126,10 +126,12 @@ public class PlaylistMetaService {
 			}
 
 			Playlist p = SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
-			String playlistName = p.getName();
-			if (playlistName != null && playlistName.contains(notifierTarget)) {
-				newPlaylistName = playlistName.replace(notifierTarget, notifierReplacement).trim();
-				changed = true;
+			if (p != null) {
+				String playlistName = p.getName();
+				if (playlistName != null && playlistName.contains(notifierTarget)) {
+					newPlaylistName = playlistName.replace(notifierTarget, notifierReplacement).trim();
+					changed = true;
+				}
 			}
 
 			if (newPlaylistName != null || newDescription != null) {

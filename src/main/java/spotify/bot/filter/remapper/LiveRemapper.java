@@ -1,6 +1,7 @@
 package spotify.bot.filter.remapper;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
@@ -16,7 +17,7 @@ import spotify.bot.util.data.AlbumGroupExtended;
 public class LiveRemapper implements Remapper {
 
 	private final TrackService trackService;
-	
+
 	public LiveRemapper(TrackService trackService) {
 		this.trackService = trackService;
 	}
@@ -50,6 +51,11 @@ public class LiveRemapper implements Remapper {
 		return false;
 	}
 
+	@Override
+	public Action determineRemapAction(String albumTitle, List<TrackSimplified> tracks) {
+		return Action.of(qualifiesAsRemappable(albumTitle, tracks));
+	}
+
 	/**
 	 * Returns true if the given release qualifies as live release. The definition
 	 * of a live release is a release that fulfills ANY of the following attributes:
@@ -66,8 +72,7 @@ public class LiveRemapper implements Remapper {
 	 * @param atp
 	 * @return
 	 */
-	@Override
-	public boolean qualifiesAsRemappable(String albumTitle, List<TrackSimplified> tracks) {
+	private boolean qualifiesAsRemappable(String albumTitle, List<TrackSimplified> tracks) {
 		double trackCount = tracks.size();
 		double liveTracks = tracks.stream().filter(t -> LIVE_MATCHER.matcher(t.getName()).find()).count();
 		double liveTrackPercentage = liveTracks / trackCount;
@@ -80,7 +85,11 @@ public class LiveRemapper implements Remapper {
 
 		if (hasLiveInTitle || hasLiveInTracks) {
 			List<AudioFeatures> audioFeatures = trackService.getAudioFeatures(tracks);
-			double averageLiveness = audioFeatures.stream().mapToDouble(AudioFeatures::getLiveness).average().getAsDouble();
+			double averageLiveness = audioFeatures.stream()
+				.filter(Objects::nonNull)
+				.mapToDouble(AudioFeatures::getLiveness)
+				.average()
+				.orElseGet(() -> 0.0);
 			boolean isLive = averageLiveness > LIVENESS_THRESHOLD;
 			if (!isLive && hasLiveInTitle) {
 				isLive = averageLiveness >= LIVENESS_THRESHOLD_LESSER;

@@ -55,6 +55,7 @@ public class SpotifyCall {
 			long sleepMs = (timeout * RETRY_TIMEOUT_429) + RETRY_TIMEOUT_429;
 			BotUtils.sneakySleep(sleepMs);
 		} catch (SpotifyWebApiException | RuntimeException e) {
+			e.printStackTrace();
 			BotUtils.sneakySleep(RETRY_TIMEOUT_GENERIC_ERROR);
 		}
 		return execute(requestBuilder);

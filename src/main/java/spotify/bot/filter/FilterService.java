@@ -234,7 +234,7 @@ public class FilterService {
 					List<TrackSimplified> selectedSongsOfAlbum = atp.getTracks().stream()
 						.filter(song -> containsFeaturedArtist(followedArtistsSet, song.getArtists()))
 						.collect(Collectors.toList());
-					filteredAppearsOnAlbums.add(new AlbumTrackPair(atp.getAlbum(), selectedSongsOfAlbum));
+					filteredAppearsOnAlbums.add(AlbumTrackPair.of(atp.getAlbum(), selectedSongsOfAlbum));
 				}
 
 				// Show log message

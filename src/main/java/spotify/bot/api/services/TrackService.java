@@ -56,7 +56,7 @@ public class TrackService {
 		List<TrackSimplified> tracksOfAlbum = SpotifyCall.executePaging(spotifyApi
 			.getAlbumsTracks(album.getId())
 			.limit(MAX_PLAYLIST_TRACK_FETCH_LIMIT));
-		return new AlbumTrackPair(album, tracksOfAlbum);
+		return AlbumTrackPair.of(album, tracksOfAlbum);
 	}
 
 	/**

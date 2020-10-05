@@ -15,9 +15,13 @@ public class AlbumTrackPair implements Comparable<AlbumTrackPair>, Comparator<Al
 	private AlbumSimplified album;
 	private List<TrackSimplified> tracks;
 
-	public AlbumTrackPair(AlbumSimplified album, List<TrackSimplified> tracks) {
+	private AlbumTrackPair(AlbumSimplified album, List<TrackSimplified> tracks) {
 		this.album = album;
 		this.tracks = tracks;
+	}
+	
+	public static AlbumTrackPair of(AlbumSimplified album, List<TrackSimplified> tracks) {
+		return new AlbumTrackPair(album, tracks);
 	}
 
 	public AlbumSimplified getAlbum() {

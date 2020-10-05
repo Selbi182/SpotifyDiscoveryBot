@@ -12,6 +12,7 @@ import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
 import spotify.bot.api.services.TrackService;
 import spotify.bot.util.data.AlbumGroupExtended;
+import spotify.bot.util.data.AlbumTrackPair;
 
 @Component
 public class LiveRemapper implements Remapper {
@@ -52,8 +53,8 @@ public class LiveRemapper implements Remapper {
 	}
 
 	@Override
-	public Action determineRemapAction(String albumTitle, List<TrackSimplified> tracks) {
-		return Action.of(qualifiesAsRemappable(albumTitle, tracks));
+	public Action determineRemapAction(AlbumTrackPair atp) {
+		return Action.of(qualifiesAsRemappable(atp.getAlbum().getName(), atp.getTracks()));
 	}
 
 	/**

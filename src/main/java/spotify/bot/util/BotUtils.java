@@ -18,6 +18,7 @@ import java.util.stream.Stream;
 
 import com.google.common.collect.Ordering;
 import com.wrapper.spotify.enums.AlbumGroup;
+import com.wrapper.spotify.model_objects.specification.Album;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
 
@@ -268,5 +269,33 @@ public final class BotUtils {
 			.replaceAll("\\W+", "")
 			.replaceAll("\\W+.*$", "");
 
+	}
+
+	/**
+	 * Convert a full album an album simplified. Any extra variables are thrown
+	 * away.
+	 * 
+	 * @param album the album to convert
+	 * @return the converted album
+	 */
+	public static AlbumSimplified asAlbumSimplified(Album album) {
+		AlbumSimplified.Builder as = new AlbumSimplified.Builder();
+
+		as.setAlbumGroup(AlbumGroup.keyOf(album.getAlbumType().getType())); // Not exact but works
+		as.setAlbumType(album.getAlbumType());
+		as.setArtists(album.getArtists());
+		as.setAvailableMarkets(album.getAvailableMarkets());
+		as.setExternalUrls(album.getExternalUrls());
+		as.setHref(album.getHref());
+		as.setId(album.getId());
+		as.setImages(album.getImages());
+		as.setName(album.getName());
+		as.setReleaseDate(album.getReleaseDate());
+		as.setReleaseDatePrecision(album.getReleaseDatePrecision());
+		as.setRestrictions(null); // No alternative
+		// ModelObjectType missing
+		as.setUri(album.getUri());
+
+		return as.build();
 	}
 }

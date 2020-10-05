@@ -1,8 +1,8 @@
 package spotify.bot.filter.remapper;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.neovisionaries.i18n.CountryCode;
@@ -17,11 +17,17 @@ import spotify.bot.util.data.AlbumTrackPair;
 @Component
 public class RereleaseRemapper implements Remapper {
 
-	@Autowired
+	private final static Pattern ALBUM_TITLE_MATCHER = Pattern
+		.compile("(anniversary|re\\W?(issue|master|issue|record)|\\d+\\W+(jahr|year))",
+			Pattern.CASE_INSENSITIVE);
+
+	private SpotifyApiConfig spotifyApiConfig;
 	private FilterService filterService;
 
-	@Autowired
-	private SpotifyApiConfig spotifyApiConfig;
+	public RereleaseRemapper(SpotifyApiConfig spotifyApiConfig, FilterService filterService) {
+		this.spotifyApiConfig = spotifyApiConfig;
+		this.filterService = filterService;
+	}
 
 	@Override
 	public AlbumGroupExtended getAlbumGroup() {
@@ -38,32 +44,57 @@ public class RereleaseRemapper implements Remapper {
 	}
 
 	/**
-	 * A rerelease qualifies as remappable if all of these criteria are met:
+	 * Determine the action to apply for the album, whether it qualifies as
+	 * rerelease or might even be disposable trash as a result of a weird,
+	 * incomplete reupload. Full chart:
+	 * 
+	 * <pre>
+	 * NORMAL | COMPLETE | RECENT || NONE | REMAP | ERASE
+	 *  yes   |  yes     |  yes   ||  x   |       |      
+	 *  yes   |  yes     |  no    ||      |  x    |      
+	 *  yes   |  no      |  yes   ||  x   |       |     
+	 *  yes   |  no      |  no    ||      |       |  x         
+	 *  no    |  yes     |  yes   ||      |  x    |      
+	 *  no    |  yes     |  no    ||      |  x    |      
+	 *  no    |  no      |  yes   ||      |  x    |      
+	 *  no    |  no      |  no    ||      |       |  x
+	 * </pre>
+	 * 
+	 * Legend:
 	 * <ul>
-	 * <li>Only albums are allowed (this is already covered by
-	 * {@link RereleaseRemapper#isAllowedAlbumGroup})</li>
-	 * <li>Must have a suitably low release date (e.g. if the album would be dropped
-	 * in {@link FilterService#filterNewAlbumsOnly} if this remapper were off)</li>
-	 * <li>NONE of the tracks of the album are missing in the current market (since
-	 * a lot of rereleases for some reason have only some of the tracks
-	 * available)</li>
+	 * <li>NORMAL: Is the album title normal (i.e. does it not contain any giveaway
+	 * terms like "Remaster", "Rerelease", "Reissue", "Rerecord", "Anniversary")?
+	 * <li>COMPLETE: Are all tracks available in the current market (since a lot of
+	 * rereleases for some reason have only some of the tracks available)?
+	 * <li>RECENT: Is the release date young enough to be qualified as valid by
+	 * {@link FilterService#filterNewAlbumsOnly} (if this remapper were disabled)?
 	 * </ul>
-	 * If a rerelease is old enough but does not have all songs available in the
-	 * current market, it will should be erased (these are usually glitchy or
-	 * otherwise garbage rereleases absolutely no one cares about).
 	 */
 	@Override
 	public Action determineRemapAction(AlbumTrackPair atp) {
 		AlbumSimplified album = atp.getAlbum();
-		boolean isAnOldRelease = !filterService.isValidDate(album);
-		if (isAnOldRelease) {
-			boolean allAvailable = atp.getTracks().stream().allMatch(this::isTrackAvailable);
-			if (allAvailable) {
-				return Action.REMAP;
+		List<TrackSimplified> tracks = atp.getTracks();
+
+		boolean normal = !containsRereleaseWord(album.getName());
+		boolean complete = tracks.stream().allMatch(this::isTrackAvailable);
+		boolean recent = filterService.isValidDate(album);
+
+		if (normal) {
+			if (recent) {
+				return Action.NONE;
+			} else if (!complete) {
+				return Action.ERASE;
 			}
-			return Action.ERASE;
+		} else {
+			if (!complete && !recent) {
+				return Action.ERASE;
+			}
 		}
-		return Action.NONE;
+		return Action.REMAP;
+	}
+
+	private boolean containsRereleaseWord(String albumTitle) {
+		return ALBUM_TITLE_MATCHER.matcher(albumTitle).find();
 	}
 
 	private boolean isTrackAvailable(TrackSimplified ts) {
@@ -74,16 +105,5 @@ public class RereleaseRemapper implements Remapper {
 			}
 		}
 		return false;
-	}
-
-	/**
-	 * @deprecated Unsupported operation, as rerelease remapping needs information
-	 *             about the album release date, not just the tracks. Use
-	 *             {@link RereleaseRemapper#determineRemapAction(AlbumTrackPair)}
-	 */
-	@Deprecated
-	@Override
-	public Action determineRemapAction(String albumTitle, List<TrackSimplified> tracks) {
-		throw new UnsupportedOperationException("Use determineRemapAction(AlbumTrackPair) instead");
 	}
 }

@@ -1,9 +1,5 @@
 package spotify.bot.filter.remapper;
 
-import java.util.List;
-
-import com.wrapper.spotify.model_objects.specification.TrackSimplified;
-
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;
 
@@ -70,16 +66,5 @@ public interface Remapper {
 	 * @param tracks     the tracks of this album
 	 * @return the action to be applied
 	 */
-	Action determineRemapAction(String albumTitle, List<TrackSimplified> tracks);
-
-	/**
-	 * Convenience function for AlbumTrackPairs. See
-	 * {@link Remapper#determineRemapAction(String, List)} for more details.
-	 * 
-	 * @param atp the album track pair to check
-	 * @return the action to be applied
-	 */
-	default Action determineRemapAction(AlbumTrackPair atp) {
-		return determineRemapAction(atp.getAlbum().getName(), atp.getTracks());
-	}
+	Action determineRemapAction(AlbumTrackPair atp);
 }

@@ -26,18 +26,19 @@ public class DeveloperMode {
 	private enum DevMode {
 		/**
 		 * Releases won't be cached (meaning they will get reclassified as "new" with
-		 * each crawl), but they will still be added to any playlists as usual
+		 * each crawl)
 		 */
 		DISABLE_CACHE,
 
 		/**
-		 * Releases will be cached as usual, but they will not be added to any playlists
+		 * Releases will not be added to the target playlists and the metadata will not
+		 * be updated
 		 */
 		DISABLE_PLAYLIST_ADDITIONS,
 
 		/**
-		 * Scheduled crawls that run once every 30 minutes will be completely disabled.
-		 * Only manual calls at {@code /crawl} will be executed.
+		 * Scheduled crawls that run once every 30 minutes will be completely disabled
+		 * only manual calls at {@code /crawl} will be executed
 		 */
 		DISABLE_SCHEDULED_CRAWLS,
 
@@ -62,7 +63,6 @@ public class DeveloperMode {
 			}
 		}
 
-		
 		if (!devModes.isEmpty()) {
 			String devModesString = devModes
 				.stream()

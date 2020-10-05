@@ -24,6 +24,7 @@ import com.wrapper.spotify.requests.data.playlists.ChangePlaylistsDetailsRequest
 import spotify.bot.api.BotException;
 import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.ConfigUpdate;
+import spotify.bot.config.DeveloperMode;
 import spotify.bot.config.dto.PlaylistStoreConfig;
 import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.config.dto.StaticConfig;
@@ -73,12 +74,14 @@ public class PlaylistMetaService {
 	 * @param albumGroup
 	 */
 	public void showNotifiers(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws BotException, SQLException {
-		List<PlaylistStore> sortedPlaylistStores = songsByPlaylist.keySet().stream().sorted().collect(Collectors.toList());
-		for (PlaylistStore ps : sortedPlaylistStores) {
-			List<AlbumTrackPair> albumTrackPairs = songsByPlaylist.get(ps);
-			if (!albumTrackPairs.isEmpty()) {
-				updatePlaylistTitleAndDescription(ps, INDICATOR_OFF, INDICATOR_NEW, true);
-				configUpdate.refreshPlaylistStore(ps.getAlbumGroupExtended());
+		if (!DeveloperMode.isPlaylistAdditionDisabled()) {
+			List<PlaylistStore> sortedPlaylistStores = songsByPlaylist.keySet().stream().sorted().collect(Collectors.toList());
+			for (PlaylistStore ps : sortedPlaylistStores) {
+				List<AlbumTrackPair> albumTrackPairs = songsByPlaylist.get(ps);
+				if (!albumTrackPairs.isEmpty()) {
+					updatePlaylistTitleAndDescription(ps, INDICATOR_OFF, INDICATOR_NEW, true);
+					configUpdate.refreshPlaylistStore(ps.getAlbumGroupExtended());
+				}
 			}
 		}
 	}
@@ -90,11 +93,13 @@ public class PlaylistMetaService {
 	 */
 	public boolean clearObsoleteNotifiers() throws SQLException, BotException {
 		boolean changed = false;
-		for (PlaylistStore ps : playlistStoreConfig.getAllPlaylistStores()) {
-			if (shouldIndicatorBeMarkedAsRead(ps)) {
-				if (updatePlaylistTitleAndDescription(ps, INDICATOR_NEW, INDICATOR_OFF, false)) {
-					configUpdate.unsetPlaylistStore(ps.getAlbumGroupExtended());
-					changed = true;
+		if (!DeveloperMode.isPlaylistAdditionDisabled()) {
+			for (PlaylistStore ps : playlistStoreConfig.getAllPlaylistStores()) {
+				if (shouldIndicatorBeMarkedAsRead(ps)) {
+					if (updatePlaylistTitleAndDescription(ps, INDICATOR_NEW, INDICATOR_OFF, false)) {
+						configUpdate.unsetPlaylistStore(ps.getAlbumGroupExtended());
+						changed = true;
+					}
 				}
 			}
 		}

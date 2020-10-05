@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.wrapper.spotify.SpotifyApi;
+import com.wrapper.spotify.model_objects.IPlaylistItem;
 import com.wrapper.spotify.model_objects.miscellaneous.CurrentlyPlaying;
 import com.wrapper.spotify.model_objects.specification.Playlist;
 import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
@@ -180,7 +181,7 @@ public class PlaylistMetaService {
 			// Case 3: Currently played song is within the recently added playlist tracks
 			String playlistId = playlistStore.getPlaylistId();
 			PlaylistTrack[] topmostPlaylistTracks = SpotifyCall.execute(spotifyApi
-				.getPlaylistsTracks(playlistId)
+				.getPlaylistsItems(playlistId)
 				.limit(MAX_PLAYLIST_TRACK_FETCH_LIMIT))
 				.getItems();
 			List<PlaylistTrack> recentlyAddedPlaylistTracks = Arrays.stream(topmostPlaylistTracks)
@@ -196,12 +197,19 @@ public class PlaylistMetaService {
 			// played song is within that list
 			CurrentlyPlaying currentlyPlaying = SpotifyCall.execute(spotifyApi.getUsersCurrentlyPlayingTrack());
 			if (currentlyPlaying != null) {
-				String currentlyPlayingSongId = currentlyPlaying.getItem().getId();
-				boolean currentlyPlayingSongIsNew = recentlyAddedPlaylistTracks.stream()
-					.map(PlaylistTrack::getTrack)
-					.map(Track::getId)
-					.anyMatch(id -> Objects.equals(id, currentlyPlayingSongId));
-				return currentlyPlayingSongIsNew;
+				IPlaylistItem item = currentlyPlaying.getItem();
+				if (item instanceof Track) {
+					Track track = (Track) item;
+					String currentlyPlayingSongId = track.getId();
+					boolean currentlyPlayingSongIsNew = recentlyAddedPlaylistTracks.stream()
+						.map(PlaylistTrack::getTrack)
+						.filter(BotUtils::isTrack)
+						.map(Track.class::cast)
+						.map(Track::getId)
+						.filter(Objects::nonNull)
+						.anyMatch(id -> Objects.equals(id, currentlyPlayingSongId));
+					return currentlyPlayingSongIsNew;
+				}
 			}
 		} catch (Exception e) {
 			// Don't care, indicator clearance has absolutely no priority

@@ -18,6 +18,8 @@ import java.util.stream.Stream;
 
 import com.google.common.collect.Ordering;
 import com.wrapper.spotify.enums.AlbumGroup;
+import com.wrapper.spotify.enums.ModelObjectType;
+import com.wrapper.spotify.model_objects.IPlaylistItem;
 import com.wrapper.spotify.model_objects.specification.Album;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
@@ -297,5 +299,15 @@ public final class BotUtils {
 		as.setUri(album.getUri());
 
 		return as.build();
+	}
+
+	/**
+	 * Check if the given playlist item is a track
+	 * 
+	 * @param t the playlist item
+	 * @return true if it is
+	 */
+	public static boolean isTrack(IPlaylistItem t) {
+		return t.getType().equals(ModelObjectType.TRACK);
 	}
 }

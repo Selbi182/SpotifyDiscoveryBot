@@ -13,8 +13,10 @@ import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.wrapper.spotify.SpotifyApi;
+import com.wrapper.spotify.model_objects.IPlaylistItem;
 import com.wrapper.spotify.model_objects.specification.Playlist;
 import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
+import com.wrapper.spotify.model_objects.specification.Track;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
 import spotify.bot.api.BotException;
@@ -86,7 +88,7 @@ public class PlaylistSongsService {
 							json.add(TRACK_PREFIX + s.getId());
 						}
 						SpotifyCall.execute(spotifyApi
-							.addTracksToPlaylist(playlistId, json)
+							.addItemsToPlaylist(playlistId, json)
 							.position(TOP_OF_PLAYLIST));
 						BotUtils.sneakySleep(PLAYLIST_ADDITION_COOLDOWN);
 					}
@@ -172,21 +174,25 @@ public class PlaylistSongsService {
 		final int offset = currentPlaylistCount - songsToDeleteCount;
 
 		List<PlaylistTrack> tracksToDelete = SpotifyCall.executePaging(spotifyApi
-			.getPlaylistsTracks(playlistId)
+			.getPlaylistsItems(playlistId)
 			.offset(offset)
 			.limit(PLAYLIST_ADD_LIMIT));
 
 		JsonArray json = new JsonArray();
 		for (int i = 0; i < tracksToDelete.size(); i++) {
-			JsonObject object = new JsonObject();
-			object.addProperty("uri", TRACK_PREFIX + tracksToDelete.get(i).getTrack().getId());
-			JsonArray positions = new JsonArray();
-			positions.add(currentPlaylistCount - songsToDeleteCount + i);
-			object.add("positions", positions);
-			json.add(object);
+			IPlaylistItem track = tracksToDelete.get(i).getTrack();
+			if (track instanceof Track) {
+				String id = ((Track) track).getId();
+				JsonObject object = new JsonObject();
+				object.addProperty("uri", TRACK_PREFIX + id);
+				JsonArray positions = new JsonArray();
+				positions.add(currentPlaylistCount - songsToDeleteCount + i);
+				object.add("positions", positions);
+				json.add(object);
+			}
 		}
 
-		SpotifyCall.execute(spotifyApi.removeTracksFromPlaylist(playlistId, json));
+		SpotifyCall.execute(spotifyApi.removeItemsFromPlaylist(playlistId, json));
 
 		// Repeat if more than 100 songs have to be added/deleted (should rarely happen,
 		// so a recursion will be slow, but it'll do the job)

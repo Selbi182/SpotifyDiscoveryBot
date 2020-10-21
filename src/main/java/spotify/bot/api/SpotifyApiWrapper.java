@@ -1,8 +1,12 @@
 package spotify.bot.api;
 
+import java.net.URI;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.SpotifyHttpManager;
@@ -26,10 +30,24 @@ public class SpotifyApiWrapper {
 		SpotifyApi spotifyApi = new SpotifyApi.Builder()
 			.setClientId(spotifyApiConfig.getClientId())
 			.setClientSecret(spotifyApiConfig.getClientSecret())
-			.setRedirectUri(SpotifyHttpManager.makeUri(SpotifyApiAuthorization.LOGIN_CALLBACK_URI))
+			.setRedirectUri(createRedirectUri())
 			.build();
 		spotifyApi.setAccessToken(spotifyApiConfig.getAccessToken());
 		spotifyApi.setRefreshToken(spotifyApiConfig.getRefreshToken());
 		return spotifyApi;
+	}
+
+	@Value("${server.port}")
+	private String serverPort;
+
+	private URI createRedirectUri() {
+		String callbackUri = UriComponentsBuilder.newInstance()
+			.scheme("http")
+			.host("localhost")
+			.port(Integer.valueOf(serverPort))
+			.path(SpotifyApiAuthorization.LOGIN_CALLBACK_URI)
+			.build()
+			.toUriString();
+		return SpotifyHttpManager.makeUri(callbackUri);
 	}
 }

@@ -24,6 +24,7 @@ public class LiveRemapper implements Remapper {
 	}
 
 	private final static Pattern LIVE_MATCHER = Pattern.compile("\\b(LIVE|SHOW|TOUR)\\b", Pattern.CASE_INSENSITIVE);
+	private final static Pattern LIVE_MATCHER_EXTRA = Pattern.compile("(\\bLIVE\\W*$|\\bLIVE.*?\\b(\\d{4}|(IN|AT|ON))\\b)", Pattern.CASE_INSENSITIVE);
 	private final static double LIVE_SONG_COUNT_PERCENTAGE_THRESHOLD_DEFINITE = 0.9;
 	private final static double LIVENESS_THRESHOLD = 0.55;
 	private final static double LIVENESS_THRESHOLD_LESSER = 0.4;
@@ -77,8 +78,11 @@ public class LiveRemapper implements Remapper {
 		double trackCount = tracks.size();
 		double liveTracks = tracks.stream().filter(t -> LIVE_MATCHER.matcher(t.getName()).find()).count();
 		double liveTrackPercentage = liveTracks / trackCount;
-		if (trackCount > MIN_SONG_COUNT_FOR_SHORTCUT && liveTrackPercentage > LIVE_SONG_COUNT_PERCENTAGE_THRESHOLD_DEFINITE) {
-			return true;
+		if (liveTrackPercentage > LIVE_SONG_COUNT_PERCENTAGE_THRESHOLD_DEFINITE) {
+			if (trackCount > MIN_SONG_COUNT_FOR_SHORTCUT
+				|| LIVE_MATCHER_EXTRA.matcher(albumTitle).find()) {
+				return true;
+			}
 		}
 
 		boolean hasLiveInTitle = LIVE_MATCHER.matcher(albumTitle).find();

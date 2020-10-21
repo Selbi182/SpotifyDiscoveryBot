@@ -15,6 +15,9 @@ First setup:
 
 	
 Other ideas:
-- Block certain release types for certain artists (for example if you hate remixes by a certain artist but like the basic stuff)
 - Move batch_playlist_addition and cache_followed_artists to config_static (might remove them entirely, you wouldn't ever use them for anything but the current settings)
 - [EPIC] Multi-user support for one instance
+
+Improvements:
+- Blacklist certain release types for certain artists (for example if you hate appears_on contributions by a certain artist but like their own stuff)
+- Pre-cache freshly followed artists

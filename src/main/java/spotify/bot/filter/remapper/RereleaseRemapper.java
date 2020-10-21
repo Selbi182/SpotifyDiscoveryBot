@@ -36,7 +36,8 @@ public class RereleaseRemapper implements Remapper {
 
 	/**
 	 * Only rereleased albums are relevent. While singles and EPs get rereleased
-	 * too, they are way less interesting.
+	 * too, they are way less interesting and it'd not be worth the effort to deal
+	 * with them too.
 	 */
 	@Override
 	public boolean isAllowedAlbumGroup(AlbumGroupExtended albumGroupExtended) {
@@ -50,6 +51,7 @@ public class RereleaseRemapper implements Remapper {
 	 * 
 	 * <pre>
 	 * NORMAL | COMPLETE | RECENT || NONE | REMAP | ERASE
+	 * -------|----------|--------||------|-------|------
 	 *  yes   |  yes     |  yes   ||  x   |       |      
 	 *  yes   |  yes     |  no    ||      |  x    |      
 	 *  yes   |  no      |  yes   ||  x   |       |     

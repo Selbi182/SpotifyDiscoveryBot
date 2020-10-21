@@ -162,6 +162,26 @@ public class BotLogger {
 		return message.substring(0, message.length() - ELLIPSIS.length()) + ELLIPSIS;
 	}
 
+	/**
+	 * Reset the log and print a line if anything was flushed
+	 */
+	public void resetAndPrintLine() {
+		if (reset()) {
+			printLine();
+			reset();
+		}
+	}
+	
+	/**
+	 * Resets the hasUnflushedLogs flag
+	 * 
+	 * @return true if anything was flushed
+	 */
+	private boolean reset() {
+		boolean hasBeenReset = this.hasUnflushedLogs;
+		this.hasUnflushedLogs = false;
+		return hasBeenReset;
+	}
 	///////////////////////
 
 	public boolean clearLog() {
@@ -334,26 +354,5 @@ public class BotLogger {
 		printDroppedAlbumDifference(unfilteredAppearsOnAlbums.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList()),
 			filteredAppearsOnAlbums.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList()),
 			logDescription);
-	}
-
-	/**
-	 * Flushes this log
-	 * 
-	 * @return true if anything was flushed
-	 */
-	public boolean reset() {
-		boolean hasBeenReset = this.hasUnflushedLogs;
-		this.hasUnflushedLogs = false;
-		return hasBeenReset;
-	}
-
-	/**
-	 * Flush the log and print a line if anything was flushed
-	 */
-	public void resetAndPrintLine() {
-		if (reset()) {
-			printLine();
-			reset();
-		}
 	}
 }

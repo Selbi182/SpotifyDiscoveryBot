@@ -45,8 +45,8 @@ public class ArtistService {
 	 */
 	public List<String> getFollowedArtistsIds() throws SQLException, BotException {
 		// Try to fetch from cache first (if enabled)
-		boolean isCache = userOptions.isCacheFollowedArtists();
-		if (isCache) {
+		boolean isCacheEnabled = userOptions.isCacheFollowedArtists();
+		if (isCacheEnabled) {
 			List<String> cachedArtists = getCachedArtists();
 			if (cachedArtists != null) {
 				return cachedArtists;
@@ -64,7 +64,7 @@ public class ArtistService {
 		if (followedArtistIds.isEmpty()) {
 			log.warning("No followed artists found!");
 		}
-		if (isCache) {
+		if (isCacheEnabled) {
 			databaseService.updateFollowedArtistsCacheAsync(followedArtistIds);
 		}
 		return followedArtistIds;

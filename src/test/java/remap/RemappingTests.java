@@ -40,6 +40,7 @@ import spotify.bot.filter.remapper.RemixRemapper;
 import spotify.bot.filter.remapper.RereleaseRemapper;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
+import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;
 
 @RunWith(SpringRunner.class)
@@ -106,7 +107,7 @@ public class RemappingTests {
 
 	private boolean willRemap(Remapper remapper, String albumId) {
 		Action remapAction = getRemapAction(remapper, albumId);
-		return Objects.equals(remapAction, Remapper.Action.REMAP);
+		return Objects.equals(remapAction, Remapper.Action.REMAP);	
 	}
 
 	private boolean willErase(Remapper remapper, String albumId) {
@@ -117,15 +118,20 @@ public class RemappingTests {
 	private Action getRemapAction(Remapper remapper, String albumId) {
 		try {
 			AlbumSimplified album = getAlbumSimplified(albumId);
+			if (!remapper.isAllowedAlbumGroup(AlbumGroupExtended.fromAlbumGroup(album.getAlbumGroup()))) {
+				fail("Didn't fulfill isAllowedAlbumGroup requirement");
+			}
 			List<TrackSimplified> tracks = getTracksOfSingleAlbum(album);
-			AlbumTrackPair atp = AlbumTrackPair.of(album, tracks);
-			return remapper.determineRemapAction(atp);
+			AlbumTrackPair atp = AlbumTrackPair.of(album, tracks);			
+			Action remapAction = remapper.determineRemapAction(atp);
+			return remapAction;			
 		} catch (BotException e) {
 			e.printStackTrace();
 			fail();
 			return null;
 		}
 	}
+
 
 	private AlbumSimplified getAlbumSimplified(String albumId) throws BotException {
 		Album album = SpotifyCall.execute(spotifyApi.getAlbum(albumId));
@@ -166,6 +172,8 @@ public class RemappingTests {
 		assertTrue(willRemap(liveRemapper, "1C0CHLxgm1yWcR2pCaj0q7")); // Disturbed - Hold on to Memories (Live)
 		assertTrue(willRemap(liveRemapper, "0NvnXREzEa8ZNCI5PRpukR")); // Septicflesh - Infernus Sinfonica MMXIX (Live)
 		assertTrue(willRemap(liveRemapper, "52SQNIbuBk99ZlpUh2tSz5")); // BABYMETAL - LEGEND - METAL GALAXY [DAY 1]
+		assertTrue(willRemap(liveRemapper, "7hrzbg8R1gI1loeF9Xmwdr")); // Devin Townsend - Why? (live in London 2019)
+		assertTrue(willRemap(liveRemapper, "0lB9qbHN7Km0TquNaQbNW9")); // Deafheaven - Daedalus (Live)
 	}
 
 	@Test
@@ -213,7 +221,6 @@ public class RemappingTests {
 		assertTrue(willRemap(rereleaseRemapper, "1ucRSsC7KP0oJlTIVQlYU7")); // Stratovarius - Destiny (Reissue 2016)
 		assertTrue(willRemap(rereleaseRemapper, "3Rb5pMHWV5ZMVrKOE90wuj")); // Eluveitie - Slania (10 Years)
 		assertTrue(willRemap(rereleaseRemapper, "72kuxCdCsdZzfez0lLKUA5")); // Porcupine Tree - Fear of a Blank Planet
-		assertTrue(willRemap(rereleaseRemapper, "45eac6gDsbKRnuAEaKfVxO")); // Porcupine Tree - Nil Recurring
 		assertTrue(willRemap(rereleaseRemapper, "6kE2yDdOredVYctzaK0PVu")); // Boehse Onkelz - Kneipenterroristen (30 Jahre)
 
 	}

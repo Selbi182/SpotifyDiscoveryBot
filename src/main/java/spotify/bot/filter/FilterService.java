@@ -87,19 +87,36 @@ public class FilterService {
 		Map<String, AlbumSimplified> filteredAlbums = new HashMap<>();
 		for (AlbumSimplified as : albumsSimplified) {
 			if (as != null) {
-				filteredAlbums.put(as.getId(), as);
+				AlbumSimplified alreadySetAlbum = filteredAlbums.get(as.getId());
+				if (alreadySetAlbum == null || superiorAlbumGroup(as, alreadySetAlbum)) {
+					filteredAlbums.put(as.getId(), as);
+				}
 			}
 		}
 
-		List<String> albumCache = databaseService.getAlbumCache();
-		for (String id : albumCache) {
-			filteredAlbums.remove(id);
-		}
-
-		return filteredAlbums.values().stream().collect(Collectors.toList());
+		Set<String> albumCache = new HashSet<>(databaseService.getAlbumCache());
+		return filteredAlbums.values().stream()
+			.filter(a -> !albumCache.contains(a.getId()))
+			.collect(Collectors.toList());
 	}
 
 	////////////
+
+	/**
+	 * Check if the given album is sporting a "superior" album group. This is needed
+	 * when two followed artists are on the same new release (e.g. one as main
+	 * artist and the other as appears_on artist) to make sure the album gets added,
+	 * not the lesser album group type.
+	 * 
+	 * @param newAlbum
+	 * @param alreadySetAlbum
+	 * @return
+	 */
+	private boolean superiorAlbumGroup(AlbumSimplified newAlbum, AlbumSimplified alreadySetAlbum) {
+		int newAlbumIndex = BotUtils.DEFAULT_PLAYLIST_GROUP_ORDER.indexOf(AlbumGroupExtended.fromAlbumGroup(newAlbum.getAlbumGroup()));
+		int alreadySetAlbumIndex = BotUtils.DEFAULT_PLAYLIST_GROUP_ORDER.indexOf(AlbumGroupExtended.fromAlbumGroup(alreadySetAlbum.getAlbumGroup()));
+		return newAlbumIndex < alreadySetAlbumIndex;
+	}
 
 	/**
 	 * Cache the given album IDs in the database
@@ -133,7 +150,7 @@ public class FilterService {
 		}
 		return categorized;
 	}
-	
+
 	/**
 	 * Filter duplicate albums. This is done by converting the most important meta
 	 * data into a String and making sure those are unique.
@@ -175,8 +192,7 @@ public class FilterService {
 	 */
 	public List<AlbumSimplified> filterNewAlbumsOnly(List<AlbumSimplified> unfilteredReleases) {
 		List<AlbumSimplified> filteredReleases = unfilteredReleases.stream()
-			.filter(release ->
-				(userOptions.isRereleaseSeparation() && AlbumGroup.ALBUM.equals(release.getAlbumGroup()))
+			.filter(release -> (userOptions.isRereleaseSeparation() && AlbumGroup.ALBUM.equals(release.getAlbumGroup()))
 				|| isValidDate(release))
 			.collect(Collectors.toList());
 		log.printDroppedAlbumDifference(unfilteredReleases, filteredReleases,

@@ -24,7 +24,7 @@ public class LiveRemapper implements Remapper {
 	}
 
 	private final static Pattern LIVE_MATCHER = Pattern.compile("\\b(LIVE|SHOW|TOUR)\\b", Pattern.CASE_INSENSITIVE);
-	private final static Pattern LIVE_MATCHER_EXTRA = Pattern.compile("(\\bLIVE\\W*$|\\bLIVE.*?\\b(\\d{4}|(IN|AT|ON))\\b)", Pattern.CASE_INSENSITIVE);
+	private final static Pattern LIVE_MATCHER_EXTRA = Pattern.compile("(\\bLIVE\\W*$|\\bLIVE.*?\\b(\\d{4}|(IN|AT|ON|PERFORMANCE|SHOW|CONCERT))\\b)", Pattern.CASE_INSENSITIVE);
 	private final static double LIVE_SONG_COUNT_PERCENTAGE_THRESHOLD_DEFINITE = 0.9;
 	private final static double LIVENESS_THRESHOLD = 0.55;
 	private final static double LIVENESS_THRESHOLD_LESSER = 0.4;

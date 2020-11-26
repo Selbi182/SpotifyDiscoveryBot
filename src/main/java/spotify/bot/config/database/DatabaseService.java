@@ -4,10 +4,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -105,7 +103,6 @@ public class DatabaseService {
 	public UserOptions getUserConfig() throws SQLException {
 		ResultSet db = database.selectSingle(DBConstants.TABLE_CONFIG_USER_OPTIONS);
 		UserOptions userOptions = new UserOptions();
-		userOptions.setCacheFollowedArtists(db.getBoolean(DBConstants.COL_CACHE_FOLLOWED_ARTISTS));
 		userOptions.setBatchPlaylistAddition(db.getBoolean(DBConstants.COL_BATCH_PLAYLIST_ADDITION));
 		userOptions.setIntelligentAppearsOnSearch(db.getBoolean(DBConstants.COL_INTELLIGENT_APPEARS_ON_SEARCH));
 		userOptions.setCircularPlaylistFitting(db.getBoolean(DBConstants.COL_CIRCULAR_PLAYLIST_FITTING));
@@ -170,26 +167,32 @@ public class DatabaseService {
 	}
 
 	/**
+	 * Cache the album IDs of the given list of albums
+	 * 
+	 * @param albumsSimplified
+	 */
+	public void cacheAlbumIdsSync(List<AlbumSimplified> albumsSimplified) {
+		List<String> albumIds = albumsSimplified.stream()
+			.map(AlbumSimplified::getId)
+			.collect(Collectors.toList());
+		try {
+			database.insertAll(
+				albumIds,
+				DBConstants.TABLE_CACHE_RELEASES,
+				DBConstants.COL_RELEASE_ID);
+		} catch (SQLException e) {
+			log.stackTrace(e);
+		}
+	}
+
+	/**
 	 * Cache the album IDs of the given list of albums in a separate thread
 	 * 
 	 * @param albumsSimplified
 	 */
 	public synchronized void cacheAlbumIdsAsync(List<AlbumSimplified> albumsSimplified) {
-		Thread t = new Thread(new Runnable() {
-			@Override
-			public void run() {
-				List<String> albumIds = albumsSimplified.stream().map(AlbumSimplified::getId).collect(Collectors.toList());
-				try {
-					database.insertAll(
-						albumIds,
-						DBConstants.TABLE_CACHE_RELEASES,
-						DBConstants.COL_RELEASE_ID);
-				} catch (SQLException e) {
-					log.stackTrace(e);
-				}
-			}
-		}, CACHE_ALBUMS_THREAD_NAME);
-		t.start();
+		Runnable r = () -> cacheAlbumIdsSync(albumsSimplified);
+		new Thread(r, CACHE_ALBUMS_THREAD_NAME).start();
 	}
 
 	/**
@@ -198,41 +201,22 @@ public class DatabaseService {
 	 * @param followedArtists
 	 */
 	public synchronized void updateFollowedArtistsCacheAsync(List<String> followedArtists) {
-		Thread t = new Thread(new Runnable() {
-			@Override
-			public void run() {
-				try {
-					List<String> cachedArtists = getArtistCache();
-					if (cachedArtists == null || cachedArtists.isEmpty()) {
-						database.insertAll(
-							followedArtists,
-							DBConstants.TABLE_CACHE_ARTISTS,
-							DBConstants.COL_ARTIST_ID);
-					} else {
-						Set<String> addedArtists = new HashSet<>(followedArtists);
-						addedArtists.removeAll(cachedArtists);
-						if (!addedArtists.isEmpty()) {
-							database.insertAll(
-								addedArtists,
-								DBConstants.TABLE_CACHE_ARTISTS,
-								DBConstants.COL_ARTIST_ID);
-						}
-						Set<String> removedArtists = new HashSet<>(cachedArtists);
-						removedArtists.removeAll(followedArtists);
-						if (!removedArtists.isEmpty()) {
-							database.deleteAll(
-								removedArtists,
-								DBConstants.TABLE_CACHE_ARTISTS,
-								DBConstants.COL_ARTIST_ID);
-						}
-					}
-					refreshArtistCacheLastUpdate();
-				} catch (SQLException e) {
-					log.stackTrace(e);
+		Runnable r = () -> {
+			try {
+				List<String> cachedArtists = getArtistCache();
+				if (cachedArtists != null && !cachedArtists.isEmpty()) {
+					database.clearTable(DBConstants.TABLE_CACHE_ARTISTS);
+					database.insertAll(
+						followedArtists,
+						DBConstants.TABLE_CACHE_ARTISTS,
+						DBConstants.COL_ARTIST_ID);
 				}
+				refreshArtistCacheLastUpdate();
+			} catch (SQLException e) {
+				log.stackTrace(e);
 			}
-		}, CACHE_ARTISTS_THREAD_NAME);
-		t.start();
+		};
+		new Thread(r, CACHE_ARTISTS_THREAD_NAME).start();
 	}
 
 	/**

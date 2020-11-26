@@ -17,6 +17,10 @@ public class BotException extends Exception {
 		e.printStackTrace();
 		this.baseException = e;
 	}
+	
+	public BotException(String s) {
+		this(new IllegalStateException(s));
+	}
 
 	public Exception getBaseException() {
 		return baseException;

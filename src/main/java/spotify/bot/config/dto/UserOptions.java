@@ -1,7 +1,6 @@
 package spotify.bot.config.dto;
 
 public class UserOptions {
-	private boolean cacheFollowedArtists;
 	private boolean batchPlaylistAddition;
 	private boolean intelligentAppearsOnSearch;
 	private boolean circularPlaylistFitting;
@@ -9,14 +8,6 @@ public class UserOptions {
 	private boolean remixSeparation;
 	private boolean liveSeparation;
 	private boolean rereleaseSeparation;
-
-	public boolean isCacheFollowedArtists() {
-		return cacheFollowedArtists;
-	}
-
-	public void setCacheFollowedArtists(boolean cacheFollowedArtists) {
-		this.cacheFollowedArtists = cacheFollowedArtists;
-	}
 
 	public boolean isBatchPlaylistAddition() {
 		return batchPlaylistAddition;
@@ -76,7 +67,7 @@ public class UserOptions {
 
 	@Override
 	public String toString() {
-		return "UserOptions [cacheFollowedArtists=" + cacheFollowedArtists + ", batchPlaylistAddition=" + batchPlaylistAddition + ", intelligentAppearsOnSearch=" + intelligentAppearsOnSearch + ", circularPlaylistFitting="
+		return "UserOptions [batchPlaylistAddition=" + batchPlaylistAddition + ", intelligentAppearsOnSearch=" + intelligentAppearsOnSearch + ", circularPlaylistFitting="
 			+ circularPlaylistFitting + ", epSeparation=" + epSeparation + ", remixSeparation=" + remixSeparation + ", liveSeparation=" + liveSeparation + ", rereleaseSeparation=" + rereleaseSeparation + "]";
 	}
 

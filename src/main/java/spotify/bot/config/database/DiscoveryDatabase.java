@@ -30,7 +30,8 @@ public class DiscoveryDatabase {
 	private final static String SINGLE_SELECT_QUERY_MASK = "SELECT * FROM %s LIMIT 1";
 	private final static String FULL_SELECT_QUERY_MASK = "SELECT * FROM %s";
 	private final static String INSERT_QUERY_MASK = "INSERT INTO %s(%s) VALUES('%s')";
-	private final static String DELETE_QUERY_MASK = "DELETE FROM %s WHERE %s = '%s'";
+	private final static String DELETE_BASE_QUERY_MASK = "DELETE FROM %s";
+	private final static String DELETE_QUERY_MASK = DELETE_BASE_QUERY_MASK + " WHERE %s = '%s'";
 	private final static String UPDATE_QUERY_MASK = "UPDATE %s SET %s = '%s'";
 	private final static String UPDATE_WITH_CONDITION_QUERY_MASK = "UPDATE %s SET %s = %s WHERE %s = '%s'";
 
@@ -188,5 +189,14 @@ public class DiscoveryDatabase {
 				createStatement().execute(String.format(DELETE_QUERY_MASK, table, column, s));
 			}
 		}
+	}
+
+	/**
+	 * Delete every entry in the given table
+	 * 
+	 * @param tableCacheArtists
+	 */
+	synchronized void clearTable(String table) throws SQLException {
+		createStatement().execute(String.format(DELETE_BASE_QUERY_MASK, table));
 	}
 }

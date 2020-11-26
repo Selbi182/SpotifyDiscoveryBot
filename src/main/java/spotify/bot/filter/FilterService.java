@@ -65,14 +65,15 @@ public class FilterService {
 	 * Return non-database-filterd list of albums from the input and adds these to
 	 * the DB cache
 	 * 
-	 * @param allAlbums
-	 * @return
+	 * @param allAlbums the albums to check against
+	 * @param async whether the new albums should be cached in a separate thread
+	 * @return the leftover (new) albums
 	 */
-	public List<AlbumSimplified> getNonCachedAlbumsAndCache(List<AlbumSimplified> allAlbums) throws SQLException {
+	public List<AlbumSimplified> getNonCachedAlbumsAndCache(List<AlbumSimplified> allAlbums, boolean async) throws SQLException {
 		List<AlbumSimplified> filteredAlbums = filterNonCachedAlbumsOnly(allAlbums);
 		BotUtils.removeNulls(filteredAlbums);
 		if (!DeveloperMode.isCacheDisabled()) {
-			cacheAlbumIds(filteredAlbums);
+			cacheAlbumIds(filteredAlbums, async);
 		}
 		return filteredAlbums;
 	}
@@ -122,10 +123,15 @@ public class FilterService {
 	 * Cache the given album IDs in the database
 	 * 
 	 * @param albums
+	 * @param async
 	 */
-	public void cacheAlbumIds(List<AlbumSimplified> albums) {
+	public void cacheAlbumIds(List<AlbumSimplified> albums, boolean async) {
 		if (!albums.isEmpty()) {
-			databaseService.cacheAlbumIdsAsync(albums);
+			if (async) {
+				databaseService.cacheAlbumIdsAsync(albums);				
+			} else {
+				databaseService.cacheAlbumIdsSync(albums);
+			}
 		}
 	}
 

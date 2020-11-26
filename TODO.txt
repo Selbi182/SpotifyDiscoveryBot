@@ -20,4 +20,3 @@ Other ideas:
 
 Improvements:
 - Blacklist certain release types for certain artists (for example if you hate appears_on contributions by a certain artist but like their own stuff)
-- Pre-cache freshly followed artists

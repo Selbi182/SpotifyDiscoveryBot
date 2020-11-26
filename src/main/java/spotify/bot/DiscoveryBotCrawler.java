@@ -29,6 +29,7 @@ import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;
+import spotify.bot.util.data.CachedArtistsContainer;
 
 @Component
 public class DiscoveryBotCrawler {
@@ -178,10 +179,17 @@ public class DiscoveryBotCrawler {
 	}
 
 	/**
-	 * Phase 0: Get all followed artists
+	 * Phase 0: Get all followed artists and initialize cache for any new ones
 	 */
 	private List<String> getFollowedArtists() throws SQLException, BotException {
-		return artistService.getFollowedArtistsIds();
+		CachedArtistsContainer cachedArtistsContainer = artistService.getFollowedArtistsIds();
+		List<String> newArtists = cachedArtistsContainer.getNewArtists();
+		if (!newArtists.isEmpty()) {
+			log.info("Initializing album cache for " + newArtists.size() + " newly followed artist[s]...");
+			List<AlbumSimplified> allAlbumsOfNewFollowees = albumService.getAllAlbumsOfArtists(newArtists);
+			filterService.getNonCachedAlbumsAndCache(allAlbumsOfNewFollowees, false);			
+		}
+		return cachedArtistsContainer.getAllArtists();
 	}
 
 	/**
@@ -189,7 +197,7 @@ public class DiscoveryBotCrawler {
 	 */
 	private List<AlbumSimplified> getNewAlbumsFromArtists(List<String> followedArtists) throws BotException, SQLException {
 		List<AlbumSimplified> allAlbums = albumService.getAllAlbumsOfArtists(followedArtists);
-		List<AlbumSimplified> nonCachedAlbums = filterService.getNonCachedAlbumsAndCache(allAlbums);
+		List<AlbumSimplified> nonCachedAlbums = filterService.getNonCachedAlbumsAndCache(allAlbums, true);
 		List<AlbumSimplified> insertedAppearOnArtistsAlbums = albumService.resolveViaAppearsOnArtistNames(nonCachedAlbums);
 		List<AlbumSimplified> filteredNoDuplicatesAlbums = filterService.filterDuplicateAlbums(insertedAppearOnArtistsAlbums);
 		List<AlbumSimplified> filteredAlbums = filterService.filterNewAlbumsOnly(filteredNoDuplicatesAlbums);

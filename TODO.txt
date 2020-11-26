@@ -15,7 +15,6 @@ First setup:
 
 	
 Other ideas:
-- Move batch_playlist_addition and cache_followed_artists to config_static (might remove them entirely, you wouldn't ever use them for anything but the current settings)
 - [EPIC] Multi-user support for one instance
 
 Improvements:

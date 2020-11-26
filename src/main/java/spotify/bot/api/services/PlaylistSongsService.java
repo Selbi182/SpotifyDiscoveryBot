@@ -80,7 +80,7 @@ public class PlaylistSongsService {
 				.mapToInt(AlbumTrackPair::trackCount)
 				.sum());
 			if (playlistHasCapacity) {
-				List<List<TrackSimplified>> bundledReleases = batchReleases(albumTrackPairs);
+				List<List<TrackSimplified>> bundledReleases = extractTrackLists(albumTrackPairs);
 				for (List<TrackSimplified> t : bundledReleases) {
 					for (List<TrackSimplified> partition : Lists.partition(t, PLAYLIST_ADD_LIMIT)) {
 						JsonArray json = new JsonArray();
@@ -98,34 +98,12 @@ public class PlaylistSongsService {
 	}
 
 	/**
-	 * If batch playlist addition is enabled, return a view of all release tracks in
-	 * lists of 100 tracks each. This is to improve performance when adding a lot of
-	 * tracks at once (especially for singles), at the cost of preserving the exact
-	 * order in which releases were published.<br/>
-	 * <br/>
-	 * 
-	 * Otherwise, simply returns a rearranged view of all the ATP tracks.
+	 * Extract all the ATP tracks into a new list
 	 * 
 	 * @param allReleases
 	 * @return
 	 */
-	private List<List<TrackSimplified>> batchReleases(List<AlbumTrackPair> allReleases) {
-		if (userOptions.isBatchPlaylistAddition()) {
-			List<List<TrackSimplified>> bundled = new ArrayList<>();
-			List<TrackSimplified> subBatch = new ArrayList<>();
-			for (AlbumTrackPair atp : allReleases) {
-				List<TrackSimplified> tracksOfRelease = atp.getTracks();
-				if ((subBatch.size() + tracksOfRelease.size()) > PLAYLIST_ADD_LIMIT) {
-					bundled.add(subBatch);
-					subBatch = new ArrayList<>();
-				}
-				subBatch.addAll(atp.getTracks());
-			}
-			if (!subBatch.isEmpty()) {
-				bundled.add(subBatch);
-			}
-			return bundled;
-		}
+	private List<List<TrackSimplified>> extractTrackLists(List<AlbumTrackPair> allReleases) {
 		List<List<TrackSimplified>> bundled = new ArrayList<>();
 		for (AlbumTrackPair atp : allReleases) {
 			bundled.add(atp.getTracks());

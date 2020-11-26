@@ -1,21 +1,12 @@
 package spotify.bot.config.dto;
 
 public class UserOptions {
-	private boolean batchPlaylistAddition;
 	private boolean intelligentAppearsOnSearch;
 	private boolean circularPlaylistFitting;
 	private boolean epSeparation;
 	private boolean remixSeparation;
 	private boolean liveSeparation;
 	private boolean rereleaseSeparation;
-
-	public boolean isBatchPlaylistAddition() {
-		return batchPlaylistAddition;
-	}
-
-	public void setBatchPlaylistAddition(boolean batchPlaylistAddition) {
-		this.batchPlaylistAddition = batchPlaylistAddition;
-	}
 
 	public boolean isIntelligentAppearsOnSearch() {
 		return intelligentAppearsOnSearch;
@@ -67,7 +58,7 @@ public class UserOptions {
 
 	@Override
 	public String toString() {
-		return "UserOptions [batchPlaylistAddition=" + batchPlaylistAddition + ", intelligentAppearsOnSearch=" + intelligentAppearsOnSearch + ", circularPlaylistFitting="
+		return "UserOptions [intelligentAppearsOnSearch=" + intelligentAppearsOnSearch + ", circularPlaylistFitting="
 			+ circularPlaylistFitting + ", epSeparation=" + epSeparation + ", remixSeparation=" + remixSeparation + ", liveSeparation=" + liveSeparation + ", rereleaseSeparation=" + rereleaseSeparation + "]";
 	}
 

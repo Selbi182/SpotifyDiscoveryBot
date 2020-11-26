@@ -199,13 +199,10 @@ public class PlaylistMetaService {
 			if (currentlyPlaying != null) {
 				IPlaylistItem item = currentlyPlaying.getItem();
 				if (item instanceof Track) {
-					Track track = (Track) item;
-					String currentlyPlayingSongId = track.getId();
+					String currentlyPlayingSongId = item.getId();
 					boolean currentlyPlayingSongIsNew = recentlyAddedPlaylistTracks.stream()
 						.map(PlaylistTrack::getTrack)
-						.filter(BotUtils::isTrack)
-						.map(Track.class::cast)
-						.map(Track::getId)
+						.map(IPlaylistItem::getId)
 						.filter(Objects::nonNull)
 						.anyMatch(id -> Objects.equals(id, currentlyPlayingSongId));
 					return currentlyPlayingSongIsNew;

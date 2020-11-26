@@ -182,7 +182,7 @@ public class PlaylistSongsService {
 		for (int i = 0; i < tracksToDelete.size(); i++) {
 			IPlaylistItem track = tracksToDelete.get(i).getTrack();
 			if (track instanceof Track) {
-				String id = ((Track) track).getId();
+				String id = track.getId();
 				JsonObject object = new JsonObject();
 				object.addProperty("uri", TRACK_PREFIX + id);
 				JsonArray positions = new JsonArray();

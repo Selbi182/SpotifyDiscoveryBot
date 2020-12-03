@@ -174,6 +174,7 @@ public class RemappingTests {
 		assertTrue(willRemap(liveRemapper, "52SQNIbuBk99ZlpUh2tSz5")); // BABYMETAL - LEGEND - METAL GALAXY [DAY 1]
 		assertTrue(willRemap(liveRemapper, "7hrzbg8R1gI1loeF9Xmwdr")); // Devin Townsend - Why? (live in London 2019)
 		assertTrue(willRemap(liveRemapper, "0lB9qbHN7Km0TquNaQbNW9")); // Deafheaven - Daedalus (Live)
+		assertTrue(willRemap(liveRemapper, "4PVyUMglBuxtPVip15aFfq")); // Deafheaven - 10 Years Gone (Live)
 	}
 
 	@Test
@@ -222,7 +223,6 @@ public class RemappingTests {
 		assertTrue(willRemap(rereleaseRemapper, "3Rb5pMHWV5ZMVrKOE90wuj")); // Eluveitie - Slania (10 Years)
 		assertTrue(willRemap(rereleaseRemapper, "72kuxCdCsdZzfez0lLKUA5")); // Porcupine Tree - Fear of a Blank Planet
 		assertTrue(willRemap(rereleaseRemapper, "6kE2yDdOredVYctzaK0PVu")); // Boehse Onkelz - Kneipenterroristen (30 Jahre)
-
 	}
 
 	@Test

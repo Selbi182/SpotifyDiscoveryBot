@@ -1,6 +1,7 @@
 package spotify.bot.filter.remapper;
 
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
@@ -96,7 +97,11 @@ public class RereleaseRemapper implements Remapper {
 	}
 
 	private boolean containsRereleaseWord(String albumTitle) {
-		return ALBUM_TITLE_MATCHER.matcher(albumTitle).find();
+		Matcher matcher = ALBUM_TITLE_MATCHER.matcher(albumTitle);
+		if (matcher.find()) {
+			return matcher.start() > 0;
+		}
+		return false;
 	}
 
 	private boolean isTrackAvailable(TrackSimplified ts) {

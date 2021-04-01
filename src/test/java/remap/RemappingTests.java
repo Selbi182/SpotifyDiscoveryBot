@@ -96,7 +96,7 @@ public class RemappingTests {
 
 	private void login() {
 		try {
-			spotifyApiAuthorization.login();
+			spotifyApiAuthorization.initialLogin();
 		} catch (BotException e) {
 			e.printStackTrace();
 			fail("Couldn't log in to Spotify Web API!");

@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +15,7 @@ import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
 import spotify.bot.api.BotException;
 import spotify.bot.api.SpotifyApiAuthorization;
+import spotify.bot.api.events.LoggedInEvent;
 import spotify.bot.api.services.AlbumService;
 import spotify.bot.api.services.ArtistService;
 import spotify.bot.api.services.PlaylistMetaService;
@@ -101,12 +101,12 @@ public class DiscoveryBotCrawler {
 	 * @throws BotException on an external exception related to the Spotify Web API
 	 * @throws SQLException on an internal exception related to the SQLite database
 	 */
-	@EventListener(ApplicationReadyEvent.class)
+	@EventListener(LoggedInEvent.class)
 	private void firstCrawlAndEnableReadyState() throws BotException, SQLException {
 		log.printLine();
 		log.info("Executing initial crawl...");
 		long time = System.currentTimeMillis();
-		if (!DeveloperMode.isInitialCrawlSkipped()) {
+		if (!DeveloperMode.isInitialCrawlDisabled()) {
 			Map<AlbumGroupExtended, Integer> results = crawl();
 			String response = BotUtils.compileResultString(results);
 			if (response != null) {
@@ -153,7 +153,7 @@ public class DiscoveryBotCrawler {
 	 * speed up the future search processes
 	 */
 	private Map<AlbumGroupExtended, Integer> crawl() throws BotException, SQLException {
-		spotifyApiAuthorization.login();
+		spotifyApiAuthorization.refresh();
 		Map<AlbumGroupExtended, Integer> crawlResults = crawlScript();
 		return crawlResults;
 	}
@@ -187,7 +187,8 @@ public class DiscoveryBotCrawler {
 		if (!newArtists.isEmpty()) {
 			log.info("Initializing album cache for " + newArtists.size() + " newly followed artist[s]...");
 			List<AlbumSimplified> allAlbumsOfNewFollowees = albumService.getAllAlbumsOfArtists(newArtists);
-			filterService.getNonCachedAlbumsAndCache(allAlbumsOfNewFollowees, false);			
+			List<AlbumSimplified> albumsToInitialize = filterService.getNonCachedAlbums(allAlbumsOfNewFollowees);
+			filterService.cacheAlbumIds(albumsToInitialize, false);
 		}
 		return cachedArtistsContainer.getAllArtists();
 	}
@@ -197,8 +198,10 @@ public class DiscoveryBotCrawler {
 	 */
 	private List<AlbumSimplified> getNewAlbumsFromArtists(List<String> followedArtists) throws BotException, SQLException {
 		List<AlbumSimplified> allAlbums = albumService.getAllAlbumsOfArtists(followedArtists);
-		List<AlbumSimplified> nonCachedAlbums = filterService.getNonCachedAlbumsAndCache(allAlbums, true);
-		List<AlbumSimplified> insertedAppearOnArtistsAlbums = albumService.resolveViaAppearsOnArtistNames(nonCachedAlbums);
+		List<AlbumSimplified> nonCachedAlbums = filterService.getNonCachedAlbums(allAlbums);
+		List<AlbumSimplified> noFutureAlbums = filterService.filterFutureAlbums(nonCachedAlbums);
+		filterService.cacheAlbumIds(noFutureAlbums, true);
+		List<AlbumSimplified> insertedAppearOnArtistsAlbums = albumService.resolveViaAppearsOnArtistNames(noFutureAlbums);
 		List<AlbumSimplified> filteredNoDuplicatesAlbums = filterService.filterDuplicateAlbums(insertedAppearOnArtistsAlbums);
 		List<AlbumSimplified> filteredAlbums = filterService.filterNewAlbumsOnly(filteredNoDuplicatesAlbums);
 		return filteredAlbums;

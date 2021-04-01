@@ -4,11 +4,20 @@ import java.awt.Desktop;
 import java.awt.HeadlessException;
 import java.io.IOException;
 import java.net.URI;
+import java.net.http.HttpConnectTimeoutException;
 import java.sql.SQLException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import javax.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -19,9 +28,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.model_objects.credentials.AuthorizationCodeCredentials;
 
+import spotify.bot.api.events.LoggedInEvent;
 import spotify.bot.config.ConfigUpdate;
 import spotify.bot.util.BotLogger;
-import spotify.bot.util.BotUtils;
 
 @Component
 @RestController
@@ -30,8 +39,7 @@ public class SpotifyApiAuthorization {
 	protected final static String LOGIN_CALLBACK_URI = "/login-callback";
 
 	private final static String SCOPES = "user-follow-read playlist-modify-private";
-	private final static int BACKOFF_MAX_TRIES = 5;
-	private final static int BACKOFF_TIME_BASE_MS = 1000;
+
 	private final static int LOGIN_TIMEOUT = 10;
 
 	@Autowired
@@ -43,27 +51,30 @@ public class SpotifyApiAuthorization {
 	@Autowired
 	private BotLogger log;
 
+	@Autowired
+	private ApplicationEventPublisher applicationEventPublisher;
+
+	@PostConstruct
+	private void initSpotifyCall() {
+		SpotifyCall.spotifyApiAuthorization = this;
+	}
+
 	/**
 	 * Log in to Spotify. Retry up to ten times with exponentially increasing sleep
 	 * intervals on an error.
 	 */
-	public void login() throws BotException {
-		login(0);
+	@EventListener(ApplicationReadyEvent.class)
+	public void initialLogin() {
+		refresh();
+		applicationEventPublisher.publishEvent(new LoggedInEvent(this));
 	}
 
-	private void login(final int retryCount) throws BotException {
+	public String refresh() {
 		try {
-			authorizationCodeRefresh();
-		} catch (SQLException | BotException e) {
-			if (retryCount >= BACKOFF_MAX_TRIES) {
-				log.error(String.format("Failed to refresh authorization token after %d tries. Log in again!", retryCount));
-				log.stackTrace(e);
-				authenticate();
-				return;
-			}
-			long timeout = Math.round(Math.pow(2, retryCount));
-			BotUtils.sneakySleep(BACKOFF_TIME_BASE_MS * timeout);
-			login(retryCount + 1);
+			return authorizationCodeRefresh();
+		} catch (HttpConnectTimeoutException | SQLException e) {
+			authenticate();
+			return refresh();
 		}
 	}
 
@@ -118,9 +129,18 @@ public class SpotifyApiAuthorization {
 	/**
 	 * Refresh the access token
 	 */
-	private void authorizationCodeRefresh() throws SQLException, BotException {
-		AuthorizationCodeCredentials acc = SpotifyCall.execute(spotifyApi.authorizationCodeRefresh());
-		updateTokens(acc);
+	private String authorizationCodeRefresh() throws HttpConnectTimeoutException, SQLException {
+		try {
+			AuthorizationCodeCredentials acc = Executors.newSingleThreadExecutor()
+				.submit(() -> SpotifyCall.execute(spotifyApi.authorizationCodeRefresh()))
+				.get(LOGIN_TIMEOUT, TimeUnit.SECONDS);
+			updateTokens(acc);
+			return acc.getAccessToken();
+		} catch (InterruptedException | ExecutionException | TimeoutException e) {
+			String msg = "Failed to automatically refresh access token after " + LOGIN_TIMEOUT + " seconds. A manual (re-)login might be required.";
+			log.error(msg);
+			throw new HttpConnectTimeoutException(msg);
+		}
 	}
 
 	/**

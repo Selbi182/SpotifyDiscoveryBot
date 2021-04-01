@@ -93,6 +93,8 @@ public class PlaylistSongsService {
 						BotUtils.sneakySleep(PLAYLIST_ADDITION_COOLDOWN);
 					}
 				}
+			} else {
+				log.error("Playlist has no capacity! " + playlistId);
 			}
 		}
 	}

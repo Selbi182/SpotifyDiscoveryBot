@@ -45,7 +45,7 @@ public class DeveloperMode {
 		/**
 		 * The initial crawl when first starting the bot will be skipped entirely
 		 */
-		SKIP_INITIAL_CRAWL
+		DISABLE_INITIAL_CRAWL
 	}
 
 	private static Set<DevMode> devModes = Collections.emptySet();
@@ -110,7 +110,7 @@ public class DeveloperMode {
 	/**
 	 * Return true if the initial crawl should be skipped
 	 */
-	public static boolean isInitialCrawlSkipped() {
-		return devModes.contains(DevMode.SKIP_INITIAL_CRAWL);
+	public static boolean isInitialCrawlDisabled() {
+		return devModes.contains(DevMode.DISABLE_INITIAL_CRAWL);
 	}
 }

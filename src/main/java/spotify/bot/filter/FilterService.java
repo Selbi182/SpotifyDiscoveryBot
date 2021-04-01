@@ -62,19 +62,14 @@ public class FilterService {
 	// FILTER BY CACHED
 
 	/**
-	 * Return non-database-filterd list of albums from the input and adds these to
-	 * the DB cache
+	 * Return non-database-filterd list of albums from the input
 	 * 
 	 * @param allAlbums the albums to check against
-	 * @param async whether the new albums should be cached in a separate thread
 	 * @return the leftover (new) albums
 	 */
-	public List<AlbumSimplified> getNonCachedAlbumsAndCache(List<AlbumSimplified> allAlbums, boolean async) throws SQLException {
+	public List<AlbumSimplified> getNonCachedAlbums(List<AlbumSimplified> allAlbums) throws SQLException {
 		List<AlbumSimplified> filteredAlbums = filterNonCachedAlbumsOnly(allAlbums);
 		BotUtils.removeNulls(filteredAlbums);
-		if (!DeveloperMode.isCacheDisabled()) {
-			cacheAlbumIds(filteredAlbums, async);
-		}
 		return filteredAlbums;
 	}
 
@@ -126,15 +121,49 @@ public class FilterService {
 	 * @param async
 	 */
 	public void cacheAlbumIds(List<AlbumSimplified> albums, boolean async) {
-		if (!albums.isEmpty()) {
-			if (async) {
-				databaseService.cacheAlbumIdsAsync(albums);				
-			} else {
-				databaseService.cacheAlbumIdsSync(albums);
+		if (!DeveloperMode.isCacheDisabled()) {
+			if (!albums.isEmpty()) {
+				if (async) {
+					databaseService.cacheAlbumIdsAsync(albums);
+				} else {
+					databaseService.cacheAlbumIdsSync(albums);
+				}
 			}
 		}
 	}
 
+	/////////////////////////
+	// FILTER FUTURE RELEASES
+
+	/**
+	 * Remove all albums that are going to be released in the future. This is
+	 * required because the Spotify sometimes returns (unavailable) releases that
+	 * aren't going to be unlocked for at least another day. This filter is mostly
+	 * for convenience, as a result.
+	 * 
+	 * @param albums the albums to filter
+	 * @return the albums without releases that had a release date after today
+	 */
+	public List<AlbumSimplified> filterFutureAlbums(List<AlbumSimplified> albums) {
+		List<AlbumSimplified> filtered = albums.stream()
+			.filter(this::isNotInTheFuture)
+			.collect(Collectors.toList());
+		return filtered;
+	}
+	
+	/**
+	 * Return true if this album's release date is either today or before today.
+	 * 
+	 * @param album the album
+	 * @return true if it isn't in the future
+	 */
+	private boolean isNotInTheFuture(AlbumSimplified album) {
+		String releaseDate = album.getReleaseDate();
+		LocalDate parsedReleaseDate = LocalDate.parse(releaseDate, RELEASE_DATE_PARSER);
+		LocalDate now = LocalDate.now();
+		return now.isEqual(parsedReleaseDate) || now.isAfter(parsedReleaseDate);
+	}
+	
 	/////////////////////////
 	// FILTER BY RELEASE DATE
 

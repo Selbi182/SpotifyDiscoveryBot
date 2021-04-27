@@ -14,7 +14,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -208,14 +207,7 @@ public class FilterService {
 	}
 
 	private String getAlbumIdentifierString(AlbumSimplified as) {
-		StringJoiner sj = new StringJoiner("_");
-		if (as == null || as.getAlbumGroup() == null || as.getAlbumGroup().getGroup() == null) {
-			System.out.println();
-		}
-		sj.add(as.getAlbumGroup().getGroup());
-		sj.add(BotUtils.getFirstArtistName(as));
-		sj.add(as.getName());
-		return sj.toString();
+		return String.join("_", as.getAlbumGroup().getGroup(), BotUtils.getFirstArtistName(as), as.getName()).toLowerCase();
 	}
 
 	/**

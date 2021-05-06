@@ -65,10 +65,10 @@ public class EpRemapper implements Remapper {
 			return true;
 		}
 		if (trackCount >= EP_SONG_COUNT_THRESHOLD_LESSER && totalDurationMs >= EP_DURATION_THRESHOLD_LESSER) {
-			String strippedAlbumTitle = BotUtils.strippedTrackIdentifier(albumTitle);
+			String strippedAlbumTitle = BotUtils.strippedTitleIdentifier(albumTitle);
 			return !tracks.stream()
 				.map(TrackSimplified::getName)
-				.map(BotUtils::strippedTrackIdentifier)
+				.map(BotUtils::strippedTitleIdentifier)
 				.anyMatch(t -> t.equalsIgnoreCase(strippedAlbumTitle));
 		}
 		return false;

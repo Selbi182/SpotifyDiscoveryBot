@@ -160,6 +160,7 @@ public class RemappingTests {
 		assertFalse(willRemap(epRemapper, "3BOQrewswG2ePGkShTx389")); // Die Aerzte - Drei Mann - Zwei Songs
 		assertFalse(willRemap(epRemapper, "0UaxFieNv1ccs2GCECCUGy")); // Billy Talent - I Beg To Differ (This Will Get Better)
 		assertFalse(willRemap(epRemapper, "3whJvuQ0hMC5DwPDbCIvXR")); // Ayreon - Talk of the Town
+		// assertFalse(willRemap(epRemapper, "3iGAuNUEmvxqRhvfWuFvEv")); // VOLA - These Black Claws [impossible to fix without breaking other stuff... EPs suck]
 	}
 
 	///////////////////////////////

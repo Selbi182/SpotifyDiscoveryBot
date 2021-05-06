@@ -253,24 +253,36 @@ public final class BotUtils {
 	}
 
 	/**
+	 * Creates an identifier string of the album using the album group, the first artist's name, and the album name.
+	 * 
+	 * @param as the album
+	 * @return the string in the format "albumgroup_firstartistname_albumname"
+	 */
+	public static String albumIdentifierString(AlbumSimplified as) {
+		return String.join("_", as.getAlbumGroup().getGroup(), BotUtils.strippedTitleIdentifier(BotUtils.getFirstArtistName(as)), BotUtils.strippedTitleIdentifier(as.getName())).toLowerCase();
+	}
+	
+	/**
 	 * Creates a string that tries to be as normalized and generic as possible,
-	 * based on the given track. The track's name will be lowercased, stripped off
+	 * based on the given track or album. The name will be lowercased, stripped off
 	 * any white space and special characters, and anything in brackets such as
 	 * "feat.", "bonus track", "remastered" will be removed.
 	 * 
-	 * @param track a string that is assumed to be the title of a track or an album
+	 * @param title a string that is assumed to be the title of a track or an album
 	 * @return the stripped title
 	 */
-	public static String strippedTrackIdentifier(String track) {
-		return track
+	public static String strippedTitleIdentifier(String title) {
+		return title
 			.toLowerCase()
 			.replaceAll(",", " ")
 			.replaceAll("bonus track", "")
+			.replaceAll("\\d{4}.*", "")
+			.replaceAll("remaster.*", "")
+			.replaceAll("feat.*", "")
 			.replaceAll("\\(.+\\)", "")
+			.replaceAll("\\-.*", "")
 			.replaceAll("\\s+", "")
-			.replaceAll("\\W+", "")
-			.replaceAll("\\W+.*$", "");
-
+			.replaceAll("\\W+", "");
 	}
 
 	/**

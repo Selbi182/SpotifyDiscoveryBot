@@ -89,7 +89,7 @@ public class FilterService {
 			}
 		}
 
-		Set<String> albumCache = new HashSet<>(databaseService.getAlbumCache());
+		Set<String> albumCache = new HashSet<>(databaseService.getReleasesIdsCache());
 		return filteredAlbums.values().stream()
 			.filter(a -> !albumCache.contains(a.getId()))
 			.collect(Collectors.toList());
@@ -186,16 +186,28 @@ public class FilterService {
 	}
 
 	/**
-	 * Filter duplicate albums. This is done by converting the most important meta
-	 * data into a String and making sure those are unique.
+	 * Filter duplicate albums (either released simultanously or recently already)
 	 * 
 	 * @param unfilteredAlbums
-	 * @return
+	 * @return the filtered albums
+	 * @throws SQLException 
 	 */
-	public List<AlbumSimplified> filterDuplicateAlbums(List<AlbumSimplified> unfilteredAlbums) {
+	public List<AlbumSimplified> filterDuplicateAlbums(List<AlbumSimplified> unfilteredAlbums) throws SQLException {
+		List<AlbumSimplified> filterSimultaneous = filterDuplicatedAlbumsReleasedSimultaneously(unfilteredAlbums);
+		List<AlbumSimplified> filterRecently = filterDuplicatedAlbumsReleasedRecently(filterSimultaneous);
+		return filterRecently;
+	}
+
+	/**
+	 * Filter duplicate albums with an identical or very similar name released during the current crawl session
+	 * 
+	 * @param unfilteredAlbums
+	 * @return the filtered albums
+	 */
+	private List<AlbumSimplified> filterDuplicatedAlbumsReleasedSimultaneously(List<AlbumSimplified> unfilteredAlbums) {
 		Map<String, AlbumSimplified> uniqueMap = new HashMap<>();
 		for (AlbumSimplified as : unfilteredAlbums) {
-			String identifier = getAlbumIdentifierString(as);
+			String identifier = BotUtils.albumIdentifierString(as);
 			if (!uniqueMap.containsKey(identifier)) {
 				uniqueMap.put(identifier, as);
 			}
@@ -205,11 +217,39 @@ public class FilterService {
 			String.format("Dropped %d duplicate[s] released at the same time:", unfilteredAlbums.size() - leftoverAlbums.size()));
 		return new ArrayList<>(leftoverAlbums);
 	}
-
-	private String getAlbumIdentifierString(AlbumSimplified as) {
-		return String.join("_", as.getAlbumGroup().getGroup(), BotUtils.getFirstArtistName(as), as.getName()).toLowerCase();
+	
+	/**
+	 * Filter duplicate albums with an identical or very similar name released within the lookback days
+	 * (not the ones before that for potential re-releases though)
+	 * 
+	 * @param unfilteredAlbums
+	 * @return the filtered albums
+	 * @throws SQLException 
+	 */
+	private List<AlbumSimplified> filterDuplicatedAlbumsReleasedRecently(List<AlbumSimplified> unfilteredAlbums) throws SQLException {
+		Set<String> releaseNamesCache = new HashSet<>(databaseService.getReleaseNamesCache());
+		List<AlbumSimplified> leftoverAlbums = unfilteredAlbums.stream()
+			.filter(as -> !isValidDate(as) || !releaseNamesCache.contains(BotUtils.albumIdentifierString(as)))
+			.collect(Collectors.toList());
+		
+		cacheAlbumNames(leftoverAlbums, true);
+		log.printDroppedAlbumDifference(unfilteredAlbums, leftoverAlbums,
+			String.format("Dropped %d duplicate[s] already released recently:", unfilteredAlbums.size() - leftoverAlbums.size()));
+		return new ArrayList<>(leftoverAlbums);
 	}
-
+	
+	private void cacheAlbumNames(List<AlbumSimplified> albums, boolean async) {
+		if (!DeveloperMode.isCacheDisabled()) {
+			if (!albums.isEmpty()) {
+				if (async) {
+					databaseService.cacheAlbumNamesAsync(albums);
+				} else {
+					databaseService.cacheAlbumNamesSync(albums);
+				}
+			}
+		}
+	}
+	
 	/**
 	 * Filter out all releases not released within the lookbackDays range. If
 	 * rerelease remapping is enabled, this will only be applied to non-albums

@@ -27,6 +27,7 @@ import spotify.bot.util.data.AlbumGroupExtended;
 public class DatabaseService {
 
 	private final static String CACHE_ALBUMS_THREAD_NAME = "Caching ALBUM IDs";
+	private final static String CACHE_ALBUMS__NAMES_THREAD_NAME = "Caching ALBUM NAMES";
 	private final static String CACHE_ARTISTS_THREAD_NAME = "Caching ARTIST IDs";
 
 	@Autowired
@@ -52,11 +53,11 @@ public class DatabaseService {
 	// READ
 
 	/**
-	 * Return the entire contents of the "album_cache" table as Strings
+	 * Return the entire contents of the "cache_releases" table as Strings
 	 * 
 	 * @return
 	 */
-	public List<String> getAlbumCache() throws SQLException {
+	public List<String> getReleasesIdsCache() throws SQLException {
 		List<String> albumCacheIds = new ArrayList<>();
 		ResultSet rs = database.selectAll(DBConstants.TABLE_CACHE_RELEASES);
 		while (rs.next()) {
@@ -64,9 +65,23 @@ public class DatabaseService {
 		}
 		return albumCacheIds;
 	}
+	
+	/**
+	 * Return the entire contents of the "cache_releases_names" table as Strings
+	 * 
+	 * @return
+	 */
+	public List<String> getReleaseNamesCache() throws SQLException {
+		List<String> albumCacheNames = new ArrayList<>();
+		ResultSet rs = database.selectAll(DBConstants.TABLE_CACHE_RELEASES_NAMES);
+		while (rs.next()) {
+			albumCacheNames.add(rs.getString(DBConstants.COL_RELEASE_NAME));
+		}
+		return albumCacheNames;
+	}
 
 	/**
-	 * Return the entire contents of the "artist_cache" table as Strings
+	 * Return the entire contents of the "cache_artists" table as Strings
 	 * 
 	 * @return
 	 */
@@ -192,6 +207,35 @@ public class DatabaseService {
 	public synchronized void cacheAlbumIdsAsync(List<AlbumSimplified> albumsSimplified) {
 		Runnable r = () -> cacheAlbumIdsSync(albumsSimplified);
 		new Thread(r, CACHE_ALBUMS_THREAD_NAME).start();
+	}
+
+	/**
+	 * Cache the album names of the given list of albums
+	 * 
+	 * @param albumsSimplified
+	 */
+	public void cacheAlbumNamesSync(List<AlbumSimplified> albumsSimplified) {
+		List<String> albumIds = albumsSimplified.stream()
+			.map(BotUtils::albumIdentifierString)
+			.collect(Collectors.toList());
+		try {
+			database.insertAll(
+				albumIds,
+				DBConstants.TABLE_CACHE_RELEASES_NAMES,
+				DBConstants.COL_RELEASE_NAME);
+		} catch (SQLException e) {
+			log.stackTrace(e);
+		}
+	}
+	
+	/**
+	 * Cache the album name identifiers of the given list of albums in a separate thread
+	 * 
+	 * @param albumsSimplified
+	 */
+	public synchronized void cacheAlbumNamesAsync(List<AlbumSimplified> albumsSimplified) {
+		Runnable r = () -> cacheAlbumNamesSync(albumsSimplified);
+		new Thread(r, CACHE_ALBUMS__NAMES_THREAD_NAME).start();
 	}
 
 	/**

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        <meta charset="utf-8">
+        <title>Spotify Discovery Bot</title>
+<!--         <script src="js/playback_info_controller.js"></script> -->
+<!--         <link rel="stylesheet" href="style.css"></link> -->
+        <link rel="icon" href="/favicon.png" type="image/x-icon">
+        <script>
+        	(function() {
+        		const urlParams = new URLSearchParams(window.location.search);
+        		let limit = urlParams.get("limit");
+        		
+		    	fetch("/logblocks" + (limit ? "?limit=" + limit : ""))
+		    		.then(response => response.json())
+		    		.then(json => processJson(json))
+		    		.catch(ex => console.error("Single request", ex));
+		    	
+		    	function processJson(json) {
+	    			let logsContainer = document.getElementById("log");
+		    		for (let log of json) {
+		    			let currentLogContainer = document.createElement("div");
+		    			for (let logLine of log) {
+			    			let currentLogLineTimeContainer = document.createElement("span");
+			    			let currentLogLineInfoContainer = document.createElement("span");
+			    			
+			    			let i = logLine.indexOf('] ');
+			    			currentLogLineTimeContainer.innerHTML = logLine.slice(0, i + 1);
+			    			currentLogLineInfoContainer.innerHTML = logLine.slice(i + 2);
+			    			
+			    			let currentLogLine = document.createElement("div");
+			    			currentLogLine.appendChild(currentLogLineTimeContainer);
+			    			currentLogLine.appendChild(currentLogLineInfoContainer);
+			    			currentLogContainer.appendChild(currentLogLine);
+		    			}
+		    			currentLogContainer.onclick = () => {
+		    				if (currentLogContainer.classList.contains("active")) {
+		    					currentLogContainer.classList.remove("active");		    					
+		    				} else {
+		    					currentLogContainer.classList.add("active");		    					
+		    				}
+		    			}
+		    			logsContainer.appendChild(currentLogContainer);
+		    		}
+		    		logsContainer.childNodes[0].classList.add("active");
+		    	}
+		    	
+        	})();
+        
+        </script>
+        <style>
+        	* {
+        		box-sizing: border-box;
+        	}
+        	
+        	html, body {
+				background-color: black;
+				margin: 0;
+				padding: 0;
+				color: #ddd;
+				font-family: 'Consolas';
+			}
+			
+			#content {
+				padding: 2rem;
+			}
+			
+        	#logo {
+        		white-space: pre;
+        		text-align: center;
+        	}
+        	
+        	#copyright {
+        		text-align: right;
+        		margin-top: 1rem;
+        	}
+        	
+        	#log > div {
+        		margin: 1rem;
+        		padding: 1rem;
+        		border-radius: 1rem;
+        		background-color: #222;
+        		max-height: 10rem;
+        		overflow: auto;
+        		transition: background-color 1s;
+        	}
+        	
+        	#log > div:hover {
+        		background-color: #333;
+        		cursor: pointer;
+        	}
+        	
+        	#log > div.active {
+        		max-height: none;
+        	}
+        	
+        	#log > div > div > span:first-child {
+        		margin-right: 1ch;
+        		opacity: 0.5;
+        	}
+        </style>
+    </head>
+    <body>
+    	<div id="content">
+	    	<div id="logo">
+ ____              _   _  __       ____  _                                   ____        _   
+/ ___| _ __   ___ | |_(_)/ _|_   _|  _ \(_)___  ___ _____   _____ _ __ _   _| __ )  ___ | |_ 
+\___ \| '_ \ / _ \| __| | |_| | | | | | | / __|/ __/ _ \ \ / / _ \ '__| | | |  _ \ / _ \| __|
+ ___) | |_) | (_) | |_| |  _| |_| | |_| | \__ \ (_| (_) \ V /  __/ |  | |_| | |_) | (_) | |_ 
+|____/| .__/ \___/ \__|_|_|  \__, |____/|_|___/\___\___/ \_/ \___|_|   \__, |____/ \___/ \__|
+      |_|                    |___/                                     |___/                 
+	    	</div>
+	    	<div id="log"></div>
+	    	<div id="copyright">&copy; 2020-2021 Selbi</div>
+	    </div>
+    </body>
+</html>

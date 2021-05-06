@@ -143,10 +143,20 @@ public class BotLogger {
 	}
 
 	/**
+	 * Get a String of the given char repeated by its max possible line length
+	 * 
+	 * @param lineCharacter the character
+	 * @return the line
+	 */
+	public String line(String lineCharacter) {
+		return Strings.repeat(lineCharacter, MAX_LINE_LENGTH - ELLIPSIS.length());
+	}
+	
+	/**
 	 * Print a line of of the given symbol as INFO-level log message
 	 */
 	private void printLine(String lineCharacter) {
-		info(Strings.repeat(lineCharacter, MAX_LINE_LENGTH - ELLIPSIS.length()));
+		info(line(lineCharacter));
 	}
 
 	/**
@@ -222,13 +232,18 @@ public class BotLogger {
 				} else if (limit < 0) {
 					limit = Integer.MAX_VALUE;
 				}
+				List<String> logFileLines;
 				try {
-					List<String> logFileLines = Files.readAllLines(logFile.toPath(), StandardCharsets.UTF_8);
-					List<String> logFileLinesRecent = logFileLines.subList(Math.max(0, logFileLines.size() - limit), logFileLines.size());
-					return logFileLinesRecent;
+					logFileLines = Files.readAllLines(logFile.toPath(), StandardCharsets.UTF_8);
 				} catch (IOException e) {
-					throw new IOException("Failed to read log file (malformed encoding?): " + e.toString());
+					try {
+						logFileLines = Files.readAllLines(logFile.toPath(), StandardCharsets.US_ASCII);
+					} catch (IOException ex) {
+						throw new IOException("Failed to read log file (malformed encoding?): " + ex.toString());
+					}
 				}
+				List<String> logFileLinesRecent = logFileLines.subList(Math.max(0, logFileLines.size() - limit), logFileLines.size());
+				return logFileLinesRecent;
 			} else {
 				throw new IOException("Log file is currently locked, likely because it is being written to. Try again.");
 			}

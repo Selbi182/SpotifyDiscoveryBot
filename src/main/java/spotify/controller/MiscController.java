@@ -1,12 +1,12 @@
 package spotify.controller;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -59,11 +59,10 @@ public class MiscController {
 	public ResponseEntity<List<String>> showLogRaw(@RequestParam(value = "limit", required = false) Integer limit) {
 		try {
 			List<String> logFileLines = log.readLog(limit);
-			return new ResponseEntity<List<String>>(logFileLines, HttpStatus.OK);
+			return ResponseEntity.ok(logFileLines);
 		} catch (IOException e) {
 			log.stackTrace(e);
-			List<String> message = Arrays.asList(e.getMessage());
-			return new ResponseEntity<List<String>>(message, HttpStatus.NOT_FOUND);
+			return ResponseEntity.notFound().build();
 		}
 	}
 
@@ -72,7 +71,7 @@ public class MiscController {
 	 * readable form (simply using HTML {@code pre} tags and some basic style).
 	 * 
 	 * @param limit (optional) maximum number of lines to read from the bottom of
-	 *              the log (default: 100); Use -1 to read the entire file
+	 *              the log (default: 50); Use -1 to read the entire file
 	 * @return a ResponseEntity containing the entire log content as single String,
 	 *         or an error
 	 */
@@ -80,19 +79,52 @@ public class MiscController {
 	public ResponseEntity<String> showLog(@RequestParam(value = "limit", required = false) Integer limit) {
 		try {
 			String logs = log.readLog(limit).stream().collect(Collectors.joining("\n"));
-			return new ResponseEntity<String>(LOG_TITLE_AND_STLYE + logs, HttpStatus.OK);
+			return ResponseEntity.ok(LOG_TITLE_AND_STLYE + logs);
 		} catch (IOException e) {
 			log.stackTrace(e);
-			return new ResponseEntity<String>(e.getMessage(), HttpStatus.NOT_FOUND);
+			return ResponseEntity.notFound().build();
+		}
+	}
+	
+	@RequestMapping("/logblocks")
+	public ResponseEntity<List<List<String>>> showLogBlocks(@RequestParam(value = "limit", defaultValue = "10") Integer limit) {
+		try {
+			List<String> readLog = log.readLog(-1);
+			
+			List<List<String>> groupedLog = new ArrayList<>();
+			List<String> currentBlock = new ArrayList<>();
+			for (String logLine : readLog) {
+				if (logLine.contains(log.line("-"))) {
+					groupedLog.add(currentBlock);
+					currentBlock = new ArrayList<>();
+				} else {
+					currentBlock.add(logLine);
+				}
+			}
+			if (!currentBlock.isEmpty()) {
+				groupedLog.add(currentBlock);
+			}
+			
+			List<List<String>> collect = groupedLog.stream()
+				.filter(l -> !l.isEmpty())
+				.collect(Collectors.toList());
+			Collections.reverse(collect);
+			if (limit != null && limit >= 0) {
+				collect = collect.subList(0, Math.min(limit, collect.size()));
+			}
+			return ResponseEntity.ok(collect);
+		} catch (IOException e) {
+			log.stackTrace(e);
+			return ResponseEntity.notFound().build();
 		}
 	}
 
 	@RequestMapping("/clearlog")
 	public ResponseEntity<?> clearLog() {
 		if (log.clearLog()) {
-			return new ResponseEntity<>("Log was successfully cleared!", HttpStatus.OK);
+			return ResponseEntity.ok("Log was successfully cleared!");
 		}
-		return new ResponseEntity<>("Couldn't find log! Maybe it's already cleared?", HttpStatus.NOT_FOUND);
+		return ResponseEntity.notFound().build();
 	}
 
 	/**

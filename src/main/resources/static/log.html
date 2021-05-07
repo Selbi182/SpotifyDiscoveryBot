@@ -3,8 +3,6 @@
     <head>
         <meta charset="utf-8">
         <title>Spotify Discovery Bot</title>
-<!--         <script src="js/playback_info_controller.js"></script> -->
-<!--         <link rel="stylesheet" href="style.css"></link> -->
         <link rel="icon" href="/favicon.png" type="image/x-icon">
         <script>
         	(function() {
@@ -56,7 +54,7 @@
 			    			lineCount.classList.add("linecount");
 			    			currentLogContainer.appendChild(lineCount);
 		    			 	let timestamp = log[0].slice(0, log[0].indexOf('] ') + 1);
-			    			lineCount.innerHTML = `${timestamp} ... ${unimportantLines} lines hidden ...`;
+			    			lineCount.innerHTML = `${timestamp} ... ${unimportantLines} line${unimportantLines > 1 ? 's' : ''} hidden ...`;
 			    		}
 		    		}
 		    		//logsContainer.childNodes[0].classList.add("active");
@@ -76,7 +74,7 @@
 				padding: 0;
 				color: #ddd;
 				font-family: 'Consolas', 'Lucida Console', 'Courier New', monospace;
-        		font-size: 16pt;
+        		font-size: 2vmin;
         		letter-spacing: -0.1ch;
 			}
 			
@@ -87,9 +85,9 @@
         	#logo {
         		white-space: pre;
         		text-align: center;
-        		font-size: 1.5vw;
-        		line-height: 1.2vw;
-        		letter-spacing: -0.3vw;
+        		font-size: 2vw;
+        		line-height: 1.8ex;
+        		letter-spacing: -0.4ch;
         	}
         	
         	#copyright {
@@ -104,7 +102,7 @@
         		background-color: #222;
         		max-width: 100%;
         		overflow: auto;
-        		transition: background-color 1s;
+        		transition: 1s;
         		white-space: pre;
         	}
         	
@@ -130,7 +128,7 @@
         	}
         	
         	#log > div > div.linecount {
-        		font-weight: bold;
+        		opacity: 0.25;
         	}
         	
         	#log > div > div > span:first-child {

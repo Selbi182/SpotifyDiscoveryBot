@@ -14,12 +14,12 @@
 #   Scheduled crawls that run once every 30 minutes will be completely disabled. Only manual calls
 #   at /crawl will be executed.
 #
-# SKIP_INITIAL_CRAWL
+# DISABLE_INITIAL_CRAWL
 #   The initial crawl when first starting the bot will be skipped entirely.
 #
 #######################################################################################################
 
-#DISABLE_PLAYLIST_ADDITIONS
-#DISABLE_CACHE
-#DISABLE_SCHEDULED_CRAWLS
-#SKIP_INITIAL_CRAWL
+DISABLE_PLAYLIST_ADDITIONS
+DISABLE_CACHE
+DISABLE_SCHEDULED_CRAWLS
+#DISABLE_INITIAL_CRAWL

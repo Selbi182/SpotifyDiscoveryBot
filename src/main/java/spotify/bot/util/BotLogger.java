@@ -237,7 +237,7 @@ public class BotLogger {
 					logFileLines = Files.readAllLines(logFile.toPath(), StandardCharsets.UTF_8);
 				} catch (IOException e) {
 					try {
-						logFileLines = Files.readAllLines(logFile.toPath(), StandardCharsets.US_ASCII);
+						logFileLines = Files.readAllLines(logFile.toPath(), StandardCharsets.ISO_8859_1);
 					} catch (IOException ex) {
 						throw new IOException("Failed to read log file (malformed encoding?): " + ex.toString());
 					}

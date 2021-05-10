@@ -1,0 +1,72 @@
+	* {
+        		box-sizing: border-box;
+        	}
+        	
+        	html, body {
+				background-color: black;
+				margin: 0;
+				padding: 0;
+				color: #ddd;
+				font-family: 'Consolas', 'Lucida Console', 'Courier New', monospace;
+        		font-size: 2vmin;
+        		letter-spacing: -0.1ch;
+			}
+			
+			#content {
+				padding: 2rem;
+			}
+			
+        	#logo {
+        		white-space: pre;
+        		text-align: center;
+        		font-size: 2vw;
+        		line-height: 1.6ex;
+        		letter-spacing: -0.3ch;
+        		margin-bottom: 2rem;
+        	}
+        	
+        	#copyright {
+        		text-align: right;
+        		margin-top: 1rem;
+        	}
+        	
+        	#log > div {
+        		margin: 1rem;
+        		padding: 1rem;
+        		border-radius: 1rem;
+        		background-color: #111;
+        		max-width: 100%;
+        		overflow: auto;
+        		transition: 1s;
+        		white-space: pre;
+        	}
+        	
+        	#log > div:hover {
+        		background-color: #333 !important;
+        		cursor: pointer;
+        	}
+        	
+        	#log > div.active {
+        		background-color: #222;
+        	}
+        	
+        	#log > div > div.unimportant, #log > div.active > div.linecount {
+        		display: none;
+        	}
+        	
+        	#log > div.active > div {
+        		display: inherit;
+        	}
+        	
+        	#log > div > div.unimportant, #log > div > div.linecount {
+        		opacity: 0.5;
+        	}
+        	
+        	#log > div > div.linecount {
+        		opacity: 0.25;
+        	}
+        	
+        	#log > div > div > span:first-child {
+        		margin-right: 1ch;
+        		opacity: 0.5;
+        	}

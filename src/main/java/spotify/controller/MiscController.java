@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.view.RedirectView;
 
 import spotify.bot.DiscoveryBotCrawler;
 import spotify.bot.config.dto.StaticConfig;
@@ -24,16 +25,6 @@ import spotify.bot.util.BotUtils;
 @Component
 @EnableScheduling
 public class MiscController {
-
-	private final static String LOG_TITLE_AND_STLYE = "<title>Spotify Discovery Bot - Logs</title>"
-		+ "<style>"
-		+ "  body {"
-		+ "    white-space: pre;"
-		+ "    background-color: #222;"
-		+ "    color: #ddd;"
-		+ "    font-family: 'Consolas';"
-		+ "  }"
-		+ "</style>";
 
 	private final static int SHUTDOWN_RETRY_SLEEP = 10 * 1000;
 
@@ -46,51 +37,25 @@ public class MiscController {
 	@Autowired
 	private StaticConfig staticConfig;
 
-	/**
-	 * Displays the contents of the of the most recent log entries in a raw JSON
-	 * format.
-	 * 
-	 * @param limit (optional) maximum number of lines to read from the bottom of
-	 *              the log (default: 50); Use -1 to read the entire file
-	 * @return a ResponseEntity containing the entire log content as a list of
-	 *         Strings, or an error (will be the first and only entry)
-	 */
-	@RequestMapping("/lograw")
-	public ResponseEntity<List<String>> showLogRaw(@RequestParam(value = "limit", required = false) Integer limit) {
-		try {
-			List<String> logFileLines = log.readLog(limit);
-			return ResponseEntity.ok(logFileLines);
-		} catch (IOException e) {
-			log.stackTrace(e);
-			return ResponseEntity.notFound().build();
-		}
+	@RequestMapping("/log")
+	public RedirectView redirectToNewLog() {
+		return new RedirectView("/log.html");
 	}
 
 	/**
-	 * Displays the contents of the of the most recent log entries in a humanly
-	 * readable form (simply using HTML {@code pre} tags and some basic style).
+	 * Returns the contents of the of the most recent log entries split by
+	 * separating lines (---).
 	 * 
-	 * @param limit (optional) maximum number of lines to read from the bottom of
-	 *              the log (default: 50); Use -1 to read the entire file
-	 * @return a ResponseEntity containing the entire log content as single String,
-	 *         or an error
+	 * @param limit (optional) maximum number of log blocks to return from the
+	 *              bottom of the log (default: 10); Use -1 to return the entire log
+	 * @return a ResponseEntity containing the entire log content as a List of
+	 *         blocks, or an error
 	 */
-	@RequestMapping("/log")
-	public ResponseEntity<String> showLog(@RequestParam(value = "limit", required = false) Integer limit) {
-		try {
-			String logs = log.readLog(limit).stream().collect(Collectors.joining("\n"));
-			return ResponseEntity.ok(LOG_TITLE_AND_STLYE + logs);
-		} catch (IOException e) {
-			log.stackTrace(e);
-			return ResponseEntity.notFound().build();
-		}
-	}
-	
 	@RequestMapping("/logblocks")
 	public ResponseEntity<List<List<String>>> showLogBlocks(@RequestParam(value = "limit", defaultValue = "10") Integer limit) {
 		try {
 			List<String> readLog = log.readLog(-1);
-			
+
 			List<List<String>> groupedLog = new ArrayList<>();
 			List<String> currentBlock = new ArrayList<>();
 			for (String logLine : readLog) {
@@ -104,7 +69,7 @@ public class MiscController {
 			if (!currentBlock.isEmpty()) {
 				groupedLog.add(currentBlock);
 			}
-			
+
 			List<List<String>> collect = groupedLog.stream()
 				.filter(l -> !l.isEmpty())
 				.collect(Collectors.toList());

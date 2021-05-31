@@ -201,6 +201,7 @@ public class RemappingTests {
 		assertTrue(willRemap(remixRemapper, "3QZHRDBNh1GHDY6MCBULQp")); // Pendulum - The Reworks
 		assertTrue(willRemap(remixRemapper, "1Xe71xvukVuB7MUudgf5CT")); // Enter Shikari - { The Dreamer's Hotel } (Bob Vylan Remix)
 		assertTrue(willRemap(remixRemapper, "0qkA24pNLpb9UczrM8HmPn")); // Trollfest - Kletteren Afterski - Remix
+		assertTrue(willRemap(remixRemapper, "6ou0Sx0PKbMxuksXLPQ0rP")); // Muse - Citizen Erased (XX Anniversary RemiXX)
 	}
 
 	@Test
@@ -210,6 +211,7 @@ public class RemappingTests {
 		assertFalse(willRemap(remixRemapper, "231la1R3Z2UWS0rjRTIm9U")); // Lindemann - Steh auf
 		assertFalse(willRemap(remixRemapper, "1b7Yy5kprvU3YiJmRdt4Bf")); // Cradle of Filth - Cruelty and the Beast
 		assertFalse(willRemap(remixRemapper, "1L3K9GVu9coTIckoCpD6S9")); // Perturbator - B-Sides & Remixes 1
+		assertFalse(willRemap(remixRemapper, "3xYrUZj3xg5dvMrZvqoyKW")); // Till Lindemann - Ich hasse Kinder
 	}
 
 	///////////////////////////////

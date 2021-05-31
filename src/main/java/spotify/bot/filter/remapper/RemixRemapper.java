@@ -15,8 +15,8 @@ import spotify.bot.util.data.AlbumTrackPair;
 @Component
 public class RemixRemapper implements Remapper {
 
-	private final static Pattern REMIX_MATCHER = Pattern.compile("\\b(RMX|REMIX|REMIXES)\\b", Pattern.CASE_INSENSITIVE);
-	private final static double REMIX_SONG_COUNT_PERCENTAGE_THRESHOLD = 0.65;
+	private final static Pattern REMIX_MATCHER = Pattern.compile("\\b(RMX|REMIX+|REMIXES)\\b", Pattern.CASE_INSENSITIVE);
+	private final static double REMIX_SONG_COUNT_PERCENTAGE_THRESHOLD = 0.67;
 	private final static double REMIX_SONG_COUNT_PERCENTAGE_THRESHOLD_LESSER = 0.2;
 
 	@Override
@@ -43,14 +43,15 @@ public class RemixRemapper implements Remapper {
 	}
 
 	/**
-	 * Returns true if the release OR at least half of the release's tracks have
-	 * "REMIX" in their titles (one word, case insenstive)
+	 * Returns true if the release OR at least two thirds of the release's tracks
+	 * have "REMIX" in their titles (one word, case insenstive). Exception: Remix is
+	 * in the title, in which case the threshold is only 20%
 	 */
 	private boolean qualifiesAsRemappable(String albumTitle, List<TrackSimplified> tracks) {
 		boolean hasRemixInTitle = REMIX_MATCHER.matcher(albumTitle).find();
-		List<String> trackIds = tracks.stream().map(TrackSimplified::getName).collect(Collectors.toList());
-		double trackCountRemix = trackIds.stream().filter(t -> REMIX_MATCHER.matcher(t).find()).count();
-		double trackCount = trackIds.size();
+		List<String> trackNames = tracks.stream().map(TrackSimplified::getName).collect(Collectors.toList());
+		double trackCountRemix = trackNames.stream().filter(t -> REMIX_MATCHER.matcher(t).find()).count();
+		double trackCount = trackNames.size();
 		double remixPercentage = trackCountRemix / trackCount;
 		if (hasRemixInTitle) {
 			return remixPercentage > REMIX_SONG_COUNT_PERCENTAGE_THRESHOLD_LESSER;

@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.view.RedirectView;
+import org.springframework.web.servlet.ModelAndView;
 
 import spotify.bot.DiscoveryBotCrawler;
 import spotify.bot.config.dto.StaticConfig;
@@ -37,9 +37,9 @@ public class MiscController {
 	@Autowired
 	private StaticConfig staticConfig;
 
-	@RequestMapping("/log")
-	public RedirectView redirectToNewLog() {
-		return new RedirectView("/log.html");
+	@RequestMapping("/")
+	public ModelAndView showLogView() {
+		return new ModelAndView("/log.html");
 	}
 
 	/**

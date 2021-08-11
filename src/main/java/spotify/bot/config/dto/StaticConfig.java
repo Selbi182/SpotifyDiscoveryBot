@@ -8,6 +8,7 @@ public class StaticConfig {
 	private int artistCacheTimeout;
 	private Date artistCacheLastUpdated;
 	private boolean restartBeforeFriday;
+	private boolean autoVacuum;
 
 	public int getLookbackDays() {
 		return lookbackDays;
@@ -49,9 +50,11 @@ public class StaticConfig {
 		this.restartBeforeFriday = restartBeforeFriday;
 	}
 
-	@Override
-	public String toString() {
-		return "StaticConfig [lookbackDays=" + lookbackDays + ", newNotificationTimeout=" + newNotificationTimeout + ", artistCacheTimeout=" + artistCacheTimeout + ", artistCacheLastUpdated=" + artistCacheLastUpdated
-			+ ", restartBeforeFriday=" + restartBeforeFriday + "]";
+	public boolean isAutoVacuum() {
+		return autoVacuum;
+	}
+
+	public void setAutoVacuum(boolean autoVacuum) {
+		this.autoVacuum = autoVacuum;
 	}
 }

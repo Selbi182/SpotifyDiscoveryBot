@@ -73,42 +73,70 @@ public class BotLogger {
 	 * Log a debug message
 	 */
 	public void debug(String message) {
-		logAtLevel(message, Level.DEBUG);
+		logAtLevel(message, Level.DEBUG, true);
+	}
+	
+	/**
+	 * Log a debug message
+	 */
+	public void debug(String message, boolean writeToExternalLog) {
+		logAtLevel(message, Level.DEBUG, true, writeToExternalLog);
 	}
 
 	/**
 	 * Log an info message
 	 */
 	public void info(String message) {
-		logAtLevel(message, Level.INFO);
+		logAtLevel(message, Level.INFO, true);
+	}
+	
+	/**
+	 * Log an info message
+	 */
+	public void info(String message, boolean writeToExternalLog) {
+		logAtLevel(message, Level.INFO, true, writeToExternalLog);
 	}
 
 	/**
 	 * Log a warning message
 	 */
 	public void warning(String message) {
-		logAtLevel(message, Level.WARNING);
+		logAtLevel(message, Level.WARNING, true);
+	}
+	
+	/**
+	 * Log a warning message
+	 */
+	public void warning(String message, boolean writeToExternalLog) {
+		logAtLevel(message, Level.WARNING, true, writeToExternalLog);
 	}
 
 	/**
 	 * Log an error message
 	 */
 	public void error(String message) {
-		logAtLevel(message, Level.ERROR);
+		logAtLevel(message, Level.ERROR, true);
+	}
+	
+	/**
+	 * Log an error message
+	 */
+	public void error(String message, boolean writeToExternalLog) {
+		logAtLevel(message, Level.ERROR, true, writeToExternalLog);
 	}
 
 	/**
 	 * Log a message at the given log level (truncate enabled)
 	 */
-	public void logAtLevel(String msg, Level level) {
-		logAtLevel(msg, level, true);
+	public void logAtLevel(String msg, Level level, boolean writeToExternalLog) {
+		logAtLevel(msg, level, true, writeToExternalLog);
 	}
 
 	/**
 	 * Log a message at the given log level (truncation optional). Also writes to an
 	 * external log.txt file.
 	 */
-	public void logAtLevel(String msg, Level level, boolean truncate) {
+	public void logAtLevel(String msg, Level level, boolean truncate, boolean writeToExternalLog) {
 		if (truncate) {
 			msg = truncateToEllipsis(msg);
 		}
@@ -126,10 +154,13 @@ public class BotLogger {
 				log.error(msg);
 				break;
 		}
-		try {
-			writeToExternalLog(msg);
-		} catch (IOException e) {
-			e.printStackTrace();
+		
+		if (writeToExternalLog) {			
+			try {
+				writeToExternalLog(msg);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 
 		hasUnflushedLogs = true;
@@ -264,7 +295,7 @@ public class BotLogger {
 		try (PrintWriter printWriter = new PrintWriter(stringWriter)) {
 			e.printStackTrace(printWriter);
 		}
-		log.error(stringWriter.toString());
+		log.error(stringWriter.toString(), false);
 	}
 
 	//////////////////////

@@ -22,7 +22,9 @@ import spotify.bot.api.services.PlaylistMetaService;
 import spotify.bot.api.services.PlaylistSongsService;
 import spotify.bot.api.services.TrackService;
 import spotify.bot.config.DeveloperMode;
+import spotify.bot.config.database.DatabaseService;
 import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
+import spotify.bot.config.dto.StaticConfig;
 import spotify.bot.filter.FilterService;
 import spotify.bot.filter.RemappingService;
 import spotify.bot.util.BotLogger;
@@ -59,6 +61,12 @@ public class DiscoveryBotCrawler {
 
 	@Autowired
 	private RemappingService remappingService;
+	
+	@Autowired
+	private DatabaseService databaseService;
+	
+	@Autowired
+	private StaticConfig staticConfig;
 
 	/**
 	 * Lock controlling the local single-crawl behavior
@@ -104,18 +112,18 @@ public class DiscoveryBotCrawler {
 	@EventListener(LoggedInEvent.class)
 	private void firstCrawlAndEnableReadyState() throws BotException, SQLException {
 		log.printLine();
-		log.info("Executing initial crawl...");
+		log.info("Executing initial crawl...", false);
 		long time = System.currentTimeMillis();
 		if (!DeveloperMode.isInitialCrawlDisabled()) {
 			Map<AlbumGroupExtended, Integer> results = crawl();
 			String response = BotUtils.compileResultString(results);
 			if (response != null) {
-				log.info(response);
+				log.info(response, false);
 			}
 		} else {
-			log.info(">>> SKIPPED <<<");
+			log.info(">>> SKIPPED <<<", false);
 		}
-		log.info("Initial crawl successfully finished in: " + (System.currentTimeMillis() - time) + "ms");
+		log.info("Initial crawl successfully finished in: " + (System.currentTimeMillis() - time) + "ms", false);
 		log.resetAndPrintLine();
 		lock = new ReentrantLock();
 	}
@@ -155,6 +163,9 @@ public class DiscoveryBotCrawler {
 	private Map<AlbumGroupExtended, Integer> crawl() throws BotException, SQLException {
 		spotifyApiAuthorization.refresh();
 		Map<AlbumGroupExtended, Integer> crawlResults = crawlScript();
+		if (staticConfig.isAutoVacuum()) {
+			databaseService.vacuum();
+		}
 		return crawlResults;
 	}
 

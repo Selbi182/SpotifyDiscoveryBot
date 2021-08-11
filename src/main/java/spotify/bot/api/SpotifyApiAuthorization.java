@@ -96,13 +96,13 @@ public class SpotifyApiAuthorization {
 			}
 			Desktop.getDesktop().browse(uri);
 		} catch (IOException | HeadlessException e) {
-			log.warning("Couldn't open browser window. Please login at this URL:");
+			log.warning("Couldn't open browser window. Please login at this URL:", false);
 			System.out.println(uri.toString());
 		}
 		try {
 			boolean loggedIn = lock.tryAcquire(LOGIN_TIMEOUT, TimeUnit.MINUTES);
 			if (!loggedIn) {
-				log.error("Login timeout! Shutting down application in case of a Spotify Web API anomaly.!");
+				log.error("Login timeout! Shutting down application in case of a Spotify Web API anomaly!", false);
 				System.exit(1);
 			}
 		} catch (InterruptedException e) {
@@ -138,7 +138,7 @@ public class SpotifyApiAuthorization {
 			return acc.getAccessToken();
 		} catch (InterruptedException | ExecutionException | TimeoutException e) {
 			String msg = "Failed to automatically refresh access token after " + LOGIN_TIMEOUT + " seconds. A manual (re-)login might be required.";
-			log.error(msg);
+			log.error(msg, false);
 			throw new HttpConnectTimeoutException(msg);
 		}
 	}

@@ -99,10 +99,10 @@ public class MiscController {
 	@RequestMapping("/shutdown")
 	public void shutdown(@RequestParam(value = "message", defaultValue = "Shutting down Spotify bot by manual request...") String message) {
 		if (message != null && !message.isEmpty()) {
-			log.info(message);
+			log.info(message, false);
 		}
 		while (!crawler.isReady()) {
-			log.warning("Can't stop application during a crawl! Trying again in 10 seconds...");
+			log.warning("Can't stop application during a crawl! Trying again in 10 seconds...", false);
 			BotUtils.sneakySleep(SHUTDOWN_RETRY_SLEEP);
 		}
 		System.exit(0);

@@ -34,6 +34,7 @@ public class DiscoveryDatabase {
 	private final static String DELETE_QUERY_MASK = DELETE_BASE_QUERY_MASK + " WHERE %s = '%s'";
 	private final static String UPDATE_QUERY_MASK = "UPDATE %s SET %s = '%s'";
 	private final static String UPDATE_WITH_CONDITION_QUERY_MASK = "UPDATE %s SET %s = %s WHERE %s = '%s'";
+	private final static String VACUUM = "VACUUM";
 
 	// Instance
 	private final static File WORKSPACE_LOCATION = new File(".");
@@ -59,7 +60,7 @@ public class DiscoveryDatabase {
 			System.out.println("Establishing SQLite database connection: " + dbFilePath.getAbsolutePath());
 			getConnectionInstance();
 		} catch (IOException | SQLException e) {
-			log.error("=== FAILED TO ESTABLISH DATABASE CONNECTION! APPLICATION IS HALTING! ===");
+			log.error("=== FAILED TO ESTABLISH DATABASE CONNECTION! APPLICATION IS HALTING! ===", false);
 			System.exit(1);
 		}
 	}
@@ -73,7 +74,7 @@ public class DiscoveryDatabase {
 				}
 				throw new IOException("Could not access ALTERNATE database (file is locked)!");
 			} else {
-				log.warning("ALTERNATE database file path has been specified but doesn't exist!");
+				log.warning("ALTERNATE database file path has been specified but doesn't exist!", false);
 			}
 		}
 
@@ -198,5 +199,14 @@ public class DiscoveryDatabase {
 	 */
 	synchronized void clearTable(String table) throws SQLException {
 		createStatement().execute(String.format(DELETE_BASE_QUERY_MASK, table));
+	}
+	
+	////////////////
+
+	/**
+	 * Execute the VACUUM command in the database for housekeeping
+	 */
+	synchronized void vacuum() throws SQLException {
+		createStatement().execute(VACUUM);
 	}
 }

@@ -18,9 +18,11 @@ class DBConstants {
 	public final static String TABLE_CONFIG_STATIC = "config_static";
 	public final static String COL_MARKET = "market";
 	public final static String COL_LOOKBACK_DAYS = "lookback_days";
-	public final static String COL_NEW_NOTIFICATION_TIMEOUT = "new_notification_timeout";
-	public final static String COL_ARTIST_CACHE_TIMEOUT = "artist_cache_timeout";
+	public final static String COL_NEW_NOTIFICATION_TIMEOUT = "new_notification_timeout_days";
+	public final static String COL_ARTIST_CACHE_TIMEOUT = "artist_cache_timeout_days";
 	public final static String COL_ARTIST_CACHE_LAST_UPDATE = "artist_cache_last_update";
+	public final static String COL_RESTART_BEFORE_FRIDAY = "restart_before_friday";
+	public final static String COL_AUTO_VACUUM = "auto_vacuum";
 
 	public final static String TABLE_CONFIG_USER_OPTIONS = "config_user_options";
 	public final static String COL_INTELLIGENT_APPEARS_ON_SEARCH = "intelligent_appears_on_search";

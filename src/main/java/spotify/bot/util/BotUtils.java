@@ -76,13 +76,13 @@ public final class BotUtils {
 	/**
 	 * Check if the given old date is still within the allowed timeout window
 	 * 
-	 * @param baseDate       the date to check "now" against
-	 * @param timeoutInHours the timeout in hours
+	 * @param baseDate      the date to check "now" against
+	 * @param timeoutInDays the timeout in days
 	 */
-	public static boolean isWithinTimeoutWindow(Date baseDate, int timeoutInHours) {
+	public static boolean isWithinTimeoutWindow(Date baseDate, int timeoutInDays) {
 		Instant baseTime = Instant.ofEpochMilli(baseDate.getTime());
 		Instant currentTime = Instant.now();
-		boolean isWithinTimeoutWindow = currentTime.minus(timeoutInHours, ChronoUnit.HOURS).isBefore(baseTime);
+		boolean isWithinTimeoutWindow = currentTime.minus(timeoutInDays, ChronoUnit.DAYS).isBefore(baseTime);
 		return isWithinTimeoutWindow;
 	}
 

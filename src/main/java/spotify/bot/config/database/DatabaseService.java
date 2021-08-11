@@ -112,6 +112,8 @@ public class DatabaseService {
 		staticConfig.setNewNotificationTimeout(db.getInt(DBConstants.COL_NEW_NOTIFICATION_TIMEOUT));
 		staticConfig.setArtistCacheTimeout(db.getInt(DBConstants.COL_ARTIST_CACHE_TIMEOUT));
 		staticConfig.setArtistCacheLastUpdated(db.getDate(DBConstants.COL_ARTIST_CACHE_LAST_UPDATE));
+		staticConfig.setRestartBeforeFriday(db.getBoolean(DBConstants.COL_RESTART_BEFORE_FRIDAY));
+		staticConfig.setAutoVacuum(db.getBoolean(DBConstants.COL_AUTO_VACUUM));
 		return staticConfig;
 	}
 
@@ -267,5 +269,19 @@ public class DatabaseService {
 	 */
 	private synchronized void refreshArtistCacheLastUpdate() throws SQLException {
 		database.update(DBConstants.TABLE_CONFIG_STATIC, DBConstants.COL_ARTIST_CACHE_LAST_UPDATE, String.valueOf(BotUtils.currentTime()));
+	}
+	
+	/**
+	 * Execute the VACUUM command in the database for housekeeping
+	 */
+	public synchronized void vacuum() {
+		Runnable r = () -> {
+			try {
+				database.vacuum();
+			} catch (SQLException e) {
+				log.stackTrace(e);
+			}
+		};
+		new Thread(r, CACHE_ALBUMS__NAMES_THREAD_NAME).start();
 	}
 }

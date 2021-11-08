@@ -45,7 +45,12 @@ public class DeveloperMode {
 		/**
 		 * The initial crawl when first starting the bot will be skipped entirely
 		 */
-		DISABLE_INITIAL_CRAWL
+		DISABLE_INITIAL_CRAWL,
+		
+		/**
+		 * Relaying releases will be skipped even when a config file exists.
+		 */
+		DISABLE_RELAY
 	}
 
 	private static Set<DevMode> devModes = Collections.emptySet();
@@ -112,5 +117,9 @@ public class DeveloperMode {
 	 */
 	public static boolean isInitialCrawlDisabled() {
 		return devModes.contains(DevMode.DISABLE_INITIAL_CRAWL);
+	}
+
+	public static boolean isRelayingDisbled() {
+		return devModes.contains(DevMode.DISABLE_RELAY);
 	}
 }

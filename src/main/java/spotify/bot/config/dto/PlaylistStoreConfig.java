@@ -149,5 +149,27 @@ public class PlaylistStoreConfig {
 		public int compareTo(PlaylistStore o) {
 			return BotUtils.DEFAULT_PLAYLIST_GROUP_ORDER_COMPARATOR.compare(this.getAlbumGroupExtended(), o.getAlbumGroupExtended());
 		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ((albumGroupExtended == null) ? 0 : albumGroupExtended.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			PlaylistStore other = (PlaylistStore) obj;
+			if (albumGroupExtended != other.albumGroupExtended)
+				return false;
+			return true;
+		}
 	}
 }

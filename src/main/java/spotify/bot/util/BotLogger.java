@@ -15,6 +15,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -392,13 +393,24 @@ public class BotLogger {
 	/**
 	 * Same as {@link BotLogger#printAlbumDifference} but for AlbumTrackPairs
 	 * 
-	 * @param unfilteredAppearsOnAlbums
-	 * @param filteredAppearsOnAlbums
+	 * @param unfilteredReleases
+	 * @param filteredReleases
 	 * @param logDescription
 	 */
-	public void printDroppedAlbumTrackPairDifference(Collection<AlbumTrackPair> unfilteredAppearsOnAlbums, Collection<AlbumTrackPair> filteredAppearsOnAlbums, String logDescription) {
-		printDroppedAlbumDifference(unfilteredAppearsOnAlbums.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList()),
-			filteredAppearsOnAlbums.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList()),
+	public void printDroppedAlbumTrackPairDifference(Collection<AlbumTrackPair> unfilteredReleases, Collection<AlbumTrackPair> filteredReleases, String logDescription) {
+		printDroppedAlbumDifference(unfilteredReleases.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList()),
+			filteredReleases.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList()),
 			logDescription);
+	}
+
+	public void printDroppedAlbumsCustomGroup(List<Entry<AlbumSimplified, AlbumGroupExtended>> droppedAlbums, String logDescription){
+		if (!droppedAlbums.isEmpty()) {
+			if (logDescription != null) {
+				debug(DROPPED_PREFIX + logDescription);
+			}
+			for (Entry<AlbumSimplified, AlbumGroupExtended> droppedAlbum : droppedAlbums) {
+				debug(DROPPED_PREFIX + INDENT + BotUtils.formatAlbum(droppedAlbum.getKey(), droppedAlbum.getValue()));
+			}
+		}
 	}
 }

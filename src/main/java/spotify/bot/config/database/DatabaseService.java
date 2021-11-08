@@ -147,6 +147,26 @@ public class DatabaseService {
 		}
 		return playlistStoreMap;
 	}
+	
+	public Map<String, List<PlaylistStore>> getBlacklistedArtistReleasePairs() throws SQLException {
+		Map<AlbumGroupExtended, PlaylistStore> allPlaylistStoresMap = getAllPlaylistStoresMap();
+		
+		Map<String, List<PlaylistStore>> blacklistedReleaseTypesForArtists = new HashMap<>();
+		ResultSet dbBlacklistedTypes = database.selectAll(DBConstants.TABLE_BLACKLISTED_TYPES);
+
+		while (dbBlacklistedTypes.next()) {
+			String artistId = dbBlacklistedTypes.getString(DBConstants.COL_ARTIST_ID);
+			String blacklistedTypesRaw = dbBlacklistedTypes.getString(DBConstants.COL_BLACKLISTED_TYPES);
+			List<PlaylistStore> blacklistedTypes = new ArrayList<>();
+			for (String blacklistedType : blacklistedTypesRaw.split(",")) {
+				AlbumGroupExtended blacklistedAlbumGroup = AlbumGroupExtended.valueOf(blacklistedType);
+				PlaylistStore playlistStore = allPlaylistStoresMap.get(blacklistedAlbumGroup);
+				blacklistedTypes.add(playlistStore);
+			}
+			blacklistedReleaseTypesForArtists.put(artistId, blacklistedTypes);
+		}
+		return blacklistedReleaseTypesForArtists;
+	}
 
 	////////////////////////
 	// WRITE

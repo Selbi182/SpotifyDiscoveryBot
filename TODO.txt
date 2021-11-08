@@ -18,5 +18,4 @@ Other ideas:
 - [EPIC] Multi-user support for one instance
 
 Improvements:
-- Blacklist certain release types for certain artists (for example if you hate appears_on contributions by a certain artist but like their own stuff)
 - Improve EP separation (which is currently not really possible due to mishandling of what is an EP and what isn't)

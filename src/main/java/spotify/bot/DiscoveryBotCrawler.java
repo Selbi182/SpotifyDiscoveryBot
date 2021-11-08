@@ -184,7 +184,7 @@ public class DiscoveryBotCrawler {
 			List<AlbumSimplified> filteredAlbums = getNewAlbumsFromArtists(followedArtists);
 			if (!filteredAlbums.isEmpty()) {
 				Map<PlaylistStore, List<AlbumTrackPair>> newTracksByTargetPlaylist = getNewTracksByTargetPlaylist(filteredAlbums, followedArtists);
-				if (!newTracksByTargetPlaylist.isEmpty()) {
+				if (!BotUtils.isAllEmptyLists(newTracksByTargetPlaylist)) {
 					Map<AlbumGroupExtended, Integer> crawlResults = addReleasesToPlaylistsAndCollectResults(newTracksByTargetPlaylist);
 					return crawlResults;
 				}
@@ -232,7 +232,8 @@ public class DiscoveryBotCrawler {
 		if (!BotUtils.isAllEmptyLists(intelligentAppearsOnFilteredAlbums)) {
 			Map<PlaylistStore, List<AlbumTrackPair>> songsByMainPlaylist = remappingService.mapToTargetPlaylist(intelligentAppearsOnFilteredAlbums);
 			Map<PlaylistStore, List<AlbumTrackPair>> songsByExtendedPlaylist = remappingService.remapIntoExtendedPlaylists(songsByMainPlaylist);
-			return songsByExtendedPlaylist;
+			Map<PlaylistStore, List<AlbumTrackPair>> songsFilteredWithBlacklistedArtistReleasePairs = filterService.filterBlacklistedReleaseTypesForArtists(songsByExtendedPlaylist);
+			return songsFilteredWithBlacklistedArtistReleasePairs;
 		}
 		return Collections.emptyMap();
 	}

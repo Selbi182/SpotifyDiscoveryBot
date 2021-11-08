@@ -190,6 +190,21 @@ public final class BotUtils {
 			as.getName(),
 			as.getReleaseDate());
 	}
+	
+	/**
+	 * Build a readable String for dropped AlbumSimplified with a custom album group
+	 * 
+	 * @param as
+	 * @param customAlbumGroup
+	 * @return
+	 */
+	public static String formatAlbum(AlbumSimplified as, AlbumGroupExtended customAlbumGroup) {
+		return String.format("[%s] %s - %s (%s)",
+			customAlbumGroup.toString(),
+			joinArtists(as.getArtists()),
+			as.getName(),
+			as.getReleaseDate());
+	}
 
 	/**
 	 * Return a string representation of all artist names, separated by ", "
@@ -221,6 +236,22 @@ public final class BotUtils {
 	 */
 	public static String getLastArtistName(AlbumSimplified as) {
 		return as.getArtists()[as.getArtists().length - 1].getName();
+	}
+	
+	/**
+	 * Return true of any of the artists on this album match the given id
+	 * 
+	 * @param album
+	 * @param id
+	 * @return
+	 */
+	public static boolean anyArtistMatches(AlbumSimplified album, String id) {
+		for (ArtistSimplified artist : album.getArtists()) {
+			if (artist.getId().equals(id)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

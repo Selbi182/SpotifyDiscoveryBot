@@ -42,3 +42,4 @@ templates/READY
 /spring.log
 /application.properties
 /log.txt
+/relay.properties

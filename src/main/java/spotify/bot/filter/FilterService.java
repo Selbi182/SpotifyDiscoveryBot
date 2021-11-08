@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -26,6 +27,7 @@ import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
 import spotify.bot.config.DeveloperMode;
 import spotify.bot.config.database.DatabaseService;
+import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.config.dto.StaticConfig;
 import spotify.bot.config.dto.UserOptions;
 import spotify.bot.util.BotLogger;
@@ -363,5 +365,37 @@ public class FilterService {
 	private static boolean containsFeaturedArtist(Collection<String> artistSuperset, ArtistSimplified[] artistSubset) {
 		Set<String> artistSubsetIds = Arrays.asList(artistSubset).stream().map(ArtistSimplified::getId).collect(Collectors.toSet());
 		return artistSuperset.stream().anyMatch(a -> artistSubsetIds.contains(a));
+	}
+
+	////////////////////////////////
+	// BLACKLISTED RELEASE TYPES
+
+	public Map<PlaylistStore, List<AlbumTrackPair>> filterBlacklistedReleaseTypesForArtists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPS) {
+		try {
+			List<Entry<AlbumSimplified, AlbumGroupExtended>> allDroppedReleases = new ArrayList<>();
+			Map<String, List<PlaylistStore>> blacklistedArtistReleasePairs = databaseService.getBlacklistedArtistReleasePairs();
+			for (Entry<String, List<PlaylistStore>> blacklistedPair : blacklistedArtistReleasePairs.entrySet()) {
+				for (PlaylistStore ps : blacklistedPair.getValue()) {
+					if (songsByPS.containsKey(ps) ) {
+						List<AlbumTrackPair> atpsToRemove = new ArrayList<>();
+						List<AlbumTrackPair> list = songsByPS.get(ps);
+						for (AlbumTrackPair atp : list) {
+							if (BotUtils.anyArtistMatches(atp.getAlbum(), blacklistedPair.getKey())) {
+								atpsToRemove.add(atp);
+								allDroppedReleases.add(Map.entry(atp.getAlbum(), ps.getAlbumGroupExtended()));
+							}
+						}
+						list.removeAll(atpsToRemove);
+					}
+				}
+			}
+			if (!allDroppedReleases.isEmpty()) {
+				log.printDroppedAlbumsCustomGroup(allDroppedReleases, "Dropped " + allDroppedReleases.size() + " blacklisted release[s]:");
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+			log.error("Failed to remove blacklisted release types!");
+		}
+		return songsByPS;
 	}
 }

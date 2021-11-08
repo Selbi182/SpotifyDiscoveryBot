@@ -279,7 +279,7 @@ public final class BotUtils {
 			.replaceAll("\\d{4}.*", "")
 			.replaceAll("remaster.*", "")
 			.replaceAll("feat.*", "")
-			.replaceAll("\\(.+\\)", "")
+			//.replaceAll("\\(.+\\)", "")
 			.replaceAll("\\-.*", "")
 			.replaceAll("\\s+", "")
 			.replaceAll("\\W+", "");

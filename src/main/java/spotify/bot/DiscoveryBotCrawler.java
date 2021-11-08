@@ -26,6 +26,7 @@ import spotify.bot.config.database.DatabaseService;
 import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.config.dto.StaticConfig;
 import spotify.bot.filter.FilterService;
+import spotify.bot.filter.RelayService;
 import spotify.bot.filter.RemappingService;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
@@ -61,6 +62,9 @@ public class DiscoveryBotCrawler {
 
 	@Autowired
 	private RemappingService remappingService;
+	
+	@Autowired
+	private RelayService relayService;
 	
 	@Autowired
 	private DatabaseService databaseService;
@@ -219,8 +223,7 @@ public class DiscoveryBotCrawler {
 	}
 
 	/**
-	 * Phase 2: Get the tracks of the new releases and map them to their respective
-	 * target playlist store
+	 * Phase 2: Get the tracks of the new releases and map them to their respective target playlist store
 	 */
 	private Map<PlaylistStore, List<AlbumTrackPair>> getNewTracksByTargetPlaylist(List<AlbumSimplified> filteredAlbums, List<String> followedArtists) throws BotException {
 		List<AlbumTrackPair> tracksByAlbums = trackService.getTracksOfAlbums(filteredAlbums);
@@ -240,6 +243,7 @@ public class DiscoveryBotCrawler {
 	private Map<AlbumGroupExtended, Integer> addReleasesToPlaylistsAndCollectResults(Map<PlaylistStore, List<AlbumTrackPair>> newTracksByTargetPlaylist) throws BotException, SQLException {
 		playlistSongsService.addAllReleasesToSetPlaylists(newTracksByTargetPlaylist);
 		playlistInfoService.showNotifiers(newTracksByTargetPlaylist);
+		relayService.relayResults(newTracksByTargetPlaylist);
 		return BotUtils.collectSongAdditionResults(newTracksByTargetPlaylist);
 	}
 }

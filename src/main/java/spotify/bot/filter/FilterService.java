@@ -310,7 +310,6 @@ public class FilterService {
 				// already a followee
 				List<AlbumTrackPair> albumsWithoutCollectionsOrSamplers = unfilteredAppearsOnAlbums.stream()
 					.filter(atp -> !isCollectionOrSampler(atp.getAlbum()))
-					.filter(atp -> !containsFeaturedArtist(followedArtistsSet, atp.getAlbum().getArtists()))
 					.collect(Collectors.toList());
 
 				// Of those, filter out the actual songs where a featured artist is a followee
@@ -355,7 +354,7 @@ public class FilterService {
 	}
 
 	/**
-	 * Checks if age least a single artist of the subset is part of the given artist
+	 * Checks if at least a single artist of the subset is part of the given artist
 	 * superset
 	 * 
 	 * @param followedArtists
@@ -364,7 +363,8 @@ public class FilterService {
 	 */
 	private static boolean containsFeaturedArtist(Collection<String> artistSuperset, ArtistSimplified[] artistSubset) {
 		Set<String> artistSubsetIds = Arrays.asList(artistSubset).stream().map(ArtistSimplified::getId).collect(Collectors.toSet());
-		return artistSuperset.stream().anyMatch(a -> artistSubsetIds.contains(a));
+		boolean anyMatch = artistSuperset.stream().anyMatch(a -> artistSubsetIds.contains(a));
+		return anyMatch;
 	}
 
 	////////////////////////////////

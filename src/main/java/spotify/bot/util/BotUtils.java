@@ -247,7 +247,7 @@ public final class BotUtils {
 	 */
 	public static boolean anyArtistMatches(AlbumSimplified album, String id) {
 		for (ArtistSimplified artist : album.getArtists()) {
-			if (artist.getId().equals(id)) {
+			if (artist.getId() != null && artist.getId().equals(id)) {
 				return true;
 			}
 		}

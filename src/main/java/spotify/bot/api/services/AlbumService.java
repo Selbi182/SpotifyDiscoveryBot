@@ -181,6 +181,7 @@ public class AlbumService {
 				String viaArtistName = artistIdToName.get(viaArtistId);
 				if (viaArtistName != null) {
 					ArtistSimplified viaArtistWithName = new ArtistSimplified.Builder()
+						.setId(viaArtistId)
 						.setName(String.format("(%s)", viaArtistName))
 						.build();
 					ArtistSimplified[] artists = as.getArtists();

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import com.wrapper.spotify.enums.AlbumGroup;
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
+import com.wrapper.spotify.model_objects.specification.Artist;
 
 import spotify.bot.api.BotException;
 import spotify.bot.api.SpotifyApiAuthorization;
@@ -200,7 +201,10 @@ public class DiscoveryBotCrawler {
 		CachedArtistsContainer cachedArtistsContainer = artistService.getFollowedArtistsIds();
 		List<String> newArtists = cachedArtistsContainer.getNewArtists();
 		if (!newArtists.isEmpty()) {
-			log.info("Initializing album cache for " + newArtists.size() + " newly followed artist[s]...");
+			log.info("Initializing album cache for " + newArtists.size() + " newly followed artist[s]:");
+			artistService.getArtists(newArtists).stream()
+					.map(Artist::getName)
+					.forEach(name -> log.info("- " + name));
 			List<AlbumSimplified> allAlbumsOfNewFollowees = albumService.getAllAlbumsOfArtists(newArtists);
 			List<AlbumSimplified> albumsToInitialize = filterService.getNonCachedAlbums(allAlbumsOfNewFollowees);
 			filterService.cacheAlbumIds(albumsToInitialize, false);

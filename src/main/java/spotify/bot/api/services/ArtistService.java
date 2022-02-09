@@ -1,6 +1,8 @@
 package spotify.bot.api.services;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -11,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.enums.ModelObjectType;
 import com.wrapper.spotify.model_objects.specification.Artist;
@@ -25,7 +28,7 @@ import spotify.bot.util.data.CachedArtistsContainer;
 @Service
 public class ArtistService {
 
-	private final static int MAX_FOLLOWED_ARTIST_FETCH_LIMIT = 50;
+	private final static int MAX_ARTIST_FETCH_LIMIT = 50;
 
 	@Autowired
 	private SpotifyApi spotifyApi;
@@ -35,6 +38,19 @@ public class ArtistService {
 
 	@Autowired
 	private DatabaseService databaseService;
+
+	/**
+	 * Get several artists
+	 * @param ids artist IDs
+	 * @return the artists
+	 */
+	public List<Artist> getArtists(List<String> ids) {
+		List<Artist> allArtists = new ArrayList<>();
+		for (List<String> artistsPartition : Lists.partition(ids, MAX_ARTIST_FETCH_LIMIT)) {
+			allArtists.addAll(Arrays.asList(SpotifyCall.execute(spotifyApi.getSeveralArtists(artistsPartition.toArray(String[]::new)))));
+		}
+		return allArtists;
+	}
 
 	/**
 	 * Get all the user's followed artists
@@ -69,7 +85,7 @@ public class ArtistService {
 	private List<String> getRealArtistIds() throws BotException {
 		List<Artist> followedArtists = SpotifyCall.executePaging(spotifyApi
 			.getUsersFollowedArtists(ModelObjectType.ARTIST)
-			.limit(MAX_FOLLOWED_ARTIST_FETCH_LIMIT));
+			.limit(MAX_ARTIST_FETCH_LIMIT));
 		List<String> followedArtistIds = followedArtists.stream()
 			.map(Artist::getId)
 			.collect(Collectors.toList());

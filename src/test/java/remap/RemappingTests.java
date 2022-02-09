@@ -176,6 +176,8 @@ public class RemappingTests {
 		assertTrue(willRemap(liveRemapper, "7hrzbg8R1gI1loeF9Xmwdr")); // Devin Townsend - Why? (live in London 2019)
 		assertTrue(willRemap(liveRemapper, "0lB9qbHN7Km0TquNaQbNW9")); // Deafheaven - Daedalus (Live)
 		assertTrue(willRemap(liveRemapper, "4PVyUMglBuxtPVip15aFfq")); // Deafheaven - 10 Years Gone (Live)
+		assertTrue(willRemap(liveRemapper, "3ODOZbMD8UDSjvco3YDxNS")); // Green Day - Waiting (BBC Live Session)
+		// assertTrue(willRemap(liveRemapper, "1jwEbO79yp9v5KaD8RlLtH")); // Epica - Omega Alive [impossible to fix due to shitty naming conventions... hate these semi-live albums]
 	}
 
 	@Test
@@ -224,7 +226,7 @@ public class RemappingTests {
 		assertTrue(willRemap(rereleaseRemapper, "7tCnmn9QvojHgEDCWG6xXs")); // In Flames - Clayman (20th Anniversary Edition)
 		assertTrue(willRemap(rereleaseRemapper, "1ucRSsC7KP0oJlTIVQlYU7")); // Stratovarius - Destiny (Reissue 2016)
 		assertTrue(willRemap(rereleaseRemapper, "3Rb5pMHWV5ZMVrKOE90wuj")); // Eluveitie - Slania (10 Years)
-		assertTrue(willRemap(rereleaseRemapper, "72kuxCdCsdZzfez0lLKUA5")); // Porcupine Tree - Fear of a Blank Planet
+		assertTrue(willRemap(rereleaseRemapper, "59J51uy6r6QcYe7cX0Fzz6")); // Porcupine Tree - Fear of a Blank Planet
 		assertTrue(willRemap(rereleaseRemapper, "6kE2yDdOredVYctzaK0PVu")); // Boehse Onkelz - Kneipenterroristen (30 Jahre)
 	}
 

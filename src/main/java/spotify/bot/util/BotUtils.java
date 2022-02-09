@@ -113,8 +113,6 @@ public final class BotUtils {
 	/**
 	 * Remove all items from this list that are either <i>null</i> or "null" (a
 	 * literal String)
-	 * 
-	 * @param followedArtists
 	 */
 	public static void removeNullStrings(Collection<String> collection) {
 		collection.removeIf(e -> e == null || e.toLowerCase().equals("null"));
@@ -166,7 +164,6 @@ public final class BotUtils {
 	 * Write the song count per album group into the target map
 	 * 
 	 * @param songsByPlaylist
-	 * @param targetCountMap
 	 */
 	public static Map<AlbumGroupExtended, Integer> collectSongAdditionResults(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) {
 		Map<AlbumGroupExtended, Integer> targetCountMap = new HashMap<>();
@@ -303,17 +300,23 @@ public final class BotUtils {
 	 * @return the stripped title
 	 */
 	public static String strippedTitleIdentifier(String title) {
-		return title
-			.toLowerCase()
-			.replaceAll(",", " ")
-			.replaceAll("bonus track", "")
-			.replaceAll("\\d{4}.*", "")
-			.replaceAll("remaster.*", "")
-			.replaceAll("feat.*", "")
-			//.replaceAll("\\(.+\\)", "")
-			.replaceAll("\\-.*", "")
-			.replaceAll("\\s+", "")
-			.replaceAll("\\W+", "");
+		String identifier = title
+				.toLowerCase()
+				.replaceAll(",", " ");
+
+		List<String> forbiddenWords =
+				List.of("anniversary.*", "bonus track", "deluxe.*", "special.*", "remaster.*", "explicit.*", "extended.*", "expansion.*",
+						"expanded.*", "cover.*", "original.*", "motion\\spicture.*", "re.?issue", "re.?record", "\\d{4}.*", "feat.*");
+
+		for (String word : forbiddenWords) {
+			identifier = identifier.replaceAll(word, "");
+		}
+
+		return identifier
+				//.replaceAll("\\(.+\\)", "")
+				.replaceAll("\\-.*", "")
+				.replaceAll("\\s+", "")
+				.replaceAll("\\W+", "");
 	}
 
 	/**

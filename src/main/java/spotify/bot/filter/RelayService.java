@@ -22,6 +22,8 @@ import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
 
 import spotify.bot.config.DeveloperMode;
 import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
+import spotify.bot.filter.remapper.Remapper;
+import spotify.bot.filter.remapper.RereleaseRemapper;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.data.AlbumTrackPair;
@@ -40,6 +42,9 @@ public class RelayService {
 
 	@Autowired
 	private BotLogger log;
+
+	@Autowired
+	private RereleaseRemapper rereleaseRemapper;
 
 	@PostConstruct
 	private void init() {
@@ -71,6 +76,7 @@ public class RelayService {
 			newTracksByTargetPlaylist.values().stream()
 				.flatMap(Collection::stream)
 				.filter(this::isWhitelistedArtist)
+				.filter(this::isNotReRelease)
 				.forEach(this::relayFilteredResult);
 		}
 	}
@@ -94,5 +100,9 @@ public class RelayService {
 			}
 		}
 		return false;
+	}
+
+	private boolean isNotReRelease(AlbumTrackPair albumTrackPair) {
+		return rereleaseRemapper.determineRemapAction(albumTrackPair) == Remapper.Action.NONE;
 	}
 }

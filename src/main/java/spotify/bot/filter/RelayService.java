@@ -24,6 +24,7 @@ import spotify.bot.config.DeveloperMode;
 import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.util.BotLogger;
 import spotify.bot.util.BotUtils;
+import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;
 
 @Service
@@ -32,6 +33,12 @@ public class RelayService {
 	private static final String PROP_RELAY_URL = "RELAY_URL";
 	private static final String PROP_WHITELISTED_ARTIST_IDS = "WHITELISTED_ARTIST_IDS";
 	private static final String PROP_MESSAGE_MASK = "MESSAGE_MASK";
+
+	private static final List<AlbumGroupExtended> WHITELISTED_ALBUM_GROUPS = List.of(
+			AlbumGroupExtended.ALBUM,
+			AlbumGroupExtended.SINGLE,
+			AlbumGroupExtended.EP
+	);
 
 	private boolean active;
 	private String relayUrl;
@@ -71,6 +78,7 @@ public class RelayService {
 			newTracksByTargetPlaylist.values().stream()
 				.flatMap(Collection::stream)
 				.filter(this::isWhitelistedArtist)
+				.filter(this::isWhitelistedAlbumGroup)
 				.forEach(this::relayFilteredResult);
 		}
 	}
@@ -79,7 +87,7 @@ public class RelayService {
 		String message = String.format(messageMask, BotUtils.getFirstArtistName(atp.getAlbum()), atp.getAlbum().getId());
 
 		HttpHeaders headers = new HttpHeaders();
-		headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+		headers.setAccept(List.of(MediaType.APPLICATION_JSON));
 		HttpEntity<String> entity = new HttpEntity<>(message, headers);
 
 		RestTemplate restTemplate = new RestTemplate();
@@ -94,5 +102,9 @@ public class RelayService {
 			}
 		}
 		return false;
+	}
+
+	private boolean isWhitelistedAlbumGroup(AlbumTrackPair atp) {
+		return WHITELISTED_ALBUM_GROUPS.contains(AlbumGroupExtended.fromAlbumGroup(atp.getAlbum().getAlbumGroup()));
 	}
 }

@@ -1,9 +1,7 @@
 package spotify.bot.util.data;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import com.wrapper.spotify.enums.AlbumGroup;
 
@@ -19,14 +17,10 @@ public enum AlbumGroupExtended {
 	RE_RELEASE("re_release", true);
 
 	private static final Map<String, AlbumGroupExtended> map = new HashMap<>();
-	private static final Set<AlbumGroupExtended> extendedTypes = new HashSet<>();
 
 	static {
 		for (AlbumGroupExtended albumGroupExtended : AlbumGroupExtended.values()) {
 			map.put(albumGroupExtended.group, albumGroupExtended);
-			if (albumGroupExtended.isExtendedType()) {
-				extendedTypes.add(albumGroupExtended);
-			}
 		}
 	}
 

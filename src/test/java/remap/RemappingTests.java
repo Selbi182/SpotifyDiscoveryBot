@@ -122,9 +122,8 @@ public class RemappingTests {
 				fail("Didn't fulfill isAllowedAlbumGroup requirement");
 			}
 			List<TrackSimplified> tracks = getTracksOfSingleAlbum(album);
-			AlbumTrackPair atp = AlbumTrackPair.of(album, tracks);			
-			Action remapAction = remapper.determineRemapAction(atp);
-			return remapAction;			
+			AlbumTrackPair atp = AlbumTrackPair.of(album, tracks);
+			return remapper.determineRemapAction(atp);
 		} catch (BotException e) {
 			e.printStackTrace();
 			fail();

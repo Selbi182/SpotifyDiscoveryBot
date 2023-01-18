@@ -30,8 +30,8 @@ public class RemixRemapper implements Remapper {
 	@Override
 	public boolean isAllowedAlbumGroup(AlbumGroupExtended albumGroupExtended) {
 		try {
-			AlbumGroup albumGroup = albumGroupExtended.asAlbumGroup();
-			return albumGroup != null;
+			albumGroupExtended.asAlbumGroup();
+			return true;
 		} catch (IllegalArgumentException e) {
 			return false;
 		}

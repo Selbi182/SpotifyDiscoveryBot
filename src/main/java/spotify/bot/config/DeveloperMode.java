@@ -85,8 +85,7 @@ public class DeveloperMode {
 	private static DevMode parseDevModeLine(String line) {
 		String trimmed = line.strip();
 		if (!trimmed.isBlank() && !trimmed.startsWith(COMMENT_SYMBOL)) {
-			DevMode parsedDevMode = DevMode.valueOf(trimmed);
-			return parsedDevMode;
+			return DevMode.valueOf(trimmed);
 		}
 		return null;
 	}

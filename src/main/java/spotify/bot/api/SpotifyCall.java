@@ -51,8 +51,7 @@ public class SpotifyCall {
 		for (int attempt = 1; attempt <= MAX_ATTEMPS; attempt++) {
 			try {
 				IRequest<T> builtRequest = requestBuilder.build();
-				T result = builtRequest.execute();
-				return result;
+				return builtRequest.execute();
 			} catch (Exception ex) {
 				try {
 					finalException = ex;

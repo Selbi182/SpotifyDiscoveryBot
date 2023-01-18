@@ -131,8 +131,7 @@ public class DatabaseService {
 
 	public PlaylistStoreConfig getPlaylistStoreConfig() throws SQLException {
 		Map<AlbumGroupExtended, PlaylistStore> playlistStoreMap = getAllPlaylistStoresMap();
-		PlaylistStoreConfig playlistStoreConfig = new PlaylistStoreConfig(playlistStoreMap);
-		return playlistStoreConfig;
+		return new PlaylistStoreConfig(playlistStoreMap);
 	}
 
 	public Map<AlbumGroupExtended, PlaylistStore> getAllPlaylistStoresMap() throws SQLException {

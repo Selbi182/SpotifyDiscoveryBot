@@ -200,12 +200,11 @@ public class PlaylistMetaService {
 				IPlaylistItem item = currentlyPlaying.getItem();
 				if (item instanceof Track) {
 					String currentlyPlayingSongId = item.getId();
-					boolean currentlyPlayingSongIsNew = recentlyAddedPlaylistTracks.stream()
+					return recentlyAddedPlaylistTracks.stream()
 						.map(PlaylistTrack::getTrack)
 						.map(IPlaylistItem::getId)
 						.filter(Objects::nonNull)
 						.anyMatch(id -> Objects.equals(id, currentlyPlayingSongId));
-					return currentlyPlayingSongIsNew;
 				}
 			}
 		} catch (Exception e) {

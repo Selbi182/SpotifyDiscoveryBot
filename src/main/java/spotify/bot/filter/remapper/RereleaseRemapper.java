@@ -19,11 +19,11 @@ import spotify.bot.util.data.AlbumTrackPair;
 public class RereleaseRemapper implements Remapper {
 
 	private final static Pattern ALBUM_TITLE_MATCHER = Pattern
-		.compile("(anniversary|re\\W?(issue|master|issue|record)|\\d+\\W+(jahr|year))",
+		.compile("(anniversary|re\\W?(issue|master|record)|\\d+\\W+(jahr|year))",
 			Pattern.CASE_INSENSITIVE);
 
-	private SpotifyApiConfig spotifyApiConfig;
-	private FilterService filterService;
+	private final SpotifyApiConfig spotifyApiConfig;
+	private final FilterService filterService;
 
 	public RereleaseRemapper(SpotifyApiConfig spotifyApiConfig, FilterService filterService) {
 		this.spotifyApiConfig = spotifyApiConfig;

@@ -88,8 +88,7 @@ public class AlbumService {
 	 * @return
 	 */
 	private List<AlbumSimplified> getAlbumIdsOfSingleArtist(String artistId, String albumGroups) throws BotException {
-		List<AlbumSimplified> albumsOfCurrentArtist = Collections.emptyList();
-		albumsOfCurrentArtist = SpotifyCall.executePaging(spotifyApi
+		List<AlbumSimplified> albumsOfCurrentArtist = SpotifyCall.executePaging(spotifyApi
 			.getArtistsAlbums(artistId)
 			.market(spotifyApiConfig.getMarket())
 			.limit(MAX_ALBUM_FETCH_LIMIT)

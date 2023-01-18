@@ -3,6 +3,8 @@ package spotify.bot.util.data;
 import java.util.Comparator;
 import java.util.List;
 
+import org.springframework.lang.NonNull;
+
 import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
@@ -12,8 +14,8 @@ import spotify.bot.util.BotUtils;
  * Container class to map a simplified album by its simplified tracks
  */
 public class AlbumTrackPair implements Comparable<AlbumTrackPair>, Comparator<AlbumTrackPair> {
-	private AlbumSimplified album;
-	private List<TrackSimplified> tracks;
+	private final AlbumSimplified album;
+	private final List<TrackSimplified> tracks;
 
 	private AlbumTrackPair(AlbumSimplified album, List<TrackSimplified> tracks) {
 		this.album = album;
@@ -53,7 +55,7 @@ public class AlbumTrackPair implements Comparable<AlbumTrackPair>, Comparator<Al
 	}
 
 	@Override
-	public int compareTo(AlbumTrackPair o) {
+	public int compareTo(@NonNull AlbumTrackPair o) {
 		return compare(this, o);
 	}
 
@@ -97,10 +99,8 @@ public class AlbumTrackPair implements Comparable<AlbumTrackPair>, Comparator<Al
 		} else if (!album.equals(other.album))
 			return false;
 		if (tracks == null) {
-			if (other.tracks != null)
-				return false;
-		} else if (!tracks.equals(other.tracks))
-			return false;
-		return true;
+			return other.tracks == null;
+		} else
+			return tracks.equals(other.tracks);
 	}
 }

@@ -146,10 +146,9 @@ public class FilterService {
 	 * @return the albums without releases that had a release date after today
 	 */
 	public List<AlbumSimplified> filterFutureAlbums(List<AlbumSimplified> albums) {
-		List<AlbumSimplified> filtered = albums.stream()
+		return albums.stream()
 			.filter(this::isNotInTheFuture)
 			.collect(Collectors.toList());
-		return filtered;
 	}
 	
 	/**
@@ -196,8 +195,7 @@ public class FilterService {
 	 */
 	public List<AlbumSimplified> filterDuplicateAlbums(List<AlbumSimplified> unfilteredAlbums) throws SQLException {
 		List<AlbumSimplified> filterSimultaneous = filterDuplicatedAlbumsReleasedSimultaneously(unfilteredAlbums);
-		List<AlbumSimplified> filterRecently = filterDuplicatedAlbumsReleasedRecently(filterSimultaneous);
-		return filterRecently;
+		return filterDuplicatedAlbumsReleasedRecently(filterSimultaneous);
 	}
 
 	/**
@@ -362,9 +360,8 @@ public class FilterService {
 	 * @return
 	 */
 	private static boolean containsFeaturedArtist(Collection<String> artistSuperset, ArtistSimplified[] artistSubset) {
-		Set<String> artistSubsetIds = Arrays.asList(artistSubset).stream().map(ArtistSimplified::getId).collect(Collectors.toSet());
-		boolean anyMatch = artistSuperset.stream().anyMatch(a -> artistSubsetIds.contains(a));
-		return anyMatch;
+		Set<String> artistSubsetIds = Arrays.stream(artistSubset).map(ArtistSimplified::getId).collect(Collectors.toSet());
+		return artistSuperset.stream().anyMatch(artistSubsetIds::contains);
 	}
 
 	////////////////////////////////

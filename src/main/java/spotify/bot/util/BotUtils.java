@@ -12,6 +12,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -82,8 +83,7 @@ public final class BotUtils {
 	public static boolean isWithinTimeoutWindow(Date baseDate, int timeoutInDays) {
 		Instant baseTime = Instant.ofEpochMilli(baseDate.getTime());
 		Instant currentTime = Instant.now();
-		boolean isWithinTimeoutWindow = currentTime.minus(timeoutInDays, ChronoUnit.DAYS).isBefore(baseTime);
-		return isWithinTimeoutWindow;
+		return currentTime.minus(timeoutInDays, ChronoUnit.DAYS).isBefore(baseTime);
 	}
 
 	/**
@@ -115,7 +115,7 @@ public final class BotUtils {
 	 * literal String)
 	 */
 	public static void removeNullStrings(Collection<String> collection) {
-		collection.removeIf(e -> e == null || e.toLowerCase().equals("null"));
+		collection.removeIf(e -> e == null || e.equalsIgnoreCase("null"));
 	}
 
 	/**
@@ -124,7 +124,7 @@ public final class BotUtils {
 	 * @param collection
 	 */
 	public static void removeNulls(Collection<?> collection) {
-		collection.removeIf(e -> e == null);
+		collection.removeIf(Objects::isNull);
 	}
 
 	/**
@@ -144,7 +144,7 @@ public final class BotUtils {
 						sj.add(songsAdded + " " + age);
 					}
 				}
-				return (String.format("%d new song%s added! [%s]", totalSongsAdded, totalSongsAdded != 1 ? "s" : "", sj.toString()));
+				return (String.format("%d new song%s added! [%s]", totalSongsAdded, totalSongsAdded != 1 ? "s" : "", sj));
 			}
 		}
 		return null;
@@ -314,7 +314,7 @@ public final class BotUtils {
 
 		return identifier
 				//.replaceAll("\\(.+\\)", "")
-				.replaceAll("\\-.*", "")
+				.replaceAll("-.*", "")
 				.replaceAll("\\s+", "")
 				.replaceAll("\\W+", "");
 	}

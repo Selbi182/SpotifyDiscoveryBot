@@ -115,7 +115,7 @@ public class DiscoveryBotCrawler {
 	 * @throws SQLException on an internal exception related to the SQLite database
 	 */
 	@EventListener(LoggedInEvent.class)
-	private void firstCrawlAndEnableReadyState() throws BotException, SQLException {
+	public void firstCrawlAndEnableReadyState() throws BotException, SQLException {
 		log.printLine();
 		log.info("Executing initial crawl...", false);
 		long time = System.currentTimeMillis();

@@ -44,8 +44,8 @@ public class LiveRemapper implements Remapper {
 	public boolean isAllowedAlbumGroup(AlbumGroupExtended albumGroupExtended) {
 		if (!albumGroupExtended.equals(AlbumGroupExtended.APPEARS_ON)) {
 			try {
-				AlbumGroup albumGroup = albumGroupExtended.asAlbumGroup();
-				return albumGroup != null;
+				albumGroupExtended.asAlbumGroup();
+				return true;
 			} catch (IllegalArgumentException e) {
 				return false;
 			}
@@ -94,7 +94,7 @@ public class LiveRemapper implements Remapper {
 				.filter(Objects::nonNull)
 				.mapToDouble(AudioFeatures::getLiveness)
 				.average()
-				.orElseGet(() -> 0.0);
+				.orElse(0.0);
 			boolean isLive = averageLiveness > LIVENESS_THRESHOLD;
 			if (!isLive && hasLiveInTitle) {
 				isLive = averageLiveness >= LIVENESS_THRESHOLD_LESSER;

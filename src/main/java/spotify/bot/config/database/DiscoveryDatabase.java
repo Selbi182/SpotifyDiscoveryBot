@@ -126,8 +126,7 @@ public class DiscoveryDatabase {
 	 * Fetch the single-row result set of the given table
 	 */
 	ResultSet selectSingle(String tableName) throws SQLException {
-		ResultSet rs = createStatement().executeQuery(String.format(SINGLE_SELECT_QUERY_MASK, tableName));
-		return rs;
+		return createStatement().executeQuery(String.format(SINGLE_SELECT_QUERY_MASK, tableName));
 	}
 
 	/**
@@ -137,8 +136,7 @@ public class DiscoveryDatabase {
 	 * @return
 	 */
 	ResultSet selectAll(String tableName) throws SQLException {
-		ResultSet rs = createStatement().executeQuery(String.format(FULL_SELECT_QUERY_MASK, tableName));
-		return rs;
+		return createStatement().executeQuery(String.format(FULL_SELECT_QUERY_MASK, tableName));
 	}
 
 	////////////////

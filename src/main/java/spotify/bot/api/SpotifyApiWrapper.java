@@ -44,7 +44,7 @@ public class SpotifyApiWrapper {
 		String callbackUri = UriComponentsBuilder.newInstance()
 			.scheme("http")
 			.host("localhost")
-			.port(Integer.valueOf(serverPort))
+			.port(Integer.parseInt(serverPort))
 			.path(SpotifyApiAuthorization.LOGIN_CALLBACK_URI)
 			.build()
 			.toUriString();

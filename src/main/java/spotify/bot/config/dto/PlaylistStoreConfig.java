@@ -63,8 +63,7 @@ public class PlaylistStoreConfig {
 	 * @return
 	 */
 	public PlaylistStore getPlaylistStore(AlbumGroupExtended albumGroupExtended) {
-		PlaylistStore ps = getPlaylistStoreMap().get(albumGroupExtended);
-		return ps;
+		return getPlaylistStoreMap().get(albumGroupExtended);
 	}
 
 	/**
@@ -167,9 +166,7 @@ public class PlaylistStoreConfig {
 			if (getClass() != obj.getClass())
 				return false;
 			PlaylistStore other = (PlaylistStore) obj;
-			if (albumGroupExtended != other.albumGroupExtended)
-				return false;
-			return true;
+			return albumGroupExtended == other.albumGroupExtended;
 		}
 	}
 }

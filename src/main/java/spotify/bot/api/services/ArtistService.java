@@ -75,7 +75,7 @@ public class ArtistService {
 	 */
 	private CachedArtistsContainer repackageIntoContainer(List<String> followedArtist, List<String> oldCachedArtists) {
 		Set<String> addedArtists = new HashSet<>(followedArtist);
-		addedArtists.removeAll(oldCachedArtists);
+		oldCachedArtists.forEach(addedArtists::remove); // apparently faster than removeAll()
 		return new CachedArtistsContainer(followedArtist, addedArtists);
 	}
 
@@ -107,9 +107,7 @@ public class ArtistService {
 			Date lastUpdatedArtistCache = staticConfig.getArtistCacheLastUpdated();
 			if (lastUpdatedArtistCache != null) {
 				int artistCacheTimeout = staticConfig.getArtistCacheTimeout();
-				if (!BotUtils.isWithinTimeoutWindow(lastUpdatedArtistCache, artistCacheTimeout)) {
-					return true;
-				}
+				return !BotUtils.isWithinTimeoutWindow(lastUpdatedArtistCache, artistCacheTimeout);
 			}
 		}
 		return false;

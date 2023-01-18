@@ -43,7 +43,9 @@
 			};
 			
 			let blockDate = new Date(currentLogContainer.querySelector("span").innerHTML.slice(1, 11));
-			if (blockDate.getDay() == today.getDay() && blockDate.getMonth() == today.getMonth() && blockDate.getFullYear() == today.getFullYear()) {
+			if (blockDate.getDay() === today.getDay()
+				&& blockDate.getMonth() === today.getMonth()
+				&& blockDate.getFullYear() === today.getFullYear()) {
 				currentLogContainer.classList.add("active");
 			}
 			

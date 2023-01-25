@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import se.michaelthelin.spotify.enums.AlbumGroup;
@@ -18,40 +17,39 @@ import spotify.bot.filter.remapper.Remapper;
 import spotify.bot.filter.remapper.Remapper.Action;
 import spotify.bot.filter.remapper.RemixRemapper;
 import spotify.bot.filter.remapper.RereleaseRemapper;
-import spotify.bot.util.BotLogger;
+import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.bot.util.data.AlbumTrackPair;
+import spotify.util.data.AlbumTrackPair;
 
 @Service
 public class RemappingService {
+	private final PlaylistStoreConfig playlistStoreConfig;
+	private final UserOptions userOptions;
+	private final EpRemapper epRemapper;
+	private final RemixRemapper remixRemapper;
+	private final RereleaseRemapper rereleaseRemapper;
+	private final LiveRemapper liveRemapper;
+	private final DiscoveryBotLogger log;
 
-	@Autowired
-	private PlaylistStoreConfig playlistStoreConfig;
-
-	@Autowired
-	private UserOptions userOptions;
-
-	@Autowired
-	private EpRemapper epRemapper;
-
-	@Autowired
-	private RemixRemapper remixRemapper;
-
-	@Autowired
-	private RereleaseRemapper rereleaseRemapper;
-
-	@Autowired
-	private LiveRemapper liveRemapper;
-
-	@Autowired
-	private BotLogger log;
+	RemappingService(PlaylistStoreConfig playlistStoreConfig,
+			UserOptions userOptions,
+			EpRemapper epRemapper,
+			RemixRemapper remixRemapper,
+			RereleaseRemapper rereleaseRemapper,
+			LiveRemapper liveRemapper,
+			DiscoveryBotLogger discoveryBotLogger) {
+		this.playlistStoreConfig = playlistStoreConfig;
+		this.userOptions = userOptions;
+		this.epRemapper = epRemapper;
+		this.remixRemapper = remixRemapper;
+		this.rereleaseRemapper = rereleaseRemapper;
+		this.liveRemapper = liveRemapper;
+		this.log = discoveryBotLogger;
+	}
 
 	/**
 	 * Transform the given map of releases by album group to the true destination
 	 * playlist IDs.
-	 * 
-	 * @param newSongsByGroup
-	 * @return
 	 */
 	public Map<PlaylistStore, List<AlbumTrackPair>> mapToTargetPlaylist(Map<AlbumGroup, List<AlbumTrackPair>> newSongsByGroup) {
 		Map<PlaylistStore, List<AlbumTrackPair>> resultMap = new HashMap<>();
@@ -73,9 +71,6 @@ public class RemappingService {
 	/**
 	 * Perform extended remapping for EPs, Live releases, and Remix released (these
 	 * options need to be user-configured).
-	 * 
-	 * @param songsByPS
-	 * @return
 	 */
 	public Map<PlaylistStore, List<AlbumTrackPair>> remapIntoExtendedPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPS) {
 		// Copy map first to retain the input map (makes debugging easier)

@@ -15,7 +15,7 @@ import com.google.common.base.Strings;
 
 /**
  * This class controls the developer mode state of the application. Cache and
- * playlist additions can be individually or completely turned off depening on
+ * playlist additions can be individually or completely turned off depending on
  * the contents of a file called <code>DEV_MODE.txt</code> in the working
  * directory.
  */
@@ -118,7 +118,7 @@ public class DeveloperMode {
 		return devModes.contains(DevMode.DISABLE_INITIAL_CRAWL);
 	}
 
-	public static boolean isRelayingDisbled() {
+	public static boolean isRelayingDisabled() {
 		return devModes.contains(DevMode.DISABLE_RELAY);
 	}
 }

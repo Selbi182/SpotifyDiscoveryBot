@@ -38,9 +38,6 @@ public enum AlbumGroupExtended {
 
 	/**
 	 * Return the extended album group representation of the default album group.
-	 * 
-	 * @param albumGroup
-	 * @return
 	 */
 	public static AlbumGroupExtended fromAlbumGroup(AlbumGroup albumGroup) {
 		return map.get(albumGroup.getGroup());
@@ -62,27 +59,13 @@ public enum AlbumGroupExtended {
 
 	/**
 	 * Get the (lowercase) String representation of this group
-	 * 
-	 * @return
 	 */
 	public String getGroupName() {
 		return group;
 	}
 
 	/**
-	 * Get the (uppercase) String representation of this group used for the database
-	 * 
-	 * @return
-	 */
-	public String getDatabaseName() {
-		return getGroupName().toUpperCase();
-	}
-
-	/**
-	 * Indicates whether or not this album group is a special extended type (EP,
-	 * Remixe, Live)
-	 * 
-	 * @return
+	 * Indicates whether this album group is a special extended type (EP, Remix, Live)
 	 */
 	public boolean isExtendedType() {
 		return extendedType;

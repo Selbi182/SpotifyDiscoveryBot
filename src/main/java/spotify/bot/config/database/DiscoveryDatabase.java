@@ -12,12 +12,11 @@ import java.util.Collection;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import spotify.SpotifyDiscoveryBot;
-import spotify.bot.util.BotLogger;
-import spotify.bot.util.BotUtils;
+import spotify.bot.util.DiscoveryBotLogger;
+import spotify.util.BotUtils;
 
 @Repository
 public class DiscoveryDatabase {
@@ -31,26 +30,24 @@ public class DiscoveryDatabase {
 	private final static String FULL_SELECT_QUERY_MASK = "SELECT * FROM %s";
 	private final static String INSERT_QUERY_MASK = "INSERT INTO %s(%s) VALUES('%s')";
 	private final static String DELETE_BASE_QUERY_MASK = "DELETE FROM %s";
-	private final static String DELETE_QUERY_MASK = DELETE_BASE_QUERY_MASK + " WHERE %s = '%s'";
 	private final static String UPDATE_QUERY_MASK = "UPDATE %s SET %s = '%s'";
 	private final static String UPDATE_WITH_CONDITION_QUERY_MASK = "UPDATE %s SET %s = %s WHERE %s = '%s'";
-	private final static String VACUUM = "VACUUM";
 
 	// Instance
 	private final static File WORKSPACE_LOCATION = new File(".");
 
-	@Autowired
-	private BotLogger log;
+	private final DiscoveryBotLogger log;
 
 	private String dbUrl;
 	private Connection connection;
 
+	DiscoveryDatabase(DiscoveryBotLogger discoveryBotLogger) {
+		this.log = discoveryBotLogger;
+	}
+
 	/**
 	 * Initialize the Database connection to the local <code>database.db</code>
 	 * file.
-	 * 
-	 * @throws IOException  if the database couldn't be found or accessed
-	 * @throws SQLException if the database is invalid
 	 */
 	@PostConstruct
 	private void init() {
@@ -113,8 +110,6 @@ public class DiscoveryDatabase {
 
 	/**
 	 * Creates a new Database statement. May create a new database instance.
-	 * 
-	 * @return
 	 */
 	private Statement createStatement() throws SQLException {
 		return getConnectionInstance().createStatement();
@@ -131,9 +126,6 @@ public class DiscoveryDatabase {
 
 	/**
 	 * Fetch an entire table result set
-	 * 
-	 * @param tableName
-	 * @return
 	 */
 	ResultSet selectAll(String tableName) throws SQLException {
 		return createStatement().executeQuery(String.format(FULL_SELECT_QUERY_MASK, tableName));
@@ -143,10 +135,6 @@ public class DiscoveryDatabase {
 
 	/**
 	 * Update every given column's value in the given table by a new value
-	 * 
-	 * @param table
-	 * @param targetColumn
-	 * @param newValue
 	 */
 	synchronized void update(String table, String targetColumn, String newValue) throws SQLException {
 		createStatement().executeUpdate(String.format(UPDATE_QUERY_MASK, table, targetColumn, newValue));
@@ -162,10 +150,6 @@ public class DiscoveryDatabase {
 
 	/**
 	 * Adds all given strings to the specified table's specified column
-	 * 
-	 * @param strings
-	 * @param table
-	 * @param column
 	 */
 	synchronized void insertAll(Collection<String> strings, String table, String column) throws SQLException {
 		if (table != null && column != null && strings != null && !strings.isEmpty()) {
@@ -176,35 +160,9 @@ public class DiscoveryDatabase {
 	}
 
 	/**
-	 * Removes all given strings from the specified table's specified column
-	 * 
-	 * @param stringsToRemove
-	 * @param table
-	 * @param column
-	 */
-	synchronized void deleteAll(Collection<String> stringsToRemove, String table, String column) throws SQLException {
-		if (table != null && column != null && stringsToRemove != null && !stringsToRemove.isEmpty()) {
-			for (String s : stringsToRemove) {
-				createStatement().execute(String.format(DELETE_QUERY_MASK, table, column, s));
-			}
-		}
-	}
-
-	/**
 	 * Delete every entry in the given table
-	 * 
-	 * @param tableCacheArtists
 	 */
 	synchronized void clearTable(String table) throws SQLException {
 		createStatement().execute(String.format(DELETE_BASE_QUERY_MASK, table));
-	}
-	
-	////////////////
-
-	/**
-	 * Execute the VACUUM command in the database for housekeeping
-	 */
-	synchronized void vacuum() throws SQLException {
-		createStatement().execute(VACUUM);
 	}
 }

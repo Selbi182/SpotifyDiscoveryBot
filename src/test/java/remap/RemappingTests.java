@@ -15,22 +15,18 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import com.neovisionaries.i18n.CountryCode;
-
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.model_objects.specification.Album;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
-import spotify.bot.api.BotException;
-import spotify.bot.api.SpotifyApiAuthorization;
-import spotify.bot.api.SpotifyApiWrapper;
-import spotify.bot.api.SpotifyCall;
-import spotify.bot.api.services.TrackService;
+import spotify.api.BotException;
+import spotify.api.SpotifyApiAuthorization;
+import spotify.api.SpotifyApiWrapper;
+import spotify.api.SpotifyCall;
 import spotify.bot.config.BotConfigFactory;
 import spotify.bot.config.ConfigUpdate;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.config.database.DiscoveryDatabase;
-import spotify.bot.config.dto.SpotifyApiConfig;
 import spotify.bot.filter.FilterService;
 import spotify.bot.filter.remapper.EpRemapper;
 import spotify.bot.filter.remapper.LiveRemapper;
@@ -38,22 +34,27 @@ import spotify.bot.filter.remapper.Remapper;
 import spotify.bot.filter.remapper.Remapper.Action;
 import spotify.bot.filter.remapper.RemixRemapper;
 import spotify.bot.filter.remapper.RereleaseRemapper;
-import spotify.bot.util.BotLogger;
-import spotify.bot.util.BotUtils;
+import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.bot.util.data.AlbumTrackPair;
+import spotify.config.SpotifyApiConfig;
+import spotify.services.TrackService;
+import spotify.services.UserService;
+import spotify.util.BotUtils;
+import spotify.util.data.AlbumTrackPair;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = {
 	BotConfigFactory.class,
-	BotLogger.class,
+	DiscoveryBotLogger.class,
 	ConfigUpdate.class,
 	DiscoveryDatabase.class,
 	DatabaseService.class,
 	FilterService.class,
+	SpotifyApiConfig.class,
 	SpotifyApiWrapper.class,
 	SpotifyApiAuthorization.class,
-	TrackService.class
+	TrackService.class,
+	UserService.class
 })
 @EnableConfigurationProperties
 public class RemappingTests {
@@ -70,6 +71,9 @@ public class RemappingTests {
 	@Autowired
 	private FilterService filterService;
 
+	@Autowired
+	private UserService userService;
+
 	private static EpRemapper epRemapper;
 	private static LiveRemapper liveRemapper;
 	private static RemixRemapper remixRemapper;
@@ -84,9 +88,7 @@ public class RemappingTests {
 			liveRemapper = new LiveRemapper(trackService);
 			remixRemapper = new RemixRemapper();
 
-			SpotifyApiConfig fakeApiConfigWithMarket = new SpotifyApiConfig();
-			fakeApiConfigWithMarket.setMarket(CountryCode.DE);
-			rereleaseRemapper = new RereleaseRemapper(fakeApiConfigWithMarket, filterService);
+			rereleaseRemapper = new RereleaseRemapper(filterService, userService);
 
 			login();
 			
@@ -130,7 +132,6 @@ public class RemappingTests {
 			return null;
 		}
 	}
-
 
 	private AlbumSimplified getAlbumSimplified(String albumId) throws BotException {
 		Album album = SpotifyCall.execute(spotifyApi.getAlbum(albumId));

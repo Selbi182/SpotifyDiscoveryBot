@@ -8,9 +8,9 @@ import org.springframework.stereotype.Component;
 
 import se.michaelthelin.spotify.model_objects.specification.AudioFeatures;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
-import spotify.bot.api.services.TrackService;
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.bot.util.data.AlbumTrackPair;
+import spotify.services.TrackService;
+import spotify.util.data.AlbumTrackPair;
 
 @Component
 public class LiveRemapper implements Remapper {
@@ -68,9 +68,6 @@ public class LiveRemapper implements Remapper {
 	 * The liveness value is determined by the Spotify API for each individual song.
 	 * It gives a vague idea how probable it is for the song to be live. Hints like
 	 * recording quality and audience cheers are used.
-	 * 
-	 * @param atp
-	 * @return
 	 */
 	private boolean qualifiesAsRemappable(String albumTitle, List<TrackSimplified> tracks) {
 		double trackCount = tracks.size();

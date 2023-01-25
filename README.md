@@ -36,7 +36,7 @@ The bot is rather simple in terms of production environment... as it doesn't hav
 
 ### Database (SQLite)
 
-This bot requires an SQLite-based database to store both any cached data as well as the configuration for the bot itself. You'll find an almost-ready template in `templates/database.db` where you need to set up the client ID and client secret for your ![Spotify Developer App](https://developer.spotify.com/dashboard). These must be entered in the `bot_config` table.
+This bot requires an SQLite-based database to store both any cached data and the configuration for the bot itself. You'll find an almost-ready template in `templates/database.db` where you need to set up the client ID and client secret for your ![Spotify Developer App](https://developer.spotify.com/dashboard). These must be entered in the `bot_config` table.
 
 ### Java
 
@@ -44,7 +44,7 @@ I personally have the bot compiled as a Fat JAR and run it on my Raspberry Pi 24
 
 ```java -jar SpotifyDiscoveryBot.jar /path/to/database.db```
 
-If the database path is omitted, the working directory will be used. If no database is found or it doesn't have the required tables/configuration, the application will immediately halt. In a future release, there will be an automated setup process.
+If the database path is omitted, the working directory will be used. If no database is found, or it doesn't have the required tables/configuration, the application will immediately halt. In a future release, there will be an automated setup process.
 
 ### First Run
 
@@ -56,12 +56,12 @@ In very rare cases you might still be required to re-login (usually due to an in
 
 There are a couple of customizable features available:
 
-* *Release Separation*: There are only four official release types on Spotify: albums, singles, compilations, and what they call "appears on" (usually as featured artist or as a third-party compilation appearance). However, there's a whole lot more to uncover and sometimes it's nice to know ahead of time what to get excited about. So the bot will also automatically detect and recategorize certain releases into their own playlists:
+* *Release Separation*: There are only four official release types on Spotify: albums, singles, compilations, and what they call "appears on" (usually as featured artist or as a third-party compilation appearance). However, there's a lot more to uncover, and sometimes it's nice to know ahead of time what to get excited about. So the bot will also automatically detect and re-categorize certain releases into their own playlists:
     * *EPs*: Normally classified as single, they will get identified as EPs if they either literally contain the word "EP" in the release title or exceed a certain duration. [What exactly classifies as an EP anyway?](https://support.landr.com/hc/en-us/articles/115009568227-What-s-the-difference-between-a-single-an-EP-and-an-album-)
     * *Live*: Live releases are simply released as albums or singles, respectively. Using [Spotify Audio Features](https://developer.spotify.com/documentation/web-api/reference/tracks/get-audio-features/), the bot will read the _liveness_ value of every song on a release and determines whether the release counts as live or not. At least half of the songs on the release need to be qualified as live, which means that heavily overdubbed live recordings might still be considered normal.
-    * *Re-Releases*: New music gets added all the time, even if it isn't exactly "new". It's easy to dismiss anything that wasn't released before today, but there might be good reasons why you want to know about certain re-releases anyway. What about the Super Deluxe Remastered 2020 version of an old classic? Or what about an album that's been previously missing on Spotify but has finally, silently been added (looking at you, Fear of a Blank Planet)?
+    * *Re-Releases*: New music gets added all the time, even if it isn't exactly "new". It's easy to dismiss anything that was not released before today, but there might be good reasons why you want to know about certain re-releases anyway. What about the Super Deluxe Remastered 2020 version of an old classic? Or what about an album that's been previously missing on Spotify but has finally, silently been added (looking at you, Fear of a Blank Planet)?
     * *Remixes*: Simply filters releases that have the word "Remix" in them. There's not much more one can do here, as remixes are ambiguous by definition.
-* *Intelligent Appears-On Search*: Basically, Appears-On search but it's actually usable. It throws away anything you probably don't care about – namely samplers and compilations. As a bonus, should an artist you follow be featured on a release by another artist you _don't_ follow, only the featured songs will get added because you probably don't care about the rest.
+* *Intelligent Appears-On Search*: Basically, Appears-On search, but it's actually usable. It throws away anything you probably don't care about – namely samplers and compilations. As a bonus, should an artist you follow be featured on a release by another artist you _don't_ follow, only the featured songs will get added because you probably don't care about the rest.
 * *Circular Playlist-Fitting*: Spotify playlists are limited to 10000 songs. While plenty for most people not to care, eventually it may run out of space. You can either set it to stop any further additions after reaching its limit or use this option to rotate the playlist in a circular fashion (e.g. new goes in, old goes out to make room).
 
 ## Final Notes

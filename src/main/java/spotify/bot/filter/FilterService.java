@@ -17,7 +17,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import se.michaelthelin.spotify.enums.AlbumGroup;
@@ -29,29 +28,30 @@ import spotify.bot.config.database.DatabaseService;
 import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.config.dto.StaticConfig;
 import spotify.bot.config.dto.UserOptions;
-import spotify.bot.util.BotLogger;
-import spotify.bot.util.BotUtils;
+import spotify.bot.util.DiscoveryBotLogger;
+import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.bot.util.data.AlbumTrackPair;
+import spotify.util.BotUtils;
+import spotify.util.data.AlbumTrackPair;
 
 @Service
 public class FilterService {
-
 	private final static String VARIOUS_ARTISTS = "Various Artists";
 
-	private final static boolean SHOW_DROPPED_APPEARS_ON_RELEASES = true;
+	private final StaticConfig staticConfig;
+	private final UserOptions userOptions;
+	private final DiscoveryBotLogger log;
+	private final DatabaseService databaseService;
 
-	@Autowired
-	private StaticConfig staticConfig;
-
-	@Autowired
-	private UserOptions userOptions;
-
-	@Autowired
-	private BotLogger log;
-
-	@Autowired
-	private DatabaseService databaseService;
+	FilterService(StaticConfig staticConfig,
+			UserOptions userOptions,
+			DiscoveryBotLogger discoveryBotLogger,
+			DatabaseService databaseService) {
+		this.staticConfig = staticConfig;
+		this.userOptions = userOptions;
+		this.log = discoveryBotLogger;
+		this.databaseService = databaseService;
+	}
 
 	private final static DateTimeFormatter RELEASE_DATE_PARSER = new DateTimeFormatterBuilder()
 		.append(DateTimeFormatter.ofPattern("yyyy[-MM[-dd]]"))
@@ -62,7 +62,7 @@ public class FilterService {
 	// FILTER BY CACHED
 
 	/**
-	 * Return non-database-filterd list of albums from the input
+	 * Return non-database-filtered list of albums from the input
 	 * 
 	 * @param allAlbums the albums to check against
 	 * @return the leftover (new) albums
@@ -75,9 +75,6 @@ public class FilterService {
 
 	/**
 	 * Filter out all album IDs not currently present in the database
-	 * 
-	 * @param albumsSimplified
-	 * @return
 	 */
 	private List<AlbumSimplified> filterNonCachedAlbumsOnly(List<AlbumSimplified> albumsSimplified) throws SQLException {
 		Map<String, AlbumSimplified> filteredAlbums = new HashMap<>();
@@ -103,22 +100,15 @@ public class FilterService {
 	 * when two followed artists are on the same new release (e.g. one as main
 	 * artist and the other as appears_on artist) to make sure the album gets added,
 	 * not the lesser album group type.
-	 * 
-	 * @param newAlbum
-	 * @param alreadySetAlbum
-	 * @return
 	 */
 	private boolean superiorAlbumGroup(AlbumSimplified newAlbum, AlbumSimplified alreadySetAlbum) {
-		int newAlbumIndex = BotUtils.DEFAULT_PLAYLIST_GROUP_ORDER.indexOf(AlbumGroupExtended.fromAlbumGroup(newAlbum.getAlbumGroup()));
-		int alreadySetAlbumIndex = BotUtils.DEFAULT_PLAYLIST_GROUP_ORDER.indexOf(AlbumGroupExtended.fromAlbumGroup(alreadySetAlbum.getAlbumGroup()));
+		int newAlbumIndex = DiscoveryBotUtils.DEFAULT_PLAYLIST_GROUP_ORDER.indexOf(AlbumGroupExtended.fromAlbumGroup(newAlbum.getAlbumGroup()));
+		int alreadySetAlbumIndex = DiscoveryBotUtils.DEFAULT_PLAYLIST_GROUP_ORDER.indexOf(AlbumGroupExtended.fromAlbumGroup(alreadySetAlbum.getAlbumGroup()));
 		return newAlbumIndex < alreadySetAlbumIndex;
 	}
 
 	/**
 	 * Cache the given album IDs in the database
-	 * 
-	 * @param albums
-	 * @param async
 	 */
 	public void cacheAlbumIds(List<AlbumSimplified> albums, boolean async) {
 		if (!DeveloperMode.isCacheDisabled()) {
@@ -169,10 +159,6 @@ public class FilterService {
 	/**
 	 * Categorizes the given list of albums into a map of their respective album
 	 * GROUPS (aka the return context of the simplified album object)
-	 * 
-	 * @param albumsSimplified
-	 * @param albumGroups
-	 * @return
 	 */
 	public Map<AlbumGroup, List<AlbumTrackPair>> categorizeAlbumsByAlbumGroup(List<AlbumTrackPair> albumTrackPairs) {
 		Map<AlbumGroup, List<AlbumTrackPair>> categorized = BotUtils.createAlbumGroupToListOfTMap();
@@ -186,11 +172,7 @@ public class FilterService {
 	}
 
 	/**
-	 * Filter duplicate albums (either released simultanously or recently already)
-	 * 
-	 * @param unfilteredAlbums
-	 * @return the filtered albums
-	 * @throws SQLException 
+	 * Filter duplicate albums (either released simultaneously or recently already)
 	 */
 	public List<AlbumSimplified> filterDuplicateAlbums(List<AlbumSimplified> unfilteredAlbums) throws SQLException {
 		List<AlbumSimplified> filterSimultaneous = filterDuplicatedAlbumsReleasedSimultaneously(unfilteredAlbums);
@@ -199,9 +181,6 @@ public class FilterService {
 
 	/**
 	 * Filter duplicate albums with an identical or very similar name released during the current crawl session
-	 * 
-	 * @param unfilteredAlbums
-	 * @return the filtered albums
 	 */
 	private List<AlbumSimplified> filterDuplicatedAlbumsReleasedSimultaneously(List<AlbumSimplified> unfilteredAlbums) {
 		Map<String, AlbumSimplified> uniqueMap = new HashMap<>();
@@ -220,10 +199,6 @@ public class FilterService {
 	/**
 	 * Filter duplicate albums with an identical or very similar name released within the lookback days
 	 * (not the ones before that for potential re-releases though)
-	 * 
-	 * @param unfilteredAlbums
-	 * @return the filtered albums
-	 * @throws SQLException 
 	 */
 	private List<AlbumSimplified> filterDuplicatedAlbumsReleasedRecently(List<AlbumSimplified> unfilteredAlbums) throws SQLException {
 		Set<String> releaseNamesCache = new HashSet<>(databaseService.getReleaseNamesCache());
@@ -231,20 +206,16 @@ public class FilterService {
 			.filter(as -> !isValidDate(as) || !releaseNamesCache.contains(BotUtils.albumIdentifierString(as)))
 			.collect(Collectors.toList());
 		
-		cacheAlbumNames(leftoverAlbums, true);
+		cacheAlbumNames(leftoverAlbums);
 		log.printDroppedAlbumDifference(unfilteredAlbums, leftoverAlbums,
 			String.format("Dropped %d duplicate[s] already released recently:", unfilteredAlbums.size() - leftoverAlbums.size()));
 		return new ArrayList<>(leftoverAlbums);
 	}
 	
-	private void cacheAlbumNames(List<AlbumSimplified> albums, boolean async) {
+	private void cacheAlbumNames(List<AlbumSimplified> albums) {
 		if (!DeveloperMode.isCacheDisabled()) {
 			if (!albums.isEmpty()) {
-				if (async) {
-					databaseService.cacheAlbumNamesAsync(albums);
-				} else {
-					databaseService.cacheAlbumNamesSync(albums);
-				}
+				databaseService.cacheAlbumNamesAsync(albums);
 			}
 		}
 	}
@@ -252,9 +223,6 @@ public class FilterService {
 	/**
 	 * Filter out all releases not released within the lookbackDays range. If
 	 * rerelease remapping is enabled, this will only be applied to non-albums
-	 * 
-	 * @param unfilteredReleases
-	 * @return
 	 */
 	public List<AlbumSimplified> filterNewAlbumsOnly(List<AlbumSimplified> unfilteredReleases) {
 		List<AlbumSimplified> filteredReleases = unfilteredReleases.stream()
@@ -269,9 +237,6 @@ public class FilterService {
 	/**
 	 * Evaluate whether a release is new enough to consider it valid for addition to
 	 * the playlist
-	 * 
-	 * @param album
-	 * @return
 	 */
 	public boolean isValidDate(AlbumSimplified album) {
 		try {
@@ -291,10 +256,6 @@ public class FilterService {
 	 * Find all releases marked as "appears_on" by the given list of artists, but
 	 * filter the result such that only songs of artists you follow are preserved.
 	 * Also filter out any compilation appearances.
-	 * 
-	 * @param extraAlbumIdsFiltered
-	 * @param followedArtists
-	 * @return
 	 */
 	public Map<AlbumGroup, List<AlbumTrackPair>> intelligentAppearsOnSearch(Map<AlbumGroup, List<AlbumTrackPair>> categorizedFilteredAlbums, List<String> followedArtists) {
 		if (userOptions.isIntelligentAppearsOnSearch()) {
@@ -320,12 +281,7 @@ public class FilterService {
 
 				// Show log message
 				int droppedAppearsOnCount = unfilteredAppearsOnAlbums.size() - filteredAppearsOnAlbums.size();
-				if (SHOW_DROPPED_APPEARS_ON_RELEASES) {
-					log.printDroppedAlbumTrackPairDifference(unfilteredAppearsOnAlbums, filteredAppearsOnAlbums, String.format("Dropped %d APPEARS_ON release[s]:", droppedAppearsOnCount));
-				} else {
-					log.info(String.format("Dropped %d APPEARS_ON release[s]", droppedAppearsOnCount));
-					log.info("x (...omitted)");
-				}
+				log.printDroppedAlbumTrackPairDifference(unfilteredAppearsOnAlbums, filteredAppearsOnAlbums, String.format("Dropped %d APPEARS_ON release[s]:", droppedAppearsOnCount));
 
 				// Finalize
 				Map<AlbumGroup, List<AlbumTrackPair>> intelligentAppearsOnFilteredMap = new HashMap<>(categorizedFilteredAlbums);
@@ -339,13 +295,10 @@ public class FilterService {
 	/**
 	 * Returns true if the album group is set to Compilation or the artist is
 	 * "Various Artists"
-	 * 
-	 * @param a
-	 * @return
 	 */
 	private boolean isCollectionOrSampler(AlbumSimplified a) {
 		if (!a.getAlbumGroup().equals(AlbumGroupExtended.COMPILATION.asAlbumGroup())) {
-			return Arrays.asList(a.getArtists()).stream().anyMatch(as -> as.getName().equals(VARIOUS_ARTISTS));
+			return Arrays.stream(a.getArtists()).anyMatch(as -> as.getName().equals(VARIOUS_ARTISTS));
 		}
 		return true;
 	}
@@ -353,10 +306,6 @@ public class FilterService {
 	/**
 	 * Checks if at least a single artist of the subset is part of the given artist
 	 * superset
-	 * 
-	 * @param followedArtists
-	 * @param artists
-	 * @return
 	 */
 	private static boolean containsFeaturedArtist(Collection<String> artistSuperset, ArtistSimplified[] artistSubset) {
 		Set<String> artistSubsetIds = Arrays.stream(artistSubset).map(ArtistSimplified::getId).collect(Collectors.toSet());
@@ -373,15 +322,15 @@ public class FilterService {
 			for (Entry<String, List<PlaylistStore>> blacklistedPair : blacklistedArtistReleasePairs.entrySet()) {
 				for (PlaylistStore ps : blacklistedPair.getValue()) {
 					if (songsByPS.containsKey(ps) ) {
-						List<AlbumTrackPair> atpsToRemove = new ArrayList<>();
+						List<AlbumTrackPair> albumTrackPairsToRemove = new ArrayList<>();
 						List<AlbumTrackPair> list = songsByPS.get(ps);
 						for (AlbumTrackPair atp : list) {
 							if (BotUtils.anyArtistMatches(atp.getAlbum(), blacklistedPair.getKey())) {
-								atpsToRemove.add(atp);
+								albumTrackPairsToRemove.add(atp);
 								allDroppedReleases.add(Map.entry(atp.getAlbum(), ps.getAlbumGroupExtended()));
 							}
 						}
-						list.removeAll(atpsToRemove);
+						list.removeAll(albumTrackPairsToRemove);
 					}
 				}
 			}

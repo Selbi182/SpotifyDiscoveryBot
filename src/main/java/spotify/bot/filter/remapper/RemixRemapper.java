@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.bot.util.data.AlbumTrackPair;
+import spotify.util.data.AlbumTrackPair;
 
 @Component
 public class RemixRemapper implements Remapper {
@@ -42,7 +42,7 @@ public class RemixRemapper implements Remapper {
 
 	/**
 	 * Returns true if the release OR at least two thirds of the release's tracks
-	 * have "REMIX" in their titles (one word, case insenstive). Exception: Remix is
+	 * have "REMIX" in their titles (one word, case-insensitive). Exception: Remix is
 	 * in the title, in which case the threshold is only 20%
 	 */
 	private boolean qualifiesAsRemappable(String albumTitle, List<TrackSimplified> tracks) {

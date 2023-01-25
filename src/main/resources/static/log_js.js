@@ -56,9 +56,11 @@
     			lineCount.classList.add("linecount");
     			currentLogContainer.appendChild(lineCount);
 			 	let timestamp = log[0].slice(0, log[0].indexOf('] ') + 1);
-    			lineCount.innerHTML = `${timestamp} ... ${unimportantLines} line${unimportantLines != 1 ? 's' : ''} hidden ...`;
+    			lineCount.innerHTML = `${timestamp} ... ${unimportantLines} line${unimportantLines !== 1 ? 's' : ''} hidden ...`;
     		}
 		}
 	}
-	
+
+	document.getElementById("copyright-currentyear").innerHTML = new Date().getFullYear().toString();
+
 })();

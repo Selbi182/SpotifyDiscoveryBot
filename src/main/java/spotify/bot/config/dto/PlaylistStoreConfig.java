@@ -7,11 +7,10 @@ import java.util.List;
 import java.util.Map;
 
 import se.michaelthelin.spotify.enums.AlbumGroup;
-import spotify.bot.util.BotUtils;
+import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
 
 public class PlaylistStoreConfig {
-
 	private Map<AlbumGroupExtended, PlaylistStore> playlistStoreMap;
 
 	public PlaylistStoreConfig(Map<AlbumGroupExtended, PlaylistStore> playlistStoreMap) {
@@ -27,8 +26,6 @@ public class PlaylistStoreConfig {
 
 	/**
 	 * Returns the playlist stores as a map
-	 * 
-	 * @return
 	 */
 	private Map<AlbumGroupExtended, PlaylistStore> getPlaylistStoreMap() {
 		return playlistStoreMap;
@@ -36,8 +33,6 @@ public class PlaylistStoreConfig {
 
 	/**
 	 * Returns all set playlist stores.
-	 * 
-	 * @return
 	 */
 	public Collection<PlaylistStore> getAllPlaylistStores() {
 		return getPlaylistStoreMap().values();
@@ -46,20 +41,13 @@ public class PlaylistStoreConfig {
 	/**
 	 * 
 	 * Returns the stored playlist store by the given album group.
-	 * 
-	 * @param albumGroup
-	 * @return
 	 */
 	public PlaylistStore getPlaylistStore(AlbumGroup albumGroup) {
 		return getPlaylistStore(AlbumGroupExtended.fromAlbumGroup(albumGroup));
 	}
 
 	/**
-	 * 
 	 * Returns the stored playlist store by the given album group.
-	 * 
-	 * @param albumGroup
-	 * @return
 	 */
 	public PlaylistStore getPlaylistStore(AlbumGroupExtended albumGroupExtended) {
 		return getPlaylistStoreMap().get(albumGroupExtended);
@@ -67,30 +55,10 @@ public class PlaylistStoreConfig {
 
 	/**
 	 * Fetch all album groups that are set in the config
-	 * 
-	 * @param albumGroups
 	 */
 	public List<AlbumGroup> getEnabledAlbumGroups() {
 		List<AlbumGroup> setAlbumGroups = new ArrayList<>();
 		for (AlbumGroup age : AlbumGroup.values()) {
-			PlaylistStore ps = getPlaylistStore(age);
-			if (ps != null) {
-				if ((ps.getPlaylistId() != null && !ps.getPlaylistId().trim().isEmpty())) {
-					setAlbumGroups.add(age);
-				}
-			}
-		}
-		return setAlbumGroups;
-	}
-
-	/**
-	 * Fetch all album groups that are set in the config
-	 * 
-	 * @param albumGroups
-	 */
-	public List<AlbumGroupExtended> getEnabledSpecialAlbumGroups() {
-		List<AlbumGroupExtended> setAlbumGroups = new ArrayList<>();
-		for (AlbumGroupExtended age : AlbumGroupExtended.values()) {
 			PlaylistStore ps = getPlaylistStore(age);
 			if (ps != null) {
 				if ((ps.getPlaylistId() != null && !ps.getPlaylistId().trim().isEmpty())) {
@@ -145,7 +113,7 @@ public class PlaylistStoreConfig {
 
 		@Override
 		public int compareTo(PlaylistStore o) {
-			return BotUtils.DEFAULT_PLAYLIST_GROUP_ORDER_COMPARATOR.compare(this.getAlbumGroupExtended(), o.getAlbumGroupExtended());
+			return DiscoveryBotUtils.DEFAULT_PLAYLIST_GROUP_ORDER_COMPARATOR.compare(this.getAlbumGroupExtended(), o.getAlbumGroupExtended());
 		}
 
 		@Override

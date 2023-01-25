@@ -6,71 +6,76 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import se.michaelthelin.spotify.enums.AlbumGroup;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
-import spotify.bot.api.BotException;
-import spotify.bot.api.SpotifyApiAuthorization;
-import spotify.bot.api.events.LoggedInEvent;
-import spotify.bot.api.services.AlbumService;
-import spotify.bot.api.services.ArtistService;
-import spotify.bot.api.services.PlaylistMetaService;
-import spotify.bot.api.services.PlaylistSongsService;
-import spotify.bot.api.services.TrackService;
+import spotify.api.BotException;
+import spotify.api.SpotifyApiAuthorization;
+import spotify.api.events.LoggedInEvent;
 import spotify.bot.config.DeveloperMode;
-import spotify.bot.config.database.DatabaseService;
 import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
-import spotify.bot.config.dto.StaticConfig;
 import spotify.bot.filter.FilterService;
 import spotify.bot.filter.RelayService;
 import spotify.bot.filter.RemappingService;
-import spotify.bot.util.BotLogger;
-import spotify.bot.util.BotUtils;
+import spotify.bot.service.CachedArtistService;
+import spotify.bot.service.ConvenienceAlbumService;
+import spotify.bot.service.PlaylistMetaService;
+import spotify.bot.service.PlaylistSongsService;
+import spotify.bot.util.DiscoveryBotLogger;
+import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.bot.util.data.AlbumTrackPair;
 import spotify.bot.util.data.CachedArtistsContainer;
+import spotify.services.AlbumService;
+import spotify.services.ArtistService;
+import spotify.services.TrackService;
+import spotify.util.BotUtils;
+import spotify.util.data.AlbumTrackPair;
 
 @Component
 public class DiscoveryBotCrawler {
-	@Autowired
-	private SpotifyApiAuthorization spotifyApiAuthorization;
+	private final SpotifyApiAuthorization spotifyApiAuthorization;
+	private final DiscoveryBotLogger log;
+	private final ArtistService artistService;
+	private final CachedArtistService cachedArtistService;
+	private final AlbumService albumService;
+	private final ConvenienceAlbumService convenienceAlbumService;
+	private final TrackService trackService;
+	private final PlaylistSongsService playlistSongsService;
+	private final PlaylistMetaService playlistMetaService;
+	private final FilterService filterService;
+	private final RemappingService remappingService;
+	private final RelayService relayService;
 
-	@Autowired
-	private BotLogger log;
-
-	@Autowired
-	private ArtistService artistService;
-
-	@Autowired
-	private AlbumService albumService;
-
-	@Autowired
-	private TrackService trackService;
-
-	@Autowired
-	private PlaylistSongsService playlistSongsService;
-
-	@Autowired
-	private PlaylistMetaService playlistInfoService;
-
-	@Autowired
-	private FilterService filterService;
-
-	@Autowired
-	private RemappingService remappingService;
-	
-	@Autowired
-	private RelayService relayService;
-	
-	@Autowired
-	private DatabaseService databaseService;
-	
-	@Autowired
-	private StaticConfig staticConfig;
+	DiscoveryBotCrawler(
+			SpotifyApiAuthorization spotifyApiAuthorization,
+			DiscoveryBotLogger discoveryBotLogger,
+			ArtistService artistService,
+			CachedArtistService cachedArtistService,
+			AlbumService albumService,
+			ConvenienceAlbumService convenienceAlbumService,
+			TrackService trackService,
+			PlaylistSongsService playlistSongsService,
+			PlaylistMetaService playlistMetaService,
+			FilterService filterService,
+			RemappingService remappingService,
+			RelayService relayService
+	) {
+		this.spotifyApiAuthorization = spotifyApiAuthorization;
+		this.log = discoveryBotLogger;
+		this.artistService = artistService;
+		this.cachedArtistService = cachedArtistService;
+		this.albumService = albumService;
+		this.convenienceAlbumService = convenienceAlbumService;
+		this.trackService = trackService;
+		this.playlistSongsService = playlistSongsService;
+		this.playlistMetaService = playlistMetaService;
+		this.filterService = filterService;
+		this.remappingService = remappingService;
+		this.relayService = relayService;
+	}
 
 	/**
 	 * Lock controlling the local single-crawl behavior
@@ -78,7 +83,7 @@ public class DiscoveryBotCrawler {
 	private ReentrantLock lock;
 
 	/**
-	 * Indicate whether or not the crawler is currently available
+	 * Indicate whether the crawler is currently available
 	 * 
 	 * @return true if the lock exists and is not locked
 	 */
@@ -120,7 +125,7 @@ public class DiscoveryBotCrawler {
 		long time = System.currentTimeMillis();
 		if (!DeveloperMode.isInitialCrawlDisabled()) {
 			Map<AlbumGroupExtended, Integer> results = crawl();
-			String response = BotUtils.compileResultString(results);
+			String response = DiscoveryBotUtils.compileResultString(results);
 			if (response != null) {
 				log.info(response, false);
 			}
@@ -140,7 +145,7 @@ public class DiscoveryBotCrawler {
 	 * @throws SQLException on an internal exception related to the SQLite database
 	 */
 	public boolean clearObsoleteNotifiers() throws BotException, SQLException {
-		return playlistInfoService.clearObsoleteNotifiers();
+		return playlistMetaService.clearObsoleteNotifiers();
 	}
 
 	///////////////////
@@ -166,11 +171,7 @@ public class DiscoveryBotCrawler {
 	 */
 	private Map<AlbumGroupExtended, Integer> crawl() throws BotException, SQLException {
 		spotifyApiAuthorization.refresh();
-		Map<AlbumGroupExtended, Integer> crawlResults = crawlScript();
-		if (staticConfig.isAutoVacuum()) {
-			databaseService.vacuum();
-		}
-		return crawlResults;
+		return crawlScript();
 	}
 
 	/////////////////////////
@@ -185,8 +186,7 @@ public class DiscoveryBotCrawler {
 			if (!filteredAlbums.isEmpty()) {
 				Map<PlaylistStore, List<AlbumTrackPair>> newTracksByTargetPlaylist = getNewTracksByTargetPlaylist(filteredAlbums, followedArtists);
 				if (!BotUtils.isAllEmptyLists(newTracksByTargetPlaylist)) {
-					Map<AlbumGroupExtended, Integer> crawlResults = addReleasesToPlaylistsAndCollectResults(newTracksByTargetPlaylist);
-					return crawlResults;
+					return addReleasesToPlaylistsAndCollectResults(newTracksByTargetPlaylist);
 				}
 			}
 		}
@@ -197,14 +197,14 @@ public class DiscoveryBotCrawler {
 	 * Phase 0: Get all followed artists and initialize cache for any new ones
 	 */
 	private List<String> getFollowedArtists() throws SQLException, BotException {
-		CachedArtistsContainer cachedArtistsContainer = artistService.getFollowedArtistsIds();
+		CachedArtistsContainer cachedArtistsContainer = cachedArtistService.getFollowedArtistsIds();
 		List<String> newArtists = cachedArtistsContainer.getNewArtists();
 		if (!newArtists.isEmpty()) {
 			log.info("Initializing album cache for " + newArtists.size() + " newly followed artist[s]:");
 			artistService.getArtists(newArtists).stream()
 					.map(Artist::getName)
 					.forEach(name -> log.info("- " + name));
-			List<AlbumSimplified> allAlbumsOfNewFollowees = albumService.getAllAlbumsOfArtists(newArtists);
+			List<AlbumSimplified> allAlbumsOfNewFollowees = convenienceAlbumService.getAllAlbumsOfArtists(newArtists);
 			List<AlbumSimplified> albumsToInitialize = filterService.getNonCachedAlbums(allAlbumsOfNewFollowees);
 			filterService.cacheAlbumIds(albumsToInitialize, false);
 		}
@@ -215,7 +215,7 @@ public class DiscoveryBotCrawler {
 	 * Phase 1: Get all new releases from the list of followed artists
 	 */
 	private List<AlbumSimplified> getNewAlbumsFromArtists(List<String> followedArtists) throws BotException, SQLException {
-		List<AlbumSimplified> allAlbums = albumService.getAllAlbumsOfArtists(followedArtists);
+		List<AlbumSimplified> allAlbums = convenienceAlbumService.getAllAlbumsOfArtists(followedArtists);
 		List<AlbumSimplified> nonCachedAlbums = filterService.getNonCachedAlbums(allAlbums);
 		List<AlbumSimplified> noFutureAlbums = filterService.filterFutureAlbums(nonCachedAlbums);
 		filterService.cacheAlbumIds(noFutureAlbums, true);
@@ -246,8 +246,8 @@ public class DiscoveryBotCrawler {
 	 */
 	private Map<AlbumGroupExtended, Integer> addReleasesToPlaylistsAndCollectResults(Map<PlaylistStore, List<AlbumTrackPair>> newTracksByTargetPlaylist) throws BotException, SQLException {
 		playlistSongsService.addAllReleasesToSetPlaylists(newTracksByTargetPlaylist);
-		playlistInfoService.showNotifiers(newTracksByTargetPlaylist);
+		playlistMetaService.showNotifiers(newTracksByTargetPlaylist);
 		relayService.relayResults(newTracksByTargetPlaylist);
-		return BotUtils.collectSongAdditionResults(newTracksByTargetPlaylist);
+		return DiscoveryBotUtils.collectSongAdditionResults(newTracksByTargetPlaylist);
 	}
 }

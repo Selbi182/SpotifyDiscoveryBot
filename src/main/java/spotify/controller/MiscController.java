@@ -6,10 +6,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -17,9 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
 import spotify.bot.DiscoveryBotCrawler;
-import spotify.bot.config.dto.StaticConfig;
-import spotify.bot.util.BotLogger;
-import spotify.bot.util.BotUtils;
+import spotify.bot.util.DiscoveryBotLogger;
+import spotify.util.BotUtils;
 
 @RestController
 @Component
@@ -28,14 +25,13 @@ public class MiscController {
 
 	private final static int SHUTDOWN_RETRY_SLEEP = 10 * 1000;
 
-	@Autowired
-	private BotLogger log;
+	private final DiscoveryBotCrawler crawler;
+	private final DiscoveryBotLogger log;
 
-	@Autowired
-	private DiscoveryBotCrawler crawler;
-
-	@Autowired
-	private StaticConfig staticConfig;
+	MiscController(DiscoveryBotCrawler discoveryBotCrawler, DiscoveryBotLogger botLogger) {
+		this.crawler = discoveryBotCrawler;
+		this.log = botLogger;
+	}
 
 	@RequestMapping("/")
 	public ModelAndView showLogView() {
@@ -43,7 +39,7 @@ public class MiscController {
 	}
 
 	/**
-	 * Returns the contents of the of the most recent log entries split by
+	 * Returns the contents of the most recent log entries split by
 	 * separating lines (---).
 	 * 
 	 * @param limit (optional) maximum number of log blocks to return from the
@@ -106,16 +102,5 @@ public class MiscController {
 			BotUtils.sneakySleep(SHUTDOWN_RETRY_SLEEP);
 		}
 		System.exit(0);
-	}
-
-	/**
-	 * Shut down the bot automatically once per week on Thursday night (23:50:00) to
-	 * have a fresh bot instance ready for New-Music-Fridays.
-	 */
-	@Scheduled(cron = "0 50 23 * * THU")
-	private void scheduledShutdown() {
-		if (staticConfig.isRestartBeforeFriday()) {
-			shutdown("Shutting down Spotify bot by scheduled cron job (restart_before_friday)...");
-		}
 	}
 }

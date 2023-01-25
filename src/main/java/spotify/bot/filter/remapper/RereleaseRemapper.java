@@ -10,10 +10,10 @@ import com.neovisionaries.i18n.CountryCode;
 
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
-import spotify.bot.config.dto.SpotifyApiConfig;
 import spotify.bot.filter.FilterService;
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.bot.util.data.AlbumTrackPair;
+import spotify.services.UserService;
+import spotify.util.data.AlbumTrackPair;
 
 @Component
 public class RereleaseRemapper implements Remapper {
@@ -22,12 +22,12 @@ public class RereleaseRemapper implements Remapper {
 		.compile("(anniversary|re\\W?(issue|master|record)|\\d+\\W+(jahr|year))",
 			Pattern.CASE_INSENSITIVE);
 
-	private final SpotifyApiConfig spotifyApiConfig;
 	private final FilterService filterService;
+	private final UserService userService;
 
-	public RereleaseRemapper(SpotifyApiConfig spotifyApiConfig, FilterService filterService) {
-		this.spotifyApiConfig = spotifyApiConfig;
+	public RereleaseRemapper(FilterService filterService, UserService userService) {
 		this.filterService = filterService;
+		this.userService = userService;
 	}
 
 	@Override
@@ -36,8 +36,8 @@ public class RereleaseRemapper implements Remapper {
 	}
 
 	/**
-	 * Only rereleased albums are relevent. While singles and EPs get rereleased
-	 * too, they are way less interesting and it'd not be worth the effort to deal
+	 * Only rereleased albums are relevant. While singles and EPs get rereleased
+	 * too, they are way less interesting, and it'd not be worth the effort to deal
 	 * with them too.
 	 */
 	@Override
@@ -105,7 +105,7 @@ public class RereleaseRemapper implements Remapper {
 	}
 
 	private boolean isTrackAvailable(TrackSimplified ts) {
-		CountryCode requiredMarket = spotifyApiConfig.getMarket();
+		CountryCode requiredMarket = userService.getMarketOfCurrentUser();
 		for (CountryCode market : ts.getAvailableMarkets()) {
 			if (requiredMarket.equals(market)) {
 				return true;

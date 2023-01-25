@@ -8,20 +8,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import com.neovisionaries.i18n.CountryCode;
 
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import spotify.bot.config.dto.PlaylistStoreConfig;
 import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
-import spotify.bot.config.dto.SpotifyApiConfig;
 import spotify.bot.config.dto.StaticConfig;
 import spotify.bot.config.dto.UserOptions;
-import spotify.bot.util.BotLogger;
-import spotify.bot.util.BotUtils;
+import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.data.AlbumGroupExtended;
+import spotify.util.BotUtils;
 
 @Service
 public class DatabaseService {
@@ -30,23 +26,12 @@ public class DatabaseService {
 	private final static String CACHE_ALBUMS__NAMES_THREAD_NAME = "Caching ALBUM NAMES";
 	private final static String CACHE_ARTISTS_THREAD_NAME = "Caching ARTIST IDs";
 
-	@Autowired
-	private DiscoveryDatabase database;
+	private final DiscoveryDatabase database;
+	private final DiscoveryBotLogger log;
 
-	@Autowired
-	private BotLogger log;
-
-	///////////////////////
-
-	/**
-	 * Update the access and refresh tokens in the database
-	 * 
-	 * @param accessToken
-	 * @param refreshToken
-	 */
-	public void updateTokens(String accessToken, String refreshToken) throws SQLException {
-		database.update(DBConstants.TABLE_SPOTIFY_API, DBConstants.COL_ACCESS_TOKEN, accessToken);
-		database.update(DBConstants.TABLE_SPOTIFY_API, DBConstants.COL_REFRESH_TOKEN, refreshToken);
+	DatabaseService(DiscoveryDatabase discoveryDatabase, DiscoveryBotLogger botLogger) {
+		this.database = discoveryDatabase;
+		this.log = botLogger;
 	}
 
 	////////////////////////
@@ -54,8 +39,6 @@ public class DatabaseService {
 
 	/**
 	 * Return the entire contents of the "cache_releases" table as Strings
-	 * 
-	 * @return
 	 */
 	public List<String> getReleasesIdsCache() throws SQLException {
 		List<String> albumCacheIds = new ArrayList<>();
@@ -68,8 +51,6 @@ public class DatabaseService {
 	
 	/**
 	 * Return the entire contents of the "cache_releases_names" table as Strings
-	 * 
-	 * @return
 	 */
 	public List<String> getReleaseNamesCache() throws SQLException {
 		List<String> albumCacheNames = new ArrayList<>();
@@ -82,8 +63,6 @@ public class DatabaseService {
 
 	/**
 	 * Return the entire contents of the "cache_artists" table as Strings
-	 * 
-	 * @return
 	 */
 	public List<String> getArtistCache() throws SQLException {
 		ResultSet rs = database.selectAll(DBConstants.TABLE_CACHE_ARTISTS);
@@ -94,17 +73,6 @@ public class DatabaseService {
 		return cachedArtists;
 	}
 
-	public SpotifyApiConfig getSpotifyApiConfig() throws SQLException {
-		ResultSet db = database.selectSingle(DBConstants.TABLE_SPOTIFY_API);
-		SpotifyApiConfig spotifyApiConfig = new SpotifyApiConfig();
-		spotifyApiConfig.setClientId(db.getString(DBConstants.COL_CLIENT_ID));
-		spotifyApiConfig.setClientSecret(db.getString(DBConstants.COL_CLIENT_SECRET));
-		spotifyApiConfig.setAccessToken(db.getString(DBConstants.COL_ACCESS_TOKEN));
-		spotifyApiConfig.setRefreshToken(db.getString(DBConstants.COL_REFRESH_TOKEN));
-		spotifyApiConfig.setMarket(CountryCode.valueOf(db.getString(DBConstants.COL_MARKET)));
-		return spotifyApiConfig;
-	}
-
 	public StaticConfig getStaticConfig() throws SQLException {
 		ResultSet db = database.selectSingle(DBConstants.TABLE_CONFIG_STATIC);
 		StaticConfig staticConfig = new StaticConfig();
@@ -112,8 +80,6 @@ public class DatabaseService {
 		staticConfig.setNewNotificationTimeout(db.getInt(DBConstants.COL_NEW_NOTIFICATION_TIMEOUT));
 		staticConfig.setArtistCacheTimeout(db.getInt(DBConstants.COL_ARTIST_CACHE_TIMEOUT));
 		staticConfig.setArtistCacheLastUpdated(db.getDate(DBConstants.COL_ARTIST_CACHE_LAST_UPDATE));
-		staticConfig.setRestartBeforeFriday(db.getBoolean(DBConstants.COL_RESTART_BEFORE_FRIDAY));
-		staticConfig.setAutoVacuum(db.getBoolean(DBConstants.COL_AUTO_VACUUM));
 		return staticConfig;
 	}
 
@@ -172,8 +138,6 @@ public class DatabaseService {
 
 	/**
 	 * Unset the given recent addition info of the given playlist store
-	 * 
-	 * @param albumGroupString
 	 */
 	public synchronized void unsetPlaylistStore(AlbumGroupExtended albumGroup) throws SQLException {
 		if (albumGroup != null) {
@@ -187,8 +151,6 @@ public class DatabaseService {
 
 	/**
 	 * Update the playlist store's given timestamp
-	 * 
-	 * @param albumGroupString
 	 */
 	public synchronized void refreshPlaylistStore(AlbumGroupExtended albumGroup) throws SQLException {
 		if (albumGroup != null) {
@@ -203,8 +165,6 @@ public class DatabaseService {
 
 	/**
 	 * Cache the album IDs of the given list of albums
-	 * 
-	 * @param albumsSimplified
 	 */
 	public void cacheAlbumIdsSync(List<AlbumSimplified> albumsSimplified) {
 		List<String> albumIds = albumsSimplified.stream()
@@ -222,8 +182,6 @@ public class DatabaseService {
 
 	/**
 	 * Cache the album IDs of the given list of albums in a separate thread
-	 * 
-	 * @param albumsSimplified
 	 */
 	public synchronized void cacheAlbumIdsAsync(List<AlbumSimplified> albumsSimplified) {
 		Runnable r = () -> cacheAlbumIdsSync(albumsSimplified);
@@ -232,8 +190,6 @@ public class DatabaseService {
 
 	/**
 	 * Cache the album names of the given list of albums
-	 * 
-	 * @param albumsSimplified
 	 */
 	public void cacheAlbumNamesSync(List<AlbumSimplified> albumsSimplified) {
 		List<String> albumIds = albumsSimplified.stream()
@@ -251,8 +207,6 @@ public class DatabaseService {
 	
 	/**
 	 * Cache the album name identifiers of the given list of albums in a separate thread
-	 * 
-	 * @param albumsSimplified
 	 */
 	public synchronized void cacheAlbumNamesAsync(List<AlbumSimplified> albumsSimplified) {
 		Runnable r = () -> cacheAlbumNamesSync(albumsSimplified);
@@ -261,8 +215,6 @@ public class DatabaseService {
 
 	/**
 	 * Cache the artist IDs in a separate thread
-	 * 
-	 * @param followedArtists
 	 */
 	public synchronized void updateFollowedArtistsCacheAsync(List<String> followedArtists) {
 		Runnable r = () -> {
@@ -288,19 +240,5 @@ public class DatabaseService {
 	 */
 	private synchronized void refreshArtistCacheLastUpdate() throws SQLException {
 		database.update(DBConstants.TABLE_CONFIG_STATIC, DBConstants.COL_ARTIST_CACHE_LAST_UPDATE, String.valueOf(BotUtils.currentTime()));
-	}
-	
-	/**
-	 * Execute the VACUUM command in the database for housekeeping
-	 */
-	public synchronized void vacuum() {
-		Runnable r = () -> {
-			try {
-				database.vacuum();
-			} catch (SQLException e) {
-				log.stackTrace(e);
-			}
-		};
-		new Thread(r, CACHE_ALBUMS__NAMES_THREAD_NAME).start();
 	}
 }

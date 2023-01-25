@@ -1,7 +1,7 @@
 package spotify.bot.filter.remapper;
 
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.bot.util.data.AlbumTrackPair;
+import spotify.util.data.AlbumTrackPair;
 
 public interface Remapper {
 
@@ -23,7 +23,7 @@ public interface Remapper {
 		REMAP,
 
 		/**
-		 * Denotes that this release is should be filtered entirely from the releases to
+		 * Denotes that this release should be filtered entirely from the releases to
 		 * be added. While the majority of filtering is done in other classes, there may
 		 * be cases where it's more efficient to do it in the remapping service.
 		 */
@@ -61,9 +61,8 @@ public interface Remapper {
 	 * {@link Action} to be applied. This is the main logic of the remappers and
 	 * largely implementation-specific; see the respective implementation Javadocs
 	 * for more details.
-	 * 
-	 * @param albumTitle the plaintext name of this release
-	 * @param tracks     the tracks of this album
+	 *
+	 * @param atp the AlbumTrackPair
 	 * @return the action to be applied
 	 */
 	Action determineRemapAction(AlbumTrackPair atp);

@@ -10,23 +10,19 @@ buildscript {
 
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:$springVersion")
-        classpath("org.springframework.boot.experimental:spring-boot-thin-gradle-plugin:1.0.27.RELEASE")
     }
 }
 
-
 apply plugin: 'java'
 apply plugin: 'eclipse'
+apply plugin: 'maven'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
-apply plugin: 'org.springframework.boot.experimental.thin-launcher'
-
 
 jar {
     archiveBaseName.set('SpotifyDiscoveryBot')
     archiveVersion.set('1.0')
     archiveFileName = "${archiveBaseName}-${archiveVersion}"
-    bootJar.dependsOn = [thinProperties]
 }
 
 springBoot {
@@ -46,14 +42,12 @@ repositories {
 }
 
 dependencies {
-    implementation "org.springframework.boot:spring-boot-starter-web:$springVersion"
-    implementation "org.springframework.boot:spring-boot-starter-webflux:$springVersion"
-
+    implementation 'spotify:spotify-dependencies:1.2.3'
     implementation 'se.michaelthelin.spotify:spotify-web-api-java:7.3.0'
 
+    implementation "org.springframework.boot:spring-boot-starter-web:$springVersion"
+
     implementation 'com.google.guava:guava:31.1-jre'
-    implementation 'de.androidpit:color-thief:1.1.2'
-    implementation 'org.jsoup:jsoup:1.15.3'
     implementation 'org.xerial:sqlite-jdbc:3.34.0'
 
     testImplementation 'junit:junit:4.13.2'

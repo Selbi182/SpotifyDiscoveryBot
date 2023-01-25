@@ -5,11 +5,10 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 
-import spotify.bot.api.services.AlbumService;
 import spotify.bot.filter.FilterService;
 
 /**
- * Simple wrapper class used in conjunction with {@link AlbumService} and
+ * Simple wrapper class used in conjunction with {@link spotify.services.AlbumService} and
  * {@link FilterService} to make sure newly followed artists won't have their
  * entire discography accidentally classified as "re-releases"
  */

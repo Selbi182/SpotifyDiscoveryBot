@@ -6,9 +6,9 @@ import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
-import spotify.bot.util.BotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.bot.util.data.AlbumTrackPair;
+import spotify.util.BotUtils;
+import spotify.util.data.AlbumTrackPair;
 
 @Component
 public class EpRemapper implements Remapper {
@@ -49,10 +49,7 @@ public class EpRemapper implements Remapper {
 	 * </ul>
 	 * *The great majority of EPs are covered by the first three strategies. The
 	 * last one for really silly edge cases in which an artist may release an EP
-	 * that is is too similar to a slightly fancier single by numbers alone.
-	 * 
-	 * @param atp
-	 * @return
+	 * that is too similar to a slightly fancier single by numbers alone.
 	 */
 	private boolean qualifiesAsRemappable(String albumTitle, List<TrackSimplified> tracks) {
 		if (EP_MATCHER.matcher(albumTitle).find()) {
@@ -65,10 +62,10 @@ public class EpRemapper implements Remapper {
 		}
 		if (trackCount >= EP_SONG_COUNT_THRESHOLD_LESSER && totalDurationMs >= EP_DURATION_THRESHOLD_LESSER) {
 			String strippedAlbumTitle = BotUtils.strippedTitleIdentifier(albumTitle);
-			return !tracks.stream()
+			return tracks.stream()
 				.map(TrackSimplified::getName)
 				.map(BotUtils::strippedTitleIdentifier)
-				.anyMatch(t -> t.equalsIgnoreCase(strippedAlbumTitle));
+				.noneMatch(t -> t.equalsIgnoreCase(strippedAlbumTitle));
 		}
 		return false;
 	}

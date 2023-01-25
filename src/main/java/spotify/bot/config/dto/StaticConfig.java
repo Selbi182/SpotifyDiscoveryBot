@@ -7,8 +7,6 @@ public class StaticConfig {
 	private int newNotificationTimeout;
 	private int artistCacheTimeout;
 	private Date artistCacheLastUpdated;
-	private boolean restartBeforeFriday;
-	private boolean autoVacuum;
 
 	public int getLookbackDays() {
 		return lookbackDays;
@@ -40,21 +38,5 @@ public class StaticConfig {
 
 	public void setArtistCacheLastUpdated(Date artistCacheLastUpdated) {
 		this.artistCacheLastUpdated = artistCacheLastUpdated;
-	}
-
-	public boolean isRestartBeforeFriday() {
-		return restartBeforeFriday;
-	}
-
-	public void setRestartBeforeFriday(boolean restartBeforeFriday) {
-		this.restartBeforeFriday = restartBeforeFriday;
-	}
-
-	public boolean isAutoVacuum() {
-		return autoVacuum;
-	}
-
-	public void setAutoVacuum(boolean autoVacuum) {
-		this.autoVacuum = autoVacuum;
 	}
 }

@@ -3,7 +3,6 @@ package spotify.controller;
 import java.sql.SQLException;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -12,11 +11,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import spotify.api.BotException;
 import spotify.bot.DiscoveryBotCrawler;
-import spotify.bot.api.BotException;
 import spotify.bot.config.DeveloperMode;
-import spotify.bot.util.BotLogger;
-import spotify.bot.util.BotUtils;
+import spotify.bot.util.DiscoveryBotLogger;
+import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
 
 @RestController
@@ -24,11 +23,13 @@ import spotify.bot.util.data.AlbumGroupExtended;
 @EnableScheduling
 public class CrawlSchedulerController {
 
-	@Autowired
-	private DiscoveryBotCrawler crawler;
+	private final DiscoveryBotCrawler crawler;
+	private final DiscoveryBotLogger log;
 
-	@Autowired
-	private BotLogger log;
+	CrawlSchedulerController(DiscoveryBotCrawler discoveryBotCrawler, DiscoveryBotLogger botLogger) {
+		this.crawler = discoveryBotCrawler;
+		this.log = botLogger;
+	}
 
 	/**
 	 * Run the scheduler every 30 minutes (with a few seconds extra to offset
@@ -66,7 +67,7 @@ public class CrawlSchedulerController {
 		if (crawler.isReady()) {
 			try {
 				Map<AlbumGroupExtended, Integer> results = crawler.tryCrawl();
-				String response = BotUtils.compileResultString(results);
+				String response = DiscoveryBotUtils.compileResultString(results);
 				if (response != null) {
 					log.info(response);
 					return new ResponseEntity<>(response, HttpStatus.CREATED);
@@ -83,13 +84,23 @@ public class CrawlSchedulerController {
 	 * Periodic task running every 5 seconds to remove the [NEW] indicator where
 	 * applicable. Will only run while crawler is idle.
 	 * 
-	 * @return a ResponseEntity indicating whether any notifies were cleared
 	 * @throws BotException on an external exception related to the Spotify Web API
 	 * @throws SQLException on an internal exception related to the SQLite database
 	 */
 	@Scheduled(fixedDelay = 5 * 1000)
+	public void clearNewIndicatorScheduler() throws BotException, SQLException {
+		manuallyClearNotifiers();
+	}
+
+	/**
+	 * Manually clear the notifiers
+	 *
+	 * @return a ResponseEntity with a summary of the result
+	 * @throws BotException on an external exception related to the Spotify Web API
+	 * @throws SQLException on an internal exception related to the SQLite database
+	 */
 	@RequestMapping("/clearnotifiers")
-	public ResponseEntity<String> clearNewIndicatorScheduler() throws BotException, SQLException {
+	public ResponseEntity<String> manuallyClearNotifiers() throws BotException, SQLException {
 		if (!crawler.isReady()) {
 			return new ResponseEntity<>("Can't clear [NEW] indicators now, as crawler is currently in progress...", HttpStatus.CONFLICT);
 		}

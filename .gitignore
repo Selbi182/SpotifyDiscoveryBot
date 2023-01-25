@@ -42,3 +42,4 @@ templates/READY
 /application.properties
 /log.txt
 /relay.properties
+/spotifybot.properties

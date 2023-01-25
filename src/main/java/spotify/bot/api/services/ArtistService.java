@@ -14,10 +14,10 @@ import org.springframework.stereotype.Service;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.wrapper.spotify.SpotifyApi;
-import com.wrapper.spotify.enums.ModelObjectType;
-import com.wrapper.spotify.model_objects.specification.Artist;
 
+import se.michaelthelin.spotify.SpotifyApi;
+import se.michaelthelin.spotify.enums.ModelObjectType;
+import se.michaelthelin.spotify.model_objects.specification.Artist;
 import spotify.bot.api.BotException;
 import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.database.DatabaseService;

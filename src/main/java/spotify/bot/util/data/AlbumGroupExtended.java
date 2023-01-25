@@ -3,7 +3,7 @@ package spotify.bot.util.data;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.wrapper.spotify.enums.AlbumGroup;
+import se.michaelthelin.spotify.enums.AlbumGroup;
 
 public enum AlbumGroupExtended {
 	ALBUM("album"),

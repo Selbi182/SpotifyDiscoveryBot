@@ -20,11 +20,10 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.wrapper.spotify.enums.AlbumGroup;
-import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
-import com.wrapper.spotify.model_objects.specification.ArtistSimplified;
-import com.wrapper.spotify.model_objects.specification.TrackSimplified;
-
+import se.michaelthelin.spotify.enums.AlbumGroup;
+import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
+import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
+import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.bot.config.DeveloperMode;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;

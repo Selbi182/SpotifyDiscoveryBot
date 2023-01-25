@@ -12,13 +12,13 @@ import org.springframework.stereotype.Service;
 import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.wrapper.spotify.SpotifyApi;
-import com.wrapper.spotify.model_objects.IPlaylistItem;
-import com.wrapper.spotify.model_objects.specification.Playlist;
-import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
-import com.wrapper.spotify.model_objects.specification.Track;
-import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
+import se.michaelthelin.spotify.SpotifyApi;
+import se.michaelthelin.spotify.model_objects.IPlaylistItem;
+import se.michaelthelin.spotify.model_objects.specification.Playlist;
+import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
+import se.michaelthelin.spotify.model_objects.specification.Track;
+import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.bot.api.BotException;
 import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.DeveloperMode;
@@ -47,9 +47,6 @@ public class PlaylistSongsService {
 
 	/**
 	 * Adds all releases to the given playlists
-	 * 
-	 * @param songsByPlaylist
-	 * @param enabledAlbumGroups
 	 */
 	public void addAllReleasesToSetPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws BotException {
 		log.debug("Adding to playlists:");
@@ -69,10 +66,6 @@ public class PlaylistSongsService {
 	/**
 	 * Add the given list of song IDs to the playlist (a delay of a second per
 	 * release is used to retain order). May remove older songs to make room.
-	 * 
-	 * @param sortedNewReleases
-	 * @param songs
-	 * @return
 	 */
 	private void addSongsToPlaylistId(String playlistId, List<AlbumTrackPair> albumTrackPairs) throws BotException {
 		if (!albumTrackPairs.isEmpty()) {
@@ -101,9 +94,6 @@ public class PlaylistSongsService {
 
 	/**
 	 * Extract all the ATP tracks into a new list
-	 * 
-	 * @param allReleases
-	 * @return
 	 */
 	private List<List<TrackSimplified>> extractTrackLists(List<AlbumTrackPair> allReleases) {
 		List<List<TrackSimplified>> bundled = new ArrayList<>();

@@ -6,10 +6,8 @@ import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
 
-import com.wrapper.spotify.enums.AlbumGroup;
-import com.wrapper.spotify.model_objects.specification.AudioFeatures;
-import com.wrapper.spotify.model_objects.specification.TrackSimplified;
-
+import se.michaelthelin.spotify.model_objects.specification.AudioFeatures;
+import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.bot.api.services.TrackService;
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;

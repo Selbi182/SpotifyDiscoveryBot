@@ -8,8 +8,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.wrapper.spotify.enums.AlbumGroup;
-
+import se.michaelthelin.spotify.enums.AlbumGroup;
 import spotify.bot.config.dto.PlaylistStoreConfig;
 import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.config.dto.UserOptions;

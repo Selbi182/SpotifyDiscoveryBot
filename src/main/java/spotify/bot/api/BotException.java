@@ -1,6 +1,6 @@
 package spotify.bot.api;
 
-import com.wrapper.spotify.exceptions.SpotifyWebApiException;
+import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 
 /**
  * A general wrapper for every type of Exception related to outside requests to

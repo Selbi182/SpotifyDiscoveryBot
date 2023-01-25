@@ -5,9 +5,8 @@ import java.util.List;
 
 import org.springframework.lang.NonNull;
 
-import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
-import com.wrapper.spotify.model_objects.specification.TrackSimplified;
-
+import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
+import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.bot.util.BotUtils;
 
 /**

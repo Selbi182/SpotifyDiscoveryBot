@@ -1,13 +1,19 @@
 buildscript {
+    ext {
+        // Spring has to stay at 2.x.x for now, as 3.x.x requires Java 17
+        springVersion = '2.7.7'
+    }
+
     repositories {
         mavenCentral()
     }
-    
+
     dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:2.4.5")
-        classpath("org.springframework.boot.experimental:spring-boot-thin-gradle-plugin:1.0.26.RELEASE")
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:$springVersion")
+        classpath("org.springframework.boot.experimental:spring-boot-thin-gradle-plugin:1.0.27.RELEASE")
     }
 }
+
 
 apply plugin: 'java'
 apply plugin: 'eclipse'
@@ -15,30 +21,41 @@ apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
 apply plugin: 'org.springframework.boot.experimental.thin-launcher'
 
+
 jar {
-    baseName = 'SpotifyDiscoveryBot'
-    version = '1.0'
+    archiveBaseName.set('SpotifyDiscoveryBot')
+    archiveVersion.set('1.0')
+    archiveFileName = "${archiveBaseName}-${archiveVersion}"
     bootJar.dependsOn = [thinProperties]
 }
 
 springBoot {
-    mainClassName = 'spotify.SpotifyDiscoveryBot'
+    mainClass.set('spotify.SpotifyDiscoveryBot')
 }
 
 sourceCompatibility = 1.11
-targetCompatibility = 1.11
 
 repositories {
     mavenCentral()
+    maven {
+        url 'https://jitpack.io'
+    }
+    maven {
+        url 'https://mymavenrepo.com/repo/FpgB1Mi6I9ud1Gd3tX0r/'
+    }
 }
 
 dependencies {
-    implementation('se.michaelthelin.spotify:spotify-web-api-java:6.5.4')
-    
+    implementation "org.springframework.boot:spring-boot-starter-web:$springVersion"
+    implementation "org.springframework.boot:spring-boot-starter-webflux:$springVersion"
+
+    implementation 'se.michaelthelin.spotify:spotify-web-api-java:7.3.0'
+
+    implementation 'com.google.guava:guava:31.1-jre'
+    implementation 'de.androidpit:color-thief:1.1.2'
+    implementation 'org.jsoup:jsoup:1.15.3'
     implementation 'org.xerial:sqlite-jdbc:3.34.0'
-    implementation 'com.google.guava:guava:30.1.1-jre'
-    implementation 'org.springframework.boot:spring-boot-starter-web:2.4.5'
-    
-	testImplementation 'junit:junit:4.13.2'
+
+    testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.springframework.boot:spring-boot-starter-test:2.4.5'
 }

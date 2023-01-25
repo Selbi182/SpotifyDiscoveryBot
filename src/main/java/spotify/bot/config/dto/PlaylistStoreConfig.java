@@ -6,8 +6,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import com.wrapper.spotify.enums.AlbumGroup;
-
+import se.michaelthelin.spotify.enums.AlbumGroup;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
 

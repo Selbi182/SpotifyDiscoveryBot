@@ -26,8 +26,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.google.common.base.Strings;
-import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
+import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;
 

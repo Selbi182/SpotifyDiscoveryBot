@@ -5,8 +5,7 @@ import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
 
-import com.wrapper.spotify.model_objects.specification.TrackSimplified;
-
+import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.bot.util.BotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.AlbumTrackPair;

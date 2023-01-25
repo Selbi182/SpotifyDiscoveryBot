@@ -14,14 +14,13 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.wrapper.spotify.SpotifyApi;
-import com.wrapper.spotify.model_objects.IPlaylistItem;
-import com.wrapper.spotify.model_objects.miscellaneous.CurrentlyPlaying;
-import com.wrapper.spotify.model_objects.specification.Playlist;
-import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
-import com.wrapper.spotify.model_objects.specification.Track;
-import com.wrapper.spotify.requests.data.playlists.ChangePlaylistsDetailsRequest;
-
+import se.michaelthelin.spotify.SpotifyApi;
+import se.michaelthelin.spotify.model_objects.IPlaylistItem;
+import se.michaelthelin.spotify.model_objects.miscellaneous.CurrentlyPlaying;
+import se.michaelthelin.spotify.model_objects.specification.Playlist;
+import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
+import se.michaelthelin.spotify.model_objects.specification.Track;
+import se.michaelthelin.spotify.requests.data.playlists.ChangePlaylistsDetailsRequest;
 import spotify.bot.api.BotException;
 import spotify.bot.api.SpotifyCall;
 import spotify.bot.config.ConfigUpdate;
@@ -71,8 +70,6 @@ public class PlaylistMetaService {
 	/**
 	 * Display the [NEW] notifiers of the given album groups' playlists titles, if
 	 * any songs were added
-	 * 
-	 * @param albumGroup
 	 */
 	public void showNotifiers(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws BotException, SQLException {
 		if (!DeveloperMode.isPlaylistAdditionDisabled()) {
@@ -160,9 +157,6 @@ public class PlaylistMetaService {
 	 * Check if the [NEW] indicator for this playlist store should be removed. This
 	 * is either done by timeout or by checking if the currently played song is
 	 * within the most recently added songs of the playlist.
-	 * 
-	 * @param playlistId
-	 * @return
 	 */
 	private boolean shouldIndicatorBeMarkedAsRead(PlaylistStore playlistStore) {
 		try {

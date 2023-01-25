@@ -25,9 +25,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.wrapper.spotify.SpotifyApi;
-import com.wrapper.spotify.model_objects.credentials.AuthorizationCodeCredentials;
-
+import se.michaelthelin.spotify.SpotifyApi;
+import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCredentials;
 import spotify.bot.api.events.LoggedInEvent;
 import spotify.bot.config.ConfigUpdate;
 import spotify.bot.util.BotLogger;

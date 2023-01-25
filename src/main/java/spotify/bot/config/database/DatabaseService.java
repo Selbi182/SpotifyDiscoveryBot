@@ -12,8 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.neovisionaries.i18n.CountryCode;
-import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
 
+import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import spotify.bot.config.dto.PlaylistStoreConfig;
 import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.config.dto.SpotifyApiConfig;

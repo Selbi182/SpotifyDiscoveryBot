@@ -7,9 +7,9 @@ import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 
 import com.neovisionaries.i18n.CountryCode;
-import com.wrapper.spotify.model_objects.specification.AlbumSimplified;
-import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 
+import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
+import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.bot.config.dto.SpotifyApiConfig;
 import spotify.bot.filter.FilterService;
 import spotify.bot.util.data.AlbumGroupExtended;

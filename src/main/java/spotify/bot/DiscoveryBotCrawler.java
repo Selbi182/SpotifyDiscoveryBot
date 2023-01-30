@@ -14,7 +14,7 @@ import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
 import spotify.api.BotException;
 import spotify.api.SpotifyApiAuthorization;
-import spotify.api.events.LoggedInEvent;
+import spotify.api.events.SpotifyApiLoggedInEvent;
 import spotify.bot.config.DeveloperMode;
 import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.filter.FilterService;
@@ -118,7 +118,7 @@ public class DiscoveryBotCrawler {
 	 * @throws BotException on an external exception related to the Spotify Web API
 	 * @throws SQLException on an internal exception related to the SQLite database
 	 */
-	@EventListener(LoggedInEvent.class)
+	@EventListener(SpotifyApiLoggedInEvent.class)
 	public void firstCrawlAndEnableReadyState() throws BotException, SQLException {
 		log.printLine();
 		log.info("Executing initial crawl...", false);

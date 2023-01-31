@@ -14,10 +14,6 @@ import spotify.bot.util.DiscoveryBotLogger;
 public class UserOptionsConfig {
 	public final static String PROP_INTELLIGENT_APPEARS_ON_SEARCH = "intelligent_appears_on_search";
 	public final static String PROP_CIRCULAR_PLAYLIST_FITTING = "circular_playlist_fitting";
-	public final static String PROP_EP_SEPARATION = "ep_separation";
-	public final static String PROP_REMIX_SEPARATION = "remix_separation";
-	public final static String PROP_LIVE_SEPARATION = "live_separation";
-	public final static String PROP_RERELEASE_SEPARATION = "rerelease_separation";
 
 	private final static String USER_OPTIONS_FILENAME = "./config/useroptions.properties";
 
@@ -36,22 +32,6 @@ public class UserOptionsConfig {
 
 	public boolean isCircularPlaylistFitting() {
 		return getBooleanProperty(PROP_CIRCULAR_PLAYLIST_FITTING);
-	}
-
-	public boolean isEpSeparation() {
-		return getBooleanProperty(PROP_EP_SEPARATION);
-	}
-
-	public boolean isRemixSeparation() {
-		return getBooleanProperty(PROP_REMIX_SEPARATION);
-	}
-
-	public boolean isLiveSeparation() {
-		return getBooleanProperty(PROP_LIVE_SEPARATION);
-	}
-
-	public boolean isRereleaseSeparation() {
-		return getBooleanProperty(PROP_RERELEASE_SEPARATION);
 	}
 
 	///////////////
@@ -80,10 +60,6 @@ public class UserOptionsConfig {
 	private void createMissingProperties(Properties properties) throws IOException {
 		properties.putIfAbsent(PROP_INTELLIGENT_APPEARS_ON_SEARCH, "true");
 		properties.putIfAbsent(PROP_CIRCULAR_PLAYLIST_FITTING, "true");
-		properties.putIfAbsent(PROP_EP_SEPARATION, "true");
-		properties.putIfAbsent(PROP_REMIX_SEPARATION, "true");
-		properties.putIfAbsent(PROP_LIVE_SEPARATION, "true");
-		properties.putIfAbsent(PROP_RERELEASE_SEPARATION, "true");
 		properties.store(new FileOutputStream(USER_OPTIONS_FILENAME), null);
 	}
 

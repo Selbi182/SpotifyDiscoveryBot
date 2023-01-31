@@ -243,7 +243,7 @@ public class FilterService {
 	 */
 	public List<AlbumSimplified> filterNewAlbumsOnly(List<AlbumSimplified> unfilteredReleases) {
 		List<AlbumSimplified> filteredReleases = unfilteredReleases.stream()
-			.filter(release -> (userOptions.isRereleaseSeparation() && AlbumGroup.ALBUM.equals(release.getAlbumGroup()))
+			.filter(release -> (AlbumGroup.ALBUM.equals(release.getAlbumGroup()))
 				|| isValidDate(release))
 			.collect(Collectors.toList());
 		log.printDroppedAlbumDifference(unfilteredReleases, filteredReleases,

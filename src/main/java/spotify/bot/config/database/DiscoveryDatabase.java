@@ -127,6 +127,7 @@ public class DiscoveryDatabase {
 				statement.executeUpdate(String.format(INSERT_QUERY_MASK, table, column, s));
 			}
 		}
+		statement.closeOnCompletion();
 		statement.execute("vacuum;");
 		statement.closeOnCompletion();
 	}

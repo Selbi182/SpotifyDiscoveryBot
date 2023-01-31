@@ -7,11 +7,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
-import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
+import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.util.BotUtils;
 import spotify.util.data.AlbumTrackPair;
@@ -20,7 +21,7 @@ public class DiscoveryBotUtils {
 
   /**
    * A common order of the different playlist groups: Album > Single > EP > Remix
-   * > Live > Compilation > Appears On
+   * > Live > Compilation > Re-Release > Appears On
    */
   public final static List<AlbumGroupExtended> DEFAULT_PLAYLIST_GROUP_ORDER = Arrays.asList(
       AlbumGroupExtended.ALBUM,
@@ -31,6 +32,11 @@ public class DiscoveryBotUtils {
       AlbumGroupExtended.COMPILATION,
       AlbumGroupExtended.RE_RELEASE,
       AlbumGroupExtended.APPEARS_ON);
+
+  /**
+   * Same as DEFAULT_PLAYLIST_GROUP_ORDER, but reversed
+   */
+  public final static List<AlbumGroupExtended> DEFAULT_PLAYLIST_GROUP_ORDER_REVERSED = Lists.reverse(DEFAULT_PLAYLIST_GROUP_ORDER);
 
   /**
    * {@link DiscoveryBotUtils#DEFAULT_PLAYLIST_GROUP_ORDER} as explicit Comparator

@@ -6,15 +6,15 @@ import java.util.Map;
 import se.michaelthelin.spotify.enums.AlbumGroup;
 
 public enum AlbumGroupExtended {
-	ALBUM("album"),
-	APPEARS_ON("appears_on"),
-	COMPILATION("compilation"),
-	SINGLE("single"),
+	ALBUM("album", "Albums"),
+	APPEARS_ON("appears_on", "Appears On"),
+	COMPILATION("compilation", "Compilations"),
+	SINGLE("single", "Singles"),
 
-	EP("ep", true),
-	REMIX("remix", true),
-	LIVE("live", true),
-	RE_RELEASE("re_release", true);
+	EP("ep", true, "EPs"),
+	REMIX("remix", true, "Remixes"),
+	LIVE("live", true, "Live"),
+	RE_RELEASE("re_release", true, "Re-Releases");
 
 	private static final Map<String, AlbumGroupExtended> map = new HashMap<>();
 
@@ -26,14 +26,16 @@ public enum AlbumGroupExtended {
 
 	private final String group;
 	private final boolean extendedType;
+	private final String humanName;
 
-	AlbumGroupExtended(final String group) {
-		this(group, false);
+	AlbumGroupExtended(final String group, String humanName) {
+		this(group, false, humanName);
 	}
 
-	AlbumGroupExtended(final String group, final boolean extendedType) {
+	AlbumGroupExtended(final String group, final boolean extendedType, String humanName) {
 		this.group = group;
 		this.extendedType = extendedType;
+		this.humanName = humanName;
 	}
 
 	/**
@@ -69,5 +71,12 @@ public enum AlbumGroupExtended {
 	 */
 	public boolean isExtendedType() {
 		return extendedType;
+	}
+
+	/**
+	 * Get a human-readable name of this album group (intended for playlist creation)
+	 */
+	public String getHumanName() {
+		return humanName;
 	}
 }

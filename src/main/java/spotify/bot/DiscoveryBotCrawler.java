@@ -16,7 +16,7 @@ import spotify.api.BotException;
 import spotify.api.SpotifyApiAuthorization;
 import spotify.api.events.SpotifyApiLoggedInEvent;
 import spotify.bot.config.DeveloperMode;
-import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
+import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.filter.FilterService;
 import spotify.bot.filter.RelayService;
 import spotify.bot.filter.RemappingService;
@@ -142,9 +142,8 @@ public class DiscoveryBotCrawler {
 	 * cannot require the lock.
 	 * 
 	 * @throws BotException on an external exception related to the Spotify Web API
-	 * @throws SQLException on an internal exception related to the SQLite database
 	 */
-	public boolean clearObsoleteNotifiers() throws BotException, SQLException {
+	public boolean clearObsoleteNotifiers() throws BotException {
 		return playlistMetaService.clearObsoleteNotifiers();
 	}
 
@@ -207,6 +206,7 @@ public class DiscoveryBotCrawler {
 			List<AlbumSimplified> allAlbumsOfNewFollowees = convenienceAlbumService.getAllAlbumsOfArtists(newArtists);
 			List<AlbumSimplified> albumsToInitialize = filterService.getNonCachedAlbums(allAlbumsOfNewFollowees);
 			filterService.cacheAlbumIds(albumsToInitialize, false);
+			filterService.cacheAlbumNames(albumsToInitialize, false);
 		}
 		return cachedArtistsContainer.getAllArtists();
 	}
@@ -244,7 +244,7 @@ public class DiscoveryBotCrawler {
 	/**
 	 * Phase 3: Add all releases to their target playlists and collect the results
 	 */
-	private Map<AlbumGroupExtended, Integer> addReleasesToPlaylistsAndCollectResults(Map<PlaylistStore, List<AlbumTrackPair>> newTracksByTargetPlaylist) throws BotException, SQLException {
+	private Map<AlbumGroupExtended, Integer> addReleasesToPlaylistsAndCollectResults(Map<PlaylistStore, List<AlbumTrackPair>> newTracksByTargetPlaylist) throws BotException {
 		playlistSongsService.addAllReleasesToSetPlaylists(newTracksByTargetPlaylist);
 		playlistMetaService.showNotifiers(newTracksByTargetPlaylist);
 		relayService.relayResults(newTracksByTargetPlaylist);

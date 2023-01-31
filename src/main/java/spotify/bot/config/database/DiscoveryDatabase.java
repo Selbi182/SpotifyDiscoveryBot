@@ -9,7 +9,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Collection;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.springframework.stereotype.Repository;
@@ -22,7 +21,7 @@ import spotify.util.BotUtils;
 public class DiscoveryDatabase {
 
 	// Database base constants
-	private final static String DB_FILE_NAME = "database.db";
+	private final static String DB_FILE_NAME = "config/database.db";
 	private final static String DB_URL_PREFIX = "jdbc:sqlite:";
 
 	// Database query masks
@@ -37,24 +36,21 @@ public class DiscoveryDatabase {
 	private final static File WORKSPACE_LOCATION = new File(".");
 
 	private final DiscoveryBotLogger log;
+	private final DatabaseCreationService databaseCreationService;
 
 	private String dbUrl;
 	private Connection connection;
 
-	DiscoveryDatabase(DiscoveryBotLogger discoveryBotLogger) {
-		this.log = discoveryBotLogger;
-	}
-
 	/**
-	 * Initialize the Database connection to the local <code>database.db</code>
-	 * file.
+	 * Initialize the Database connection to the local database
 	 */
-	@PostConstruct
-	private void init() {
+	DiscoveryDatabase(DiscoveryBotLogger discoveryBotLogger, DatabaseCreationService databaseCreationService) {
+		this.log = discoveryBotLogger;
+		this.databaseCreationService = databaseCreationService;
 		try {
 			File dbFilePath = BotUtils.normalizeFile(getDbFilePath());
 			this.dbUrl = DB_URL_PREFIX + dbFilePath.getAbsolutePath();
-			log.error("Establishing SQLite database connection: " + dbFilePath.getAbsolutePath(), false);
+			log.info("Establishing SQLite database connection: " + dbFilePath.getAbsolutePath(), false);
 			getConnectionInstance();
 		} catch (IOException | SQLException e) {
 			log.error("=== FAILED TO ESTABLISH DATABASE CONNECTION! APPLICATION IS HALTING! ===", false);
@@ -64,15 +60,11 @@ public class DiscoveryDatabase {
 
 	private File getDbFilePath() throws IOException {
 		File alternateDatabaseFilepath = SpotifyDiscoveryBot.getAlternateDatabaseFilePath();
-		if (alternateDatabaseFilepath != null) {
-			if (alternateDatabaseFilepath.exists()) {
-				if (alternateDatabaseFilepath.canRead()) {
-					return alternateDatabaseFilepath;
-				}
-				throw new IOException("Could not access ALTERNATE database (file is locked)!");
-			} else {
-				log.warning("ALTERNATE database file path has been specified but doesn't exist!", false);
+		if (alternateDatabaseFilepath != null && alternateDatabaseFilepath.exists()) {
+			if (alternateDatabaseFilepath.canRead()) {
+				return alternateDatabaseFilepath;
 			}
+			throw new IOException("Could not access ALTERNATE database (file is locked)!");
 		}
 
 		File workingDirectoryDatabaseFilepath = new File(WORKSPACE_LOCATION, DB_FILE_NAME);
@@ -81,8 +73,10 @@ public class DiscoveryDatabase {
 				return workingDirectoryDatabaseFilepath;
 			}
 			throw new IOException("Could not access WORKDIR database (file is locked)!");
+		} else {
+			log.warning("Database file does not exist and will be created automatically", false);
 		}
-		throw new IOException("WORKDIR database not found!");
+		return workingDirectoryDatabaseFilepath;
 	}
 
 	//////////////
@@ -94,6 +88,7 @@ public class DiscoveryDatabase {
 	private Connection getConnectionInstance() throws SQLException {
 		if (connection == null || connection.isClosed()) {
 			connection = DriverManager.getConnection(dbUrl);
+			databaseCreationService.createTables(connection);
 		}
 		return connection;
 	}

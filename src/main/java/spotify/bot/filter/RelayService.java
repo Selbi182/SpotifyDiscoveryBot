@@ -19,7 +19,7 @@ import org.springframework.web.client.RestTemplate;
 
 import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
 import spotify.bot.config.DeveloperMode;
-import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
+import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.util.BotUtils;
@@ -27,7 +27,7 @@ import spotify.util.data.AlbumTrackPair;
 
 @Service
 public class RelayService {
-	private static final String RELAY_FILE_NAME = "relay.properties";
+	private static final String RELAY_FILE_NAME = "./config/relay.properties";
 	private static final String PROP_RELAY_URL = "RELAY_URL";
 	private static final String PROP_WHITELISTED_ARTIST_IDS = "WHITELISTED_ARTIST_IDS";
 	private static final String PROP_MESSAGE_MASK = "MESSAGE_MASK";

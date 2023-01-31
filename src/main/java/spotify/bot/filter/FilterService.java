@@ -25,9 +25,10 @@ import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.bot.config.DeveloperMode;
 import spotify.bot.config.database.DatabaseService;
-import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
-import spotify.bot.config.dto.StaticConfig;
-import spotify.bot.config.dto.UserOptions;
+import spotify.bot.config.properties.BlacklistConfig;
+import spotify.bot.config.properties.PlaylistStoreConfig;
+import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
+import spotify.bot.config.properties.UserOptionsConfig;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -36,21 +37,26 @@ import spotify.util.data.AlbumTrackPair;
 
 @Service
 public class FilterService {
+	private final static int LOOKBACK_DAYS = 60;
+
 	private final static String VARIOUS_ARTISTS = "Various Artists";
 
-	private final StaticConfig staticConfig;
-	private final UserOptions userOptions;
+	private final UserOptionsConfig userOptions;
 	private final DiscoveryBotLogger log;
 	private final DatabaseService databaseService;
+	private final PlaylistStoreConfig playlistStoreConfig;
+	private final BlacklistConfig blacklistConfig;
 
-	FilterService(StaticConfig staticConfig,
-			UserOptions userOptions,
+	FilterService(UserOptionsConfig userOptions,
 			DiscoveryBotLogger discoveryBotLogger,
-			DatabaseService databaseService) {
-		this.staticConfig = staticConfig;
+			DatabaseService databaseService,
+			PlaylistStoreConfig playlistStoreConfig,
+			BlacklistConfig blacklistConfig) {
 		this.userOptions = userOptions;
 		this.log = discoveryBotLogger;
 		this.databaseService = databaseService;
+		this.playlistStoreConfig = playlistStoreConfig;
+		this.blacklistConfig = blacklistConfig;
 	}
 
 	private final static DateTimeFormatter RELEASE_DATE_PARSER = new DateTimeFormatterBuilder()
@@ -122,6 +128,21 @@ public class FilterService {
 		}
 	}
 
+	/**
+	 * Cache the given album names in the database
+	 */
+	public void cacheAlbumNames(List<AlbumSimplified> albums, boolean async) {
+		if (!DeveloperMode.isCacheDisabled()) {
+			if (!albums.isEmpty()) {
+				if (async) {
+					databaseService.cacheAlbumNamesAsync(albums);
+				} else {
+					databaseService.cacheAlbumNamesSync(albums);
+				}
+			}
+		}
+	}
+
 	/////////////////////////
 	// FILTER FUTURE RELEASES
 
@@ -148,9 +169,13 @@ public class FilterService {
 	 */
 	private boolean isNotInTheFuture(AlbumSimplified album) {
 		String releaseDate = album.getReleaseDate();
-		LocalDate parsedReleaseDate = LocalDate.parse(releaseDate, RELEASE_DATE_PARSER);
-		LocalDate now = LocalDate.now();
-		return now.isEqual(parsedReleaseDate) || now.isAfter(parsedReleaseDate);
+		try {
+			LocalDate parsedReleaseDate = LocalDate.parse(releaseDate, RELEASE_DATE_PARSER);
+			LocalDate now = LocalDate.now();
+			return now.isEqual(parsedReleaseDate) || now.isAfter(parsedReleaseDate);
+		} catch (DateTimeParseException e) {
+			return true;
+		}
 	}
 	
 	/////////////////////////
@@ -206,18 +231,10 @@ public class FilterService {
 			.filter(as -> !isValidDate(as) || !releaseNamesCache.contains(BotUtils.albumIdentifierString(as)))
 			.collect(Collectors.toList());
 		
-		cacheAlbumNames(leftoverAlbums);
+		cacheAlbumNames(leftoverAlbums, true);
 		log.printDroppedAlbumDifference(unfilteredAlbums, leftoverAlbums,
 			String.format("Dropped %d duplicate[s] already released recently:", unfilteredAlbums.size() - leftoverAlbums.size()));
 		return new ArrayList<>(leftoverAlbums);
-	}
-	
-	private void cacheAlbumNames(List<AlbumSimplified> albums) {
-		if (!DeveloperMode.isCacheDisabled()) {
-			if (!albums.isEmpty()) {
-				databaseService.cacheAlbumNamesAsync(albums);
-			}
-		}
 	}
 	
 	/**
@@ -240,8 +257,7 @@ public class FilterService {
 	 */
 	public boolean isValidDate(AlbumSimplified album) {
 		try {
-			int lookbackDays = staticConfig.getLookbackDays();
-			LocalDate lowerReleaseDateBoundary = LocalDate.now().minusDays(lookbackDays);
+			LocalDate lowerReleaseDateBoundary = LocalDate.now().minusDays(LOOKBACK_DAYS);
 			LocalDate releaseDate = LocalDate.parse(album.getReleaseDate(), RELEASE_DATE_PARSER);
 			return releaseDate.isAfter(lowerReleaseDateBoundary);
 		} catch (DateTimeParseException e) {
@@ -316,30 +332,26 @@ public class FilterService {
 	// BLACKLISTED RELEASE TYPES
 
 	public Map<PlaylistStore, List<AlbumTrackPair>> filterBlacklistedReleaseTypesForArtists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPS) {
-		try {
-			List<Entry<AlbumSimplified, AlbumGroupExtended>> allDroppedReleases = new ArrayList<>();
-			Map<String, List<PlaylistStore>> blacklistedArtistReleasePairs = databaseService.getBlacklistedArtistReleasePairs();
-			for (Entry<String, List<PlaylistStore>> blacklistedPair : blacklistedArtistReleasePairs.entrySet()) {
-				for (PlaylistStore ps : blacklistedPair.getValue()) {
-					if (songsByPS.containsKey(ps) ) {
-						List<AlbumTrackPair> albumTrackPairsToRemove = new ArrayList<>();
-						List<AlbumTrackPair> list = songsByPS.get(ps);
-						for (AlbumTrackPair atp : list) {
-							if (BotUtils.anyArtistMatches(atp.getAlbum(), blacklistedPair.getKey())) {
-								albumTrackPairsToRemove.add(atp);
-								allDroppedReleases.add(Map.entry(atp.getAlbum(), ps.getAlbumGroupExtended()));
-							}
+		List<Entry<AlbumSimplified, AlbumGroupExtended>> allDroppedReleases = new ArrayList<>();
+		Map<String, List<AlbumGroupExtended>> blacklistMap = blacklistConfig.getBlacklistMap();
+		for (Entry<String, List<AlbumGroupExtended>> blacklistedPair : blacklistMap.entrySet()) {
+			for (AlbumGroupExtended albumGroupExtended : blacklistedPair.getValue()) {
+				PlaylistStore playlistStore = playlistStoreConfig.getPlaylistStore(albumGroupExtended);
+				if (songsByPS.containsKey(playlistStore) ) {
+					List<AlbumTrackPair> albumTrackPairsToRemove = new ArrayList<>();
+					List<AlbumTrackPair> list = songsByPS.get(playlistStore);
+					for (AlbumTrackPair atp : list) {
+						if (BotUtils.anyArtistMatches(atp.getAlbum(), blacklistedPair.getKey())) {
+							albumTrackPairsToRemove.add(atp);
+							allDroppedReleases.add(Map.entry(atp.getAlbum(), albumGroupExtended));
 						}
-						list.removeAll(albumTrackPairsToRemove);
 					}
+					list.removeAll(albumTrackPairsToRemove);
 				}
 			}
-			if (!allDroppedReleases.isEmpty()) {
-				log.printDroppedAlbumsCustomGroup(allDroppedReleases, "Dropped " + allDroppedReleases.size() + " blacklisted release[s]:");
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-			log.error("Failed to remove blacklisted release types!");
+		}
+		if (!allDroppedReleases.isEmpty()) {
+			log.printDroppedAlbumsCustomGroup(allDroppedReleases, "Dropped " + allDroppedReleases.size() + " blacklisted release[s]:");
 		}
 		return songsByPS;
 	}

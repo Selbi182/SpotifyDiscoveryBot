@@ -85,10 +85,9 @@ public class CrawlSchedulerController {
 	 * applicable. Will only run while crawler is idle.
 	 * 
 	 * @throws BotException on an external exception related to the Spotify Web API
-	 * @throws SQLException on an internal exception related to the SQLite database
 	 */
 	@Scheduled(fixedDelay = 5 * 1000)
-	public void clearNewIndicatorScheduler() throws BotException, SQLException {
+	public void clearNewIndicatorScheduler() throws BotException {
 		manuallyClearNotifiers();
 	}
 
@@ -97,10 +96,9 @@ public class CrawlSchedulerController {
 	 *
 	 * @return a ResponseEntity with a summary of the result
 	 * @throws BotException on an external exception related to the Spotify Web API
-	 * @throws SQLException on an internal exception related to the SQLite database
 	 */
 	@RequestMapping("/clearnotifiers")
-	public ResponseEntity<String> manuallyClearNotifiers() throws BotException, SQLException {
+	public ResponseEntity<String> manuallyClearNotifiers() throws BotException {
 		if (!crawler.isReady()) {
 			return new ResponseEntity<>("Can't clear [NEW] indicators now, as crawler is currently in progress...", HttpStatus.CONFLICT);
 		}

@@ -23,10 +23,12 @@ import spotify.api.BotException;
 import spotify.api.SpotifyApiAuthorization;
 import spotify.api.SpotifyApiWrapper;
 import spotify.api.SpotifyCall;
-import spotify.bot.config.BotConfigFactory;
-import spotify.bot.config.ConfigUpdate;
+import spotify.bot.config.database.DatabaseCreationService;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.config.database.DiscoveryDatabase;
+import spotify.bot.config.properties.BlacklistConfig;
+import spotify.bot.config.properties.PlaylistStoreConfig;
+import spotify.bot.config.properties.UserOptionsConfig;
 import spotify.bot.filter.FilterService;
 import spotify.bot.filter.remapper.EpRemapper;
 import spotify.bot.filter.remapper.LiveRemapper;
@@ -44,9 +46,7 @@ import spotify.util.data.AlbumTrackPair;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = {
-	BotConfigFactory.class,
 	DiscoveryBotLogger.class,
-	ConfigUpdate.class,
 	DiscoveryDatabase.class,
 	DatabaseService.class,
 	FilterService.class,
@@ -54,7 +54,11 @@ import spotify.util.data.AlbumTrackPair;
 	SpotifyApiWrapper.class,
 	SpotifyApiAuthorization.class,
 	TrackService.class,
-	UserService.class
+	UserService.class,
+	DatabaseCreationService.class,
+	UserOptionsConfig.class,
+	PlaylistStoreConfig.class,
+	BlacklistConfig.class
 })
 @EnableConfigurationProperties
 public class RemappingTests {

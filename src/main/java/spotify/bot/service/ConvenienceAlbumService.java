@@ -10,7 +10,7 @@ import com.neovisionaries.i18n.CountryCode;
 import se.michaelthelin.spotify.enums.AlbumGroup;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import spotify.api.BotException;
-import spotify.bot.config.dto.PlaylistStoreConfig;
+import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.services.AlbumService;
 import spotify.services.UserService;
 

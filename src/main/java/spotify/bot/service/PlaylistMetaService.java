@@ -1,6 +1,5 @@
 package spotify.bot.service;
 
-import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -22,11 +21,9 @@ import se.michaelthelin.spotify.model_objects.specification.Track;
 import se.michaelthelin.spotify.requests.data.playlists.ChangePlaylistsDetailsRequest;
 import spotify.api.BotException;
 import spotify.api.SpotifyCall;
-import spotify.bot.config.ConfigUpdate;
 import spotify.bot.config.DeveloperMode;
-import spotify.bot.config.dto.PlaylistStoreConfig;
-import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
-import spotify.bot.config.dto.StaticConfig;
+import spotify.bot.config.properties.PlaylistStoreConfig;
+import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.services.PlaylistService;
 import spotify.util.BotUtils;
@@ -37,14 +34,20 @@ public class PlaylistMetaService {
   private final static int MAX_PLAYLIST_TRACK_FETCH_LIMIT = 50;
 
   /**
+   * The amount of days after which an unread notification will automatically be set to read
+   */
+  private final static int NEW_NOTIFICATION_TIMEOUT_DAYS = 31;
+
+  /**
    * New-songs indicator (new songs are found), a white circle
    */
   private final static String INDICATOR_NEW = "\u26AA";
 
   /**
-   * New-songs indicator (currently no new songs), a black circle
+   * New-songs indicator (currently no new songs), a black circle.
+   * This property is public so it can be directly put into the playlist during creation.
    */
-  private final static String INDICATOR_OFF = "\u26AB";
+  public final static String INDICATOR_OFF = "\u26AB";
 
   /**
    * The description timestamp. Example: "January 1, 2000 - 00:00"
@@ -53,22 +56,16 @@ public class PlaylistMetaService {
 
   private final SpotifyApi spotifyApi;
   private final PlaylistService playlistService;
-  private final ConfigUpdate configUpdate;
   private final PlaylistStoreConfig playlistStoreConfig;
-  private final StaticConfig staticConfig;
   private final DiscoveryBotLogger log;
 
   PlaylistMetaService(SpotifyApi spotifyApi,
       PlaylistService playlistService,
-      ConfigUpdate configUpdate,
       PlaylistStoreConfig playlistStoreConfig,
-      StaticConfig staticConfig,
       DiscoveryBotLogger discoveryBotLogger) {
     this.spotifyApi = spotifyApi;
     this.playlistService = playlistService;
-    this.configUpdate = configUpdate;
     this.playlistStoreConfig = playlistStoreConfig;
-    this.staticConfig = staticConfig;
     this.log = discoveryBotLogger;
   }
 
@@ -76,14 +73,14 @@ public class PlaylistMetaService {
    * Display the [NEW] notifiers of the given album groups' playlists titles, if
    * any songs were added
    */
-  public void showNotifiers(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws BotException, SQLException {
+  public void showNotifiers(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws BotException {
     if (!DeveloperMode.isPlaylistAdditionDisabled()) {
       List<PlaylistStore> sortedPlaylistStores = songsByPlaylist.keySet().stream().sorted().collect(Collectors.toList());
       for (PlaylistStore ps : sortedPlaylistStores) {
         List<AlbumTrackPair> albumTrackPairs = songsByPlaylist.get(ps);
         if (!albumTrackPairs.isEmpty()) {
           updatePlaylistTitleAndDescription(ps, INDICATOR_OFF, INDICATOR_NEW, true);
-          configUpdate.refreshPlaylistStore(ps.getAlbumGroupExtended());
+          playlistStoreConfig.setPlaylistStoreUpdatedJustNow(ps.getAlbumGroupExtended());
         }
       }
     }
@@ -94,14 +91,14 @@ public class PlaylistMetaService {
    *
    * @return true if at least one playlist name was changed
    */
-  public boolean clearObsoleteNotifiers() throws SQLException, BotException {
+  public boolean clearObsoleteNotifiers() throws BotException {
     boolean changed = false;
     if (!DeveloperMode.isPlaylistAdditionDisabled()) {
       for (PlaylistStore ps : playlistStoreConfig.getAllPlaylistStores()) {
-        if (shouldIndicatorBeMarkedAsRead(ps)) {
+        if (ps.isForceUpdateOnFirstTime() || shouldIndicatorBeMarkedAsRead(ps)) {
           if (updatePlaylistTitleAndDescription(ps, INDICATOR_NEW, INDICATOR_OFF, false)) {
-            configUpdate.unsetPlaylistStore(ps.getAlbumGroupExtended());
             changed = true;
+            playlistStoreConfig.unsetPlaylistStoreUpdatedRecently(ps.getAlbumGroupExtended());
           }
         }
       }
@@ -172,8 +169,7 @@ public class PlaylistMetaService {
       }
 
       // Case 2: Timeout since playlist was last updated expired
-      int newNotificationTimeout = staticConfig.getNewNotificationTimeout();
-      if (!BotUtils.isWithinTimeoutWindow(lastUpdated, newNotificationTimeout)) {
+      if (!BotUtils.isWithinTimeoutWindow(lastUpdated, NEW_NOTIFICATION_TIMEOUT_DAYS)) {
         return true;
       }
 
@@ -185,7 +181,7 @@ public class PlaylistMetaService {
           .limit(MAX_PLAYLIST_TRACK_FETCH_LIMIT))
           .getItems();
       List<PlaylistTrack> recentlyAddedPlaylistTracks = Arrays.stream(topmostPlaylistTracks)
-          .filter((pt -> BotUtils.isWithinTimeoutWindow(pt.getAddedAt(), newNotificationTimeout)))
+          .filter((pt -> BotUtils.isWithinTimeoutWindow(pt.getAddedAt(), NEW_NOTIFICATION_TIMEOUT_DAYS)))
           .collect(Collectors.toList());
 
       // -- Case 3a: Playlist does not have recently added tracks or is still empty

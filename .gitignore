@@ -36,10 +36,7 @@ proguard/
 build/
 
 # Spotify Bot
-templates/READY
-/database.db
-/spring.log
+config/
 /application.properties
 /log.txt
-/relay.properties
 /spotifybot.properties

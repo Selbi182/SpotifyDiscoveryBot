@@ -19,8 +19,8 @@ import se.michaelthelin.spotify.model_objects.specification.Track;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.api.BotException;
 import spotify.bot.config.DeveloperMode;
-import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
-import spotify.bot.config.dto.UserOptions;
+import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
+import spotify.bot.config.properties.UserOptionsConfig;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.services.PlaylistService;
 import spotify.util.BotUtils;
@@ -35,10 +35,10 @@ public class PlaylistSongsService {
   private final static String TRACK_PREFIX = "spotify:track:";
 
   private final PlaylistService playlistService;
-  private final UserOptions userOptions;
+  private final UserOptionsConfig userOptions;
   private final DiscoveryBotLogger log;
 
-  PlaylistSongsService(PlaylistService playlistService, UserOptions userOptions, DiscoveryBotLogger discoveryBotLogger) {
+  PlaylistSongsService(PlaylistService playlistService, UserOptionsConfig userOptions, DiscoveryBotLogger discoveryBotLogger) {
     this.playlistService = playlistService;
     this.userOptions = userOptions;
     this.log = discoveryBotLogger;
@@ -48,7 +48,7 @@ public class PlaylistSongsService {
    * Adds all releases to the given playlists
    */
   public void addAllReleasesToSetPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws BotException {
-    log.debug("Adding to playlists:");
+    log.info("Adding to playlists:");
     List<PlaylistStore> sortedPlaylistStores = songsByPlaylist.keySet().stream().sorted().collect(Collectors.toList());
     for (PlaylistStore ps : sortedPlaylistStores) {
       List<AlbumTrackPair> albumTrackPairs = songsByPlaylist.get(ps);

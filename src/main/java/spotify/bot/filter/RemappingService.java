@@ -8,9 +8,9 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 
 import se.michaelthelin.spotify.enums.AlbumGroup;
-import spotify.bot.config.dto.PlaylistStoreConfig;
-import spotify.bot.config.dto.PlaylistStoreConfig.PlaylistStore;
-import spotify.bot.config.dto.UserOptions;
+import spotify.bot.config.properties.PlaylistStoreConfig;
+import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
+import spotify.bot.config.properties.UserOptionsConfig;
 import spotify.bot.filter.remapper.EpRemapper;
 import spotify.bot.filter.remapper.LiveRemapper;
 import spotify.bot.filter.remapper.Remapper;
@@ -24,7 +24,7 @@ import spotify.util.data.AlbumTrackPair;
 @Service
 public class RemappingService {
 	private final PlaylistStoreConfig playlistStoreConfig;
-	private final UserOptions userOptions;
+	private final UserOptionsConfig userOptions;
 	private final EpRemapper epRemapper;
 	private final RemixRemapper remixRemapper;
 	private final RereleaseRemapper rereleaseRemapper;
@@ -32,7 +32,7 @@ public class RemappingService {
 	private final DiscoveryBotLogger log;
 
 	RemappingService(PlaylistStoreConfig playlistStoreConfig,
-			UserOptions userOptions,
+			UserOptionsConfig userOptions,
 			EpRemapper epRemapper,
 			RemixRemapper remixRemapper,
 			RereleaseRemapper rereleaseRemapper,

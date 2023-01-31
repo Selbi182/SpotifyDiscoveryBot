@@ -1,6 +1,7 @@
 package spotify.bot.service;
 
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -14,7 +15,6 @@ import com.google.common.collect.ImmutableList;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
 import spotify.api.BotException;
 import spotify.bot.config.database.DatabaseService;
-import spotify.bot.config.dto.StaticConfig;
 import spotify.bot.util.data.CachedArtistsContainer;
 import spotify.services.ArtistService;
 import spotify.util.BotUtils;
@@ -22,13 +22,16 @@ import spotify.util.BotUtils;
 @Service
 public class CachedArtistService {
   private final ArtistService artistService;
-  private final StaticConfig staticConfig;
   private final DatabaseService databaseService;
 
-  CachedArtistService(ArtistService artistService, StaticConfig staticConfig, DatabaseService databaseService) {
+  private final static int ARTIST_CACHE_EXPIRATION_DAYS = 1;
+
+  private Date artistCacheLastUpdated;
+
+  CachedArtistService(ArtistService artistService, DatabaseService databaseService) {
     this.artistService = artistService;
-    this.staticConfig = staticConfig;
     this.databaseService = databaseService;
+    this.artistCacheLastUpdated = Date.from(Instant.ofEpochSecond(0));
   }
 
   /**
@@ -42,6 +45,7 @@ public class CachedArtistService {
         throw new BotException(new IllegalArgumentException("No followed artists found!"));
       }
       databaseService.updateFollowedArtistsCacheAsync(followedArtistIds);
+      this.artistCacheLastUpdated = new Date();
       return repackageIntoContainer(followedArtistIds, cachedArtists);
     } else {
       return new CachedArtistsContainer(cachedArtists, ImmutableList.of());
@@ -80,12 +84,8 @@ public class CachedArtistService {
   }
 
   private boolean isArtistCacheExpired(List<String> cachedArtists) {
-    if (cachedArtists != null && !cachedArtists.isEmpty()) {
-      Date lastUpdatedArtistCache = staticConfig.getArtistCacheLastUpdated();
-      if (lastUpdatedArtistCache != null) {
-        int artistCacheTimeout = staticConfig.getArtistCacheTimeout();
-        return !BotUtils.isWithinTimeoutWindow(lastUpdatedArtistCache, artistCacheTimeout);
-      }
+    if (cachedArtists == null || cachedArtists.isEmpty()) {
+      return !BotUtils.isWithinTimeoutWindow(artistCacheLastUpdated, ARTIST_CACHE_EXPIRATION_DAYS);
     }
     return false;
   }

@@ -37,11 +37,14 @@ You will require a [Spotify Developer App](https://developer.spotify.com/dashboa
 ```
 http://localhost:8182/login-callback
 ```
-Then create or open the file `spotifybot.properties` and enter the *Client ID* and *Client Secret* that was given to you when you created the Spotify Developer App.
+Then create or open the file `spotifybot.properties` and enter the *Client ID* and *Client Secret* that was given to you when you created the Spotify Developer App:
+```
+client_id=jwi7hg[...]
+client_secret=hdow93[...]
+```
 
 ### Step 2: Setting the target playlists
-(This is an optional step; if you're okay with the bot created the playlists automatically, make sure the file `config/playlist.properties` is **deleted**!)
-
+(This is an optional step; if you're okay with the bot creating the playlists automatically, make sure the file `config/playlist.properties` is **deleted**!)
 To set custom targets for the discovery results, open `config/playlist.properties`, where you can enter the target playlist IDs like so:
 ```
 album=0DOQiI2FP82IXy9Z0nHdTz

@@ -109,6 +109,11 @@ MESSAGE_MASK={"message":"New release from <b>%s</b>: https://open.spotify.com/al
 ```
 If you don't need this feature, just delete this file.
 
+## Log
+You can get detailed information about what the bot did at any time by directly accessing the bot in your preferred browser (by default `http://localhost:8182/`):
+![Log](https://i.imgur.com/yH4cvdf.png)
+By default, the last 10 log entries are displayed. You can set the optional query parameter `?limit=n` where *n* is the number of entries you want to have displayed. Set it to *-1* to display every log entry ever made.
+
 ## Final Notes
 
 This project started as a simple script to replace the – in my opinion – feature-lacking [Spotishine](https://www.spotishine.com). It has since evolved into a passion project with lots of tiny features to make discovering new music on Spotify more convenient.

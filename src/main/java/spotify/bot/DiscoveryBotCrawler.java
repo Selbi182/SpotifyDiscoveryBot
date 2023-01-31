@@ -21,14 +21,13 @@ import spotify.bot.filter.FilterService;
 import spotify.bot.filter.RelayService;
 import spotify.bot.filter.RemappingService;
 import spotify.bot.service.CachedArtistService;
-import spotify.bot.service.ConvenienceAlbumService;
+import spotify.bot.service.DiscoveryAlbumService;
 import spotify.bot.service.PlaylistMetaService;
 import spotify.bot.service.PlaylistSongsService;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.CachedArtistsContainer;
-import spotify.services.AlbumService;
 import spotify.services.ArtistService;
 import spotify.services.TrackService;
 import spotify.util.BotUtils;
@@ -40,8 +39,7 @@ public class DiscoveryBotCrawler {
 	private final DiscoveryBotLogger log;
 	private final ArtistService artistService;
 	private final CachedArtistService cachedArtistService;
-	private final AlbumService albumService;
-	private final ConvenienceAlbumService convenienceAlbumService;
+	private final DiscoveryAlbumService discoveryAlbumService;
 	private final TrackService trackService;
 	private final PlaylistSongsService playlistSongsService;
 	private final PlaylistMetaService playlistMetaService;
@@ -54,8 +52,7 @@ public class DiscoveryBotCrawler {
 			DiscoveryBotLogger discoveryBotLogger,
 			ArtistService artistService,
 			CachedArtistService cachedArtistService,
-			AlbumService albumService,
-			ConvenienceAlbumService convenienceAlbumService,
+			DiscoveryAlbumService discoveryAlbumService,
 			TrackService trackService,
 			PlaylistSongsService playlistSongsService,
 			PlaylistMetaService playlistMetaService,
@@ -67,8 +64,7 @@ public class DiscoveryBotCrawler {
 		this.log = discoveryBotLogger;
 		this.artistService = artistService;
 		this.cachedArtistService = cachedArtistService;
-		this.albumService = albumService;
-		this.convenienceAlbumService = convenienceAlbumService;
+		this.discoveryAlbumService = discoveryAlbumService;
 		this.trackService = trackService;
 		this.playlistSongsService = playlistSongsService;
 		this.playlistMetaService = playlistMetaService;
@@ -203,7 +199,7 @@ public class DiscoveryBotCrawler {
 			artistService.getArtists(newArtists).stream()
 					.map(Artist::getName)
 					.forEach(name -> log.info("- " + name));
-			List<AlbumSimplified> allAlbumsOfNewFollowees = convenienceAlbumService.getAllAlbumsOfArtists(newArtists);
+			List<AlbumSimplified> allAlbumsOfNewFollowees = discoveryAlbumService.getAllAlbumsOfArtists(newArtists);
 			List<AlbumSimplified> albumsToInitialize = filterService.getNonCachedAlbums(allAlbumsOfNewFollowees);
 			filterService.cacheAlbumIds(albumsToInitialize, false);
 			filterService.cacheAlbumNames(albumsToInitialize, false);
@@ -215,11 +211,11 @@ public class DiscoveryBotCrawler {
 	 * Phase 1: Get all new releases from the list of followed artists
 	 */
 	private List<AlbumSimplified> getNewAlbumsFromArtists(List<String> followedArtists) throws BotException, SQLException {
-		List<AlbumSimplified> allAlbums = convenienceAlbumService.getAllAlbumsOfArtists(followedArtists);
+		List<AlbumSimplified> allAlbums = discoveryAlbumService.getAllAlbumsOfArtists(followedArtists);
 		List<AlbumSimplified> nonCachedAlbums = filterService.getNonCachedAlbums(allAlbums);
 		List<AlbumSimplified> noFutureAlbums = filterService.filterFutureAlbums(nonCachedAlbums);
 		filterService.cacheAlbumIds(noFutureAlbums, true);
-		List<AlbumSimplified> insertedAppearOnArtistsAlbums = albumService.resolveViaAppearsOnArtistNames(noFutureAlbums);
+		List<AlbumSimplified> insertedAppearOnArtistsAlbums = discoveryAlbumService.resolveViaAppearsOnArtistNames(noFutureAlbums);
 		List<AlbumSimplified> filteredNoDuplicatesAlbums = filterService.filterDuplicateAlbums(insertedAppearOnArtistsAlbums);
 		List<AlbumSimplified> filteredAlbums = filterService.filterNewAlbumsOnly(filteredNoDuplicatesAlbums);
 		return filteredAlbums;

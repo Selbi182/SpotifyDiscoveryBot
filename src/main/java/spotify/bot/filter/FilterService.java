@@ -114,6 +114,21 @@ public class FilterService {
 	}
 
 	/**
+	 * Cache the given artist IDs in the database
+	 */
+	public void cacheArtistIds(List<String> artistIds, boolean async) {
+		if (!DeveloperMode.isCacheDisabled()) {
+			if (!artistIds.isEmpty()) {
+				if (async) {
+					databaseService.cacheArtistIdsAsync(artistIds);
+				} else {
+					databaseService.cacheArtistIdsSync(artistIds);
+				}
+			}
+		}
+	}
+
+	/**
 	 * Cache the given album IDs in the database
 	 */
 	public void cacheAlbumIds(List<AlbumSimplified> albums, boolean async) {

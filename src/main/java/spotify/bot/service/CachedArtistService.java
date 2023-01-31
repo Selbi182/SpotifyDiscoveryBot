@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableList;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
 import spotify.api.BotException;
 import spotify.bot.config.database.DatabaseService;
+import spotify.bot.filter.FilterService;
 import spotify.bot.util.data.CachedArtistsContainer;
 import spotify.services.ArtistService;
 import spotify.util.BotUtils;
@@ -23,14 +24,16 @@ import spotify.util.BotUtils;
 public class CachedArtistService {
   private final ArtistService artistService;
   private final DatabaseService databaseService;
+  private final FilterService filterService;
 
   private final static int ARTIST_CACHE_EXPIRATION_DAYS = 1;
 
   private Date artistCacheLastUpdated;
 
-  CachedArtistService(ArtistService artistService, DatabaseService databaseService) {
+  CachedArtistService(ArtistService artistService, DatabaseService databaseService, FilterService filterService) {
     this.artistService = artistService;
     this.databaseService = databaseService;
+    this.filterService = filterService;
     this.artistCacheLastUpdated = Date.from(Instant.ofEpochSecond(0));
   }
 
@@ -44,7 +47,7 @@ public class CachedArtistService {
       if (followedArtistIds.isEmpty()) {
         throw new BotException(new IllegalArgumentException("No followed artists found!"));
       }
-      databaseService.updateFollowedArtistsCacheAsync(followedArtistIds);
+      filterService.cacheArtistIds(followedArtistIds, true);
       this.artistCacheLastUpdated = new Date();
       return repackageIntoContainer(followedArtistIds, cachedArtists);
     } else {

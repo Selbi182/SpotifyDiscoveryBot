@@ -119,19 +119,24 @@ public class DatabaseService {
 	/**
 	 * Cache the artist IDs in a separate thread
 	 */
-	public synchronized void updateFollowedArtistsCacheAsync(List<String> followedArtists) {
-		executorService.execute(() -> {
-			try {
-				List<String> cachedArtists = getArtistCache();
-				if (cachedArtists != null) {
-					database.insertAll(
-						followedArtists,
-						DBConstants.TABLE_CACHE_ARTISTS,
-						DBConstants.COL_ARTIST_ID);
-				}
-			} catch (SQLException e) {
-				log.stackTrace(e);
+	public synchronized void cacheArtistIdsSync(List<String> followedArtists) {
+		try {
+			List<String> cachedArtists = getArtistCache();
+			if (cachedArtists != null) {
+				database.insertAll(
+					followedArtists,
+					DBConstants.TABLE_CACHE_ARTISTS,
+					DBConstants.COL_ARTIST_ID);
 			}
-		});
+		} catch (SQLException e) {
+			log.stackTrace(e);
+		}
+	}
+
+	/**
+	 * Cache the artist IDs in a separate thread
+	 */
+	public synchronized void cacheArtistIdsAsync(List<String> followedArtists) {
+		executorService.execute(() -> cacheArtistIdsSync(followedArtists));
 	}
 }

@@ -24,13 +24,8 @@ public class DiscoveryDatabase {
 	private final static String DB_FILE_NAME = "config/database.db";
 	private final static String DB_URL_PREFIX = "jdbc:sqlite:";
 
-	// Database query masks
-	private final static String SINGLE_SELECT_QUERY_MASK = "SELECT * FROM %s LIMIT 1";
 	private final static String FULL_SELECT_QUERY_MASK = "SELECT * FROM %s";
 	private final static String INSERT_QUERY_MASK = "INSERT INTO %s(%s) VALUES('%s')";
-	private final static String DELETE_BASE_QUERY_MASK = "DELETE FROM %s";
-	private final static String UPDATE_QUERY_MASK = "UPDATE %s SET %s = '%s'";
-	private final static String UPDATE_WITH_CONDITION_QUERY_MASK = "UPDATE %s SET %s = %s WHERE %s = '%s'";
 
 	// Instance
 	private final static File WORKSPACE_LOCATION = new File(".");
@@ -113,51 +108,26 @@ public class DiscoveryDatabase {
 	//////////////
 
 	/**
-	 * Fetch the single-row result set of the given table
-	 */
-	ResultSet selectSingle(String tableName) throws SQLException {
-		return createStatement().executeQuery(String.format(SINGLE_SELECT_QUERY_MASK, tableName));
-	}
-
-	/**
 	 * Fetch an entire table result set
 	 */
 	ResultSet selectAll(String tableName) throws SQLException {
-		return createStatement().executeQuery(String.format(FULL_SELECT_QUERY_MASK, tableName));
-	}
-
-	////////////////
-
-	/**
-	 * Update every given column's value in the given table by a new value
-	 */
-	synchronized void update(String table, String targetColumn, String newValue) throws SQLException {
-		createStatement().executeUpdate(String.format(UPDATE_QUERY_MASK, table, targetColumn, newValue));
-	}
-
-	synchronized void updateWithCondition(String table, String targetColumn, String newValue, String conditionColumn, String conditionValue) throws SQLException {
-		createStatement().executeUpdate(String.format(UPDATE_WITH_CONDITION_QUERY_MASK, table, targetColumn, newValue, conditionColumn, conditionValue));
-	}
-
-	synchronized void updateNull(String table, String targetColumn, String conditionColumn, String conditionValue) throws SQLException {
-		updateWithCondition(table, targetColumn, null, conditionColumn, conditionValue);
+		Statement statement = createStatement();
+		ResultSet resultSet = statement.executeQuery(String.format(FULL_SELECT_QUERY_MASK, tableName));
+		statement.closeOnCompletion();
+		return resultSet;
 	}
 
 	/**
 	 * Adds all given strings to the specified table's specified column
 	 */
 	synchronized void insertAll(Collection<String> strings, String table, String column) throws SQLException {
+		Statement statement = createStatement();
 		if (table != null && column != null && strings != null && !strings.isEmpty()) {
 			for (String s : strings) {
-				createStatement().executeUpdate(String.format(INSERT_QUERY_MASK, table, column, s));
+				statement.executeUpdate(String.format(INSERT_QUERY_MASK, table, column, s));
 			}
 		}
-	}
-
-	/**
-	 * Delete every entry in the given table
-	 */
-	synchronized void clearTable(String table) throws SQLException {
-		createStatement().execute(String.format(DELETE_BASE_QUERY_MASK, table));
+		statement.execute("vacuum;");
+		statement.closeOnCompletion();
 	}
 }

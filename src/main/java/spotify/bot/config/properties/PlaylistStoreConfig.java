@@ -4,11 +4,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -120,22 +118,6 @@ public class PlaylistStoreConfig {
 	 */
 	public PlaylistStore getPlaylistStore(AlbumGroupExtended albumGroupExtended) {
 		return getPlaylistStoreMap().get(albumGroupExtended);
-	}
-
-	/**
-	 * Fetch all album groups that are set in the config
-	 */
-	public List<AlbumGroup> getEnabledAlbumGroups() {
-		List<AlbumGroup> setAlbumGroups = new ArrayList<>();
-		for (AlbumGroup age : AlbumGroup.values()) {
-			PlaylistStore ps = getPlaylistStore(age);
-			if (ps != null) {
-				if (ps.getPlaylistId() != null && !ps.getPlaylistId().trim().isEmpty()) {
-					setAlbumGroups.add(age);
-				}
-			}
-		}
-		return setAlbumGroups;
 	}
 
 	/**

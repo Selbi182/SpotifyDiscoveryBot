@@ -1,4 +1,4 @@
-package spotify.bot.service;
+package spotify.bot.service.performance;
 
 import org.springframework.stereotype.Service;
 
@@ -8,7 +8,7 @@ import se.michaelthelin.spotify.model_objects.specification.User;
 import spotify.services.UserService;
 
 /**
- * Convenience class to only store the user once (since they will never change after login).
+ * Performance class to only store the user once (since they will never change after login).
  * This saves on requests to the Spotify API.
  */
 @Service

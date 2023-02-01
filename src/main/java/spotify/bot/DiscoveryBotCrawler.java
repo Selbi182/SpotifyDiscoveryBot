@@ -18,11 +18,11 @@ import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.filter.FilterService;
 import spotify.bot.filter.RelayService;
 import spotify.bot.filter.RemappingService;
-import spotify.bot.service.CachedArtistService;
+import spotify.bot.service.performance.CachedArtistService;
 import spotify.bot.service.PlaylistMetaService;
 import spotify.bot.service.PlaylistSongsService;
-import spotify.bot.service.performance.DiscoveryAlbumService;
-import spotify.bot.service.performance.DiscoveryTrackService;
+import spotify.bot.service.DiscoveryAlbumService;
+import spotify.bot.service.DiscoveryTrackService;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -116,7 +116,7 @@ public class DiscoveryBotCrawler {
 		if (!DeveloperMode.isInitialCrawlDisabled()) {
 			Map<AlbumGroupExtended, Integer> results = crawl();
 			String response = DiscoveryBotUtils.compileResultString(results);
-			if (response != null) {
+			if (!response.isBlank()) {
 				log.info(response, false);
 			}
 		} else {

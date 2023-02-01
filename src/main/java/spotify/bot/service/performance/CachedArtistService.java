@@ -1,4 +1,4 @@
-package spotify.bot.service;
+package spotify.bot.service.performance;
 
 import java.sql.SQLException;
 import java.time.Instant;
@@ -17,12 +17,17 @@ import se.michaelthelin.spotify.model_objects.specification.Artist;
 import spotify.api.BotException;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.filter.FilterService;
-import spotify.bot.service.performance.DiscoveryAlbumService;
+import spotify.bot.service.DiscoveryAlbumService;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.data.CachedArtistsContainer;
 import spotify.services.ArtistService;
 import spotify.util.BotUtils;
 
+/**
+ * Performance service to cache the user's followed artists and only update them once every 24 hours.
+ * This is because it's very unlikely that a user follows an artist and then the artist immediately
+ * releases new material (i.e. in that 24-hour timeframe after the follow).
+ */
 @Service
 public class CachedArtistService {
   private final ArtistService artistService;
@@ -108,6 +113,7 @@ public class CachedArtistService {
       log.info("Initializing album cache for " + newArtists.size() + " newly followed artist[s]:");
       log.info(artistService.getArtists(newArtists).stream()
           .map(Artist::getName)
+          .sorted()
           .collect(Collectors.joining(", ")));
       List<AlbumSimplified> allAlbumsOfNewFollowees = discoveryAlbumService.getAllAlbumsOfArtists(newArtists);
       List<AlbumSimplified> albumsToInitialize = filterService.getNonCachedAlbums(allAlbumsOfNewFollowees);

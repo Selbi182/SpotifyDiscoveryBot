@@ -1,13 +1,16 @@
 package spotify.bot.service;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -24,6 +27,7 @@ import spotify.api.SpotifyCall;
 import spotify.bot.config.DeveloperMode;
 import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
+import spotify.bot.service.performance.SpotifyOptimizedExecutorService;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.services.PlaylistService;
 import spotify.util.BotUtils;
@@ -57,15 +61,18 @@ public class PlaylistMetaService {
   private final SpotifyApi spotifyApi;
   private final PlaylistService playlistService;
   private final PlaylistStoreConfig playlistStoreConfig;
+  private final SpotifyOptimizedExecutorService spotifyOptimizedExecutorService;
   private final DiscoveryBotLogger log;
 
   PlaylistMetaService(SpotifyApi spotifyApi,
       PlaylistService playlistService,
       PlaylistStoreConfig playlistStoreConfig,
+      SpotifyOptimizedExecutorService spotifyOptimizedExecutorService,
       DiscoveryBotLogger discoveryBotLogger) {
     this.spotifyApi = spotifyApi;
     this.playlistService = playlistService;
     this.playlistStoreConfig = playlistStoreConfig;
+    this.spotifyOptimizedExecutorService = spotifyOptimizedExecutorService;
     this.log = discoveryBotLogger;
   }
 
@@ -76,13 +83,18 @@ public class PlaylistMetaService {
   public void showNotifiers(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws BotException {
     if (!DeveloperMode.isPlaylistAdditionDisabled()) {
       List<PlaylistStore> sortedPlaylistStores = songsByPlaylist.keySet().stream().sorted().collect(Collectors.toList());
+      List<Callable<Void>> callables = new ArrayList<>();
       for (PlaylistStore ps : sortedPlaylistStores) {
         List<AlbumTrackPair> albumTrackPairs = songsByPlaylist.get(ps);
-        if (!albumTrackPairs.isEmpty()) {
+        Collections.sort(albumTrackPairs);
+        callables.add(() -> {
           updatePlaylistTitleAndDescription(ps, INDICATOR_OFF, INDICATOR_NEW, true);
           playlistStoreConfig.setPlaylistStoreUpdatedJustNow(ps.getAlbumGroupExtended());
-        }
+          return null; // must return something for Void class
+        });
+        log.printAlbumTrackPairs(albumTrackPairs, ps.getAlbumGroupExtended());
       }
+      spotifyOptimizedExecutorService.executeAndWaitVoid(callables);
     }
   }
 

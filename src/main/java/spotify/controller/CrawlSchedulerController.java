@@ -50,8 +50,7 @@ public class CrawlSchedulerController {
 	 * <br/>
 	 * Possible ResponseEntities:
 	 * <ul>
-	 * <li>200 (OK): No new songs found</li>
-	 * <li>201 (CREATED): New songs were added!</li>
+	 * <li>200 (OK): New songs were added to the playlist or no new songs found</li>
 	 * <li>409 (CONFLICT): The crawler is not currently ready, either because it's
 	 * still booting or because a previous crawling instance is still in progress;
 	 * request will be ignored</li>
@@ -65,18 +64,19 @@ public class CrawlSchedulerController {
 	public ResponseEntity<String> runCrawler() throws BotException, SQLException {
 		if (crawler.isReady()) {
 			try {
+				long startTime = System.currentTimeMillis();
 				Map<AlbumGroupExtended, Integer> results = crawler.tryCrawl();
-				String response = DiscoveryBotUtils.compileResultString(results);
-				if (response != null) {
+				String response = DiscoveryBotUtils.compileResultString(results, startTime);
+				if (!response.isBlank()) {
 					log.info(response);
-					return new ResponseEntity<>(response, HttpStatus.CREATED);
+					return ResponseEntity.ok(response);
 				}
 			} finally {
 				log.resetAndPrintLine();
 			}
-			return new ResponseEntity<>("No new releases found.", HttpStatus.OK);
+			return ResponseEntity.ok("No new releases found.");
 		}
-		return new ResponseEntity<>("Crawler isn't ready!", HttpStatus.CONFLICT);
+		return ResponseEntity.status(HttpStatus.CONFLICT).body("Crawler isn't ready!");
 	}
 
 	/**
@@ -99,11 +99,11 @@ public class CrawlSchedulerController {
 	@RequestMapping("/clearnotifiers")
 	public ResponseEntity<String> manuallyClearNotifiers() throws BotException {
 		if (!crawler.isReady()) {
-			return new ResponseEntity<>("Can't clear [NEW] indicators now, as crawler is currently in progress...", HttpStatus.CONFLICT);
+			return ResponseEntity.status(HttpStatus.CONFLICT).body("Can't clear [NEW] indicators now, as crawler is currently in progress...");
 		}
 		if (crawler.clearObsoleteNotifiers()) {
-			return new ResponseEntity<>("New indicator[s] removed!", HttpStatus.CREATED);
+			return ResponseEntity.ok("New indicator[s] removed!");
 		}
-		return new ResponseEntity<>(HttpStatus.OK);
+		return ResponseEntity.ok("All notifiers were already cleared");
 	}
 }

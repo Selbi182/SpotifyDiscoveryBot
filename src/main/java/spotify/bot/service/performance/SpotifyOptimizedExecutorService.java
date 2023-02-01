@@ -64,4 +64,22 @@ public class SpotifyOptimizedExecutorService {
     return allResults;
   }
 
+  /**
+   * Same as executeAndWait, but ignoring any results.
+   * @param callables the list of callables
+   */
+  public void executeAndWaitVoid(List<Callable<Void>> callables) {
+    List<Future<Void>> futures = new ArrayList<>();
+    for (Callable<Void> callable : callables) {
+      futures.add(executorService.submit(callable));
+    }
+    for (Future<Void> future : futures) {
+      try {
+        future.get();
+      } catch (InterruptedException | ExecutionException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
 }

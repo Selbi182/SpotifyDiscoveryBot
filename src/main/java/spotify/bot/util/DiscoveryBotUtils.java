@@ -89,7 +89,22 @@ public class DiscoveryBotUtils {
         return (String.format("%d new song%s added! [%s]", totalSongsAdded, totalSongsAdded != 1 ? "s" : "", sj));
       }
     }
-    return null;
+    return "";
+  }
+
+  /**
+   * Variation of compileResultString that also displays how long the request took
+   *
+   * @param songsAddedPerAlbumGroups the count of songs per album group
+   * @param startTime the start time (provided elsewhere)
+   * @return the result string
+   */
+  public static String compileResultString(Map<AlbumGroupExtended, Integer> songsAddedPerAlbumGroups, long startTime) {
+    String result = compileResultString(songsAddedPerAlbumGroups);
+    if (!result.isBlank()) {
+      result += " (time taken: " + (System.currentTimeMillis() - startTime) + "ms)";
+    }
+    return result;
   }
 
   /**

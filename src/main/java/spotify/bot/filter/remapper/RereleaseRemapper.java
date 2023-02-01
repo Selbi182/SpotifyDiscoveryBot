@@ -11,7 +11,7 @@ import com.neovisionaries.i18n.CountryCode;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.bot.filter.FilterService;
-import spotify.bot.service.CachedUserService;
+import spotify.bot.service.performance.CachedUserService;
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.util.data.AlbumTrackPair;
 

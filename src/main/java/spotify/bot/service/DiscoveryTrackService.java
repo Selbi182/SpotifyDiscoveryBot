@@ -1,4 +1,4 @@
-package spotify.bot.service.performance;
+package spotify.bot.service;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,6 +7,7 @@ import java.util.concurrent.Callable;
 import org.springframework.stereotype.Component;
 
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
+import spotify.bot.service.performance.SpotifyOptimizedExecutorService;
 import spotify.services.TrackService;
 import spotify.util.data.AlbumTrackPair;
 

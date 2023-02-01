@@ -6,9 +6,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.context.annotation.Configuration;
 
@@ -16,7 +16,7 @@ import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.enums.AlbumGroup;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import spotify.api.SpotifyCall;
-import spotify.bot.service.CachedUserService;
+import spotify.bot.service.performance.CachedUserService;
 import spotify.bot.service.PlaylistMetaService;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
@@ -78,7 +78,7 @@ public class PlaylistStoreConfig {
 	}
 
 	private Map<AlbumGroupExtended, PlaylistStore> createPlaylistStoreMap(Properties properties) {
-		Map<AlbumGroupExtended, PlaylistStore> playlistStoreMap = new HashMap<>();
+		Map<AlbumGroupExtended, PlaylistStore> playlistStoreMap = new ConcurrentHashMap<>();
 		for (AlbumGroupExtended albumGroupExtended : AlbumGroupExtended.values()) {
 			String key = albumGroupExtended.getGroupName();
 			String playlistId = properties.getProperty(key);

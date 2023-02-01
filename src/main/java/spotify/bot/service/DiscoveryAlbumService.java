@@ -1,4 +1,4 @@
-package spotify.bot.service.performance;
+package spotify.bot.service;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,21 +23,26 @@ import se.michaelthelin.spotify.requests.data.IPagingRequestBuilder;
 import se.michaelthelin.spotify.requests.data.artists.GetArtistsAlbumsRequest;
 import spotify.api.BotException;
 import spotify.api.SpotifyCall;
-import spotify.bot.service.CachedUserService;
+import spotify.bot.service.performance.CachedUserService;
+import spotify.bot.service.performance.SpotifyOptimizedExecutorService;
+import spotify.services.AlbumService;
 import spotify.util.BotUtils;
 
 @Service
 public class DiscoveryAlbumService {
-  private final static int MAX_ALBUM_FETCH_LIMIT = 50;
+  private static final int MAX_ALBUM_FETCH_LIMIT = 50;
+
+  private final String albumGroupString;
 
   private final SpotifyApi spotifyApi;
   private final CachedUserService cachedUserService;
   private final SpotifyOptimizedExecutorService spotifyOptimizedExecutorService;
 
-  DiscoveryAlbumService(SpotifyApi spotifyApi, CachedUserService cachedUserService, SpotifyOptimizedExecutorService spotifyOptimizedExecutorService) {
+  DiscoveryAlbumService(SpotifyApi spotifyApi, AlbumService albumService, CachedUserService cachedUserService, SpotifyOptimizedExecutorService spotifyOptimizedExecutorService) {
     this.spotifyApi = spotifyApi;
     this.cachedUserService = cachedUserService;
     this.spotifyOptimizedExecutorService = spotifyOptimizedExecutorService;
+    this.albumGroupString = albumService.createAlbumGroupString(Set.of(AlbumGroup.ALBUM, AlbumGroup.SINGLE, AlbumGroup.COMPILATION, AlbumGroup.APPEARS_ON));
   }
 
   /**
@@ -47,25 +52,12 @@ public class DiscoveryAlbumService {
    */
   public List<AlbumSimplified> getAllAlbumsOfArtists(List<String> followedArtists) throws BotException {
     CountryCode marketOfCurrentUser = cachedUserService.getUserMarket();
-    String albumGroupString = createAlbumGroupString(Set.of(AlbumGroup.ALBUM, AlbumGroup.SINGLE, AlbumGroup.COMPILATION, AlbumGroup.APPEARS_ON));
 
     List<Callable<List<AlbumSimplified>>> callables = new ArrayList<>();
     for (String artist : followedArtists) {
       callables.add(() -> getAlbumIdsOfSingleArtist(artist, albumGroupString, marketOfCurrentUser));
     }
     return spotifyOptimizedExecutorService.executeAndWait(callables);
-  }
-
-  /**
-   * Creates the comma-delimited, lowercase String of album groups to search for
-   *
-   * @param enabledAlbumGroups the enabled AlbumGroups
-   * @return the searchable string for AlbumGroups
-   */
-  private String createAlbumGroupString(Set<AlbumGroup> enabledAlbumGroups) {
-    return enabledAlbumGroups.stream()
-        .map(AlbumGroup::getGroup)
-        .collect(Collectors.joining(","));
   }
 
   /**
@@ -161,7 +153,6 @@ public class DiscoveryAlbumService {
         .setReleaseDatePrecision(album.getReleaseDatePrecision())
         .build();
   }
-
 
   /**
    * Replace any appears_on releases' artists that were preserved in

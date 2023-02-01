@@ -92,7 +92,7 @@ public class DiscoveryAlbumService {
       BotUtils.addToListIfNotBlank(newItems, resultList);
 
       // Fetches are sorted by AlbumGroup, so if the first entry of this paged result is an Appears-On release, we can stop
-      if (newItems.length == 0 || newItems[0].getAlbumGroup().equals(AlbumGroup.APPEARS_ON)) {
+      if (newItems == null || newItems.length == 0 || newItems[0].getAlbumGroup().equals(AlbumGroup.APPEARS_ON)) {
         break;
       }
 

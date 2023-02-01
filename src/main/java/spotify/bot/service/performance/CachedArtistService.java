@@ -59,7 +59,7 @@ public class CachedArtistService {
       if (followedArtistIds.isEmpty()) {
         throw new BotException(new IllegalArgumentException("No followed artists found!"));
       }
-      filterService.cacheArtistIds(followedArtistIds, true);
+      filterService.cacheArtistIds(followedArtistIds, false);
       this.artistCacheLastUpdated = new Date();
       return repackageIntoContainer(followedArtistIds, cachedArtists);
     } else {

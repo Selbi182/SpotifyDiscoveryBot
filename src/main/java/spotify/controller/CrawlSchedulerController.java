@@ -32,12 +32,12 @@ public class CrawlSchedulerController {
 	}
 
 	/**
-	 * Run the scheduler every hour (with a few seconds extra to offset deviations).
+	 * Run the scheduler every half hour (with a few seconds extra to offset deviations).
 	 * 
 	 * @throws BotException on an external exception related to the Spotify Web API
 	 * @throws SQLException on an internal exception related to the SQLite database
 	 */
-	@Scheduled(cron = "5 * * * * *")
+	@Scheduled(cron = "5 */30 * * * *")
 	private void scheduledCrawl() throws BotException, SQLException {
 		if (!DeveloperMode.isScheduledCrawlDisabled()) {
 			runCrawler();

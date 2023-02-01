@@ -8,7 +8,7 @@ Proudly utilizes the [Spotify Web API Java Wrapper](https://github.com/thelinmic
 
 ## Overview
 
-Most new music gets released every week exactly at midnight between Thursday and Friday, but there are exceptions. It has been a top priority of this bot to fetch those at the exact moment they get released. The bot runs once every hour to search for any new releases.
+Most new music gets released every week exactly at midnight between Thursday and Friday, but there are exceptions. It has been a top priority of this bot to fetch those at the exact moment they get released. The bot runs once every half hour to search for any new releases.
 
 ### Crawling
 

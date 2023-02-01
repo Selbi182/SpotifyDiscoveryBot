@@ -8,7 +8,7 @@ Proudly utilizes the [Spotify Web API Java Wrapper](https://github.com/thelinmic
 
 ## Overview
 
-Most new music gets released every week exactly at midnight between Thursday and Friday, but there are exceptions. It has been a top priority of this bot to fetch those at the exact moment they get released. The bot runs once every half hour to search for any new releases.
+Most new music gets released every week exactly at midnight between Thursday and Friday, but there are exceptions. It has been a top priority of this bot to fetch those at the exact moment they get released. The bot runs once every hour to search for any new releases.
 
 ### Crawling
 
@@ -68,16 +68,11 @@ https://accounts.spotify.com:443/authorize?client_id=[...]&response_type=code&re
 ```
 Open it with your preferred browser (if it didn't automatically do so) and follow the login steps to Spotify using your private account.
 
-Once you're logged in, you're set to go! For the first launch, the bot will index every single artist you're following, which might take a couple of minutes. After that, just keep the bot running in the background or start it every now and then to relax, lean back, and watch as the bot crawls for new releases!
+Once you're logged in, you're set to go! For the first launch, the bot will index every single artist you're following, which might take a couple of minutes. After that, just keep the bot running in the background or start it when you feel like it to relax, lean back, and watch as the bot crawls for new releases!
 
 ## Options
 
 In the `config` folder, you will also find a few customization options in different files:
-
-### `useroptions.properties`
-A general-purpose collection of various toggleable features:
-* *Intelligent Appears-On Search*: Basically, Appears-On search, but it's actually usable. It throws away anything you probably don't care about – namely samplers and compilations. As a bonus, should an artist you follow be featured on a release by another artist you _don't_ follow, only the featured songs will get added because you probably don't care about the rest.
-* *Circular Playlist-Fitting*: Spotify playlists are limited to 10000 songs. While plenty for most people not to care, eventually it may run out of space. You can either set it to stop any further additions after reaching its limit or use this option to rotate the playlist in a circular fashion (e.g. new goes in, old goes out to make room).
 
 ### `blacklist.properties`
 Use this file to ban certain artists from certain release types. For example, you like a specific artist, but dislike how often they appear as featured artist.
@@ -113,6 +108,11 @@ If you don't need this feature, just delete this file.
 You can get detailed information about what the bot did at any time by directly accessing the bot in your preferred browser (by default `http://localhost:8182/`):
 ![Log](https://i.imgur.com/yH4cvdf.png)
 By default, the last 10 log entries are displayed. You can set the optional query parameter `?limit=n` where *n* is the number of entries you want to have displayed. Set it to *-1* to display every log entry ever made.
+
+## Circular Playlist-Fitting
+Spotify's playlists are limited to 10,000 songs. While plenty for most people not to care, eventually it may run out of space.
+
+This bot will automatically rotate the playlists in a circular fashion, e.g. new goes in, old goes out to make room. If you never want to lose any additions, make sure to create a copy of your playlist once you're about to reach 10,000 songs.
 
 ## Final Notes
 

@@ -1,14 +1,11 @@
-package spotify.bot.service;
+package spotify.bot.service.performance;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -26,37 +23,21 @@ import se.michaelthelin.spotify.requests.data.IPagingRequestBuilder;
 import se.michaelthelin.spotify.requests.data.artists.GetArtistsAlbumsRequest;
 import spotify.api.BotException;
 import spotify.api.SpotifyCall;
-import spotify.services.UserService;
+import spotify.bot.service.CachedUserService;
 import spotify.util.BotUtils;
 
 @Service
 public class DiscoveryAlbumService {
-  /**
-   * The amount of threads used to fetch multiple albums at once. The specific amount of threads was decided by trial-and-error,
-   * as anything greater than 5 concurrent threads will give diminishing returns.
-   * <pre>Test results (with roughly 300 followed artists):
-   *  1: 38075ms
-   *  2: 12950ms
-   *  3:  8153ms
-   *  4:  5897ms
-   *  5:  5276ms
-   *  6:  5858ms
-   * 10:  5029ms
-   * 20:  5707ms
-   * </pre>
-   */
-  private static final int ALBUM_FETCH_THREAD_COUNT = 5;
-
   private final static int MAX_ALBUM_FETCH_LIMIT = 50;
 
-  private final UserService userService;
   private final SpotifyApi spotifyApi;
-  private final ExecutorService executorService;
+  private final CachedUserService cachedUserService;
+  private final SpotifyOptimizedExecutorService spotifyOptimizedExecutorService;
 
-  DiscoveryAlbumService(UserService userService, SpotifyApi spotifyApi) {
-    this.userService = userService;
+  DiscoveryAlbumService(SpotifyApi spotifyApi, CachedUserService cachedUserService, SpotifyOptimizedExecutorService spotifyOptimizedExecutorService) {
     this.spotifyApi = spotifyApi;
-    this.executorService = Executors.newFixedThreadPool(ALBUM_FETCH_THREAD_COUNT);
+    this.cachedUserService = cachedUserService;
+    this.spotifyOptimizedExecutorService = spotifyOptimizedExecutorService;
   }
 
   /**
@@ -65,25 +46,14 @@ public class DiscoveryAlbumService {
    * Spotify Web API request for EVERY SINGLE ARTIST!)
    */
   public List<AlbumSimplified> getAllAlbumsOfArtists(List<String> followedArtists) throws BotException {
-    CountryCode marketOfCurrentUser = userService.getMarketOfCurrentUser();
+    CountryCode marketOfCurrentUser = cachedUserService.getUserMarket();
     String albumGroupString = createAlbumGroupString(Set.of(AlbumGroup.ALBUM, AlbumGroup.SINGLE, AlbumGroup.COMPILATION, AlbumGroup.APPEARS_ON));
 
-    List<AlbumSimplified> albums = new ArrayList<>();
-    List<Future<List<AlbumSimplified>>> futures = new ArrayList<>();
+    List<Callable<List<AlbumSimplified>>> callables = new ArrayList<>();
     for (String artist : followedArtists) {
-      futures.add(executorService.submit(() -> getAlbumIdsOfSingleArtist(artist, albumGroupString, marketOfCurrentUser)));
+      callables.add(() -> getAlbumIdsOfSingleArtist(artist, albumGroupString, marketOfCurrentUser));
     }
-
-    for (Future<List<AlbumSimplified>> future : futures) {
-      try {
-        List<AlbumSimplified> albumIdsOfSingleArtist = future.get();
-        albums.addAll(albumIdsOfSingleArtist);
-      } catch (InterruptedException | ExecutionException e) {
-        e.printStackTrace();
-      }
-    }
-
-    return albums;
+    return spotifyOptimizedExecutorService.executeAndWait(callables);
   }
 
   /**

@@ -36,7 +36,7 @@ proguard/
 build/
 
 # Spotify Bot
-config/
+/config
 /application.properties
 /log.txt
 /spotifybot.properties

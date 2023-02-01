@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 import javax.annotation.PreDestroy;
 
@@ -25,7 +26,7 @@ public class DiscoveryDatabase {
 	private final static String DB_URL_PREFIX = "jdbc:sqlite:";
 
 	private final static String FULL_SELECT_QUERY_MASK = "SELECT * FROM %s";
-	private final static String INSERT_QUERY_MASK = "INSERT INTO %s(%s) VALUES('%s')";
+	private final static String INSERT_QUERY_MASK = "INSERT INTO %s (%s) VALUES %s";
 
 	// Instance
 	private final static File WORKSPACE_LOCATION = new File(".");
@@ -121,13 +122,18 @@ public class DiscoveryDatabase {
 	 * Adds all given strings to the specified table's specified column
 	 */
 	synchronized void insertAll(Collection<String> strings, String table, String column) throws SQLException {
-		Statement statement = createStatement();
-		if (table != null && column != null && strings != null && !strings.isEmpty()) {
-			for (String s : strings) {
-				statement.executeUpdate(String.format(INSERT_QUERY_MASK, table, column, s));
-			}
+		if (strings != null && !strings.isEmpty()) {
+			Statement statement = createStatement();
+
+			String values = strings.stream().map(s -> String.format("('%s')", s)).collect(Collectors.joining(", "));
+			statement.executeUpdate(String.format(INSERT_QUERY_MASK, table, column, values));
+			statement.closeOnCompletion();
+
+			vacuum(statement);
 		}
-		statement.closeOnCompletion();
+	}
+
+	private void vacuum(Statement statement) throws SQLException {
 		statement.execute("vacuum;");
 		statement.closeOnCompletion();
 	}

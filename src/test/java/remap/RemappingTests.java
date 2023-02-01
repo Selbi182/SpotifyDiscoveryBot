@@ -28,7 +28,6 @@ import spotify.bot.config.database.DatabaseService;
 import spotify.bot.config.database.DiscoveryDatabase;
 import spotify.bot.config.properties.BlacklistConfig;
 import spotify.bot.config.properties.PlaylistStoreConfig;
-import spotify.bot.config.properties.UserOptionsConfig;
 import spotify.bot.filter.FilterService;
 import spotify.bot.filter.remapper.EpRemapper;
 import spotify.bot.filter.remapper.LiveRemapper;
@@ -36,6 +35,7 @@ import spotify.bot.filter.remapper.Remapper;
 import spotify.bot.filter.remapper.Remapper.Action;
 import spotify.bot.filter.remapper.RemixRemapper;
 import spotify.bot.filter.remapper.RereleaseRemapper;
+import spotify.bot.service.CachedUserService;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.config.SpotifyApiConfig;
@@ -55,8 +55,8 @@ import spotify.util.data.AlbumTrackPair;
 	SpotifyApiAuthorization.class,
 	TrackService.class,
 	UserService.class,
+	CachedUserService.class,
 	DatabaseCreationService.class,
-	UserOptionsConfig.class,
 	PlaylistStoreConfig.class,
 	BlacklistConfig.class
 })
@@ -76,7 +76,7 @@ public class RemappingTests {
 	private FilterService filterService;
 
 	@Autowired
-	private UserService userService;
+	private CachedUserService cachedUserService;
 
 	private static EpRemapper epRemapper;
 	private static LiveRemapper liveRemapper;
@@ -92,7 +92,7 @@ public class RemappingTests {
 			liveRemapper = new LiveRemapper(trackService);
 			remixRemapper = new RemixRemapper();
 
-			rereleaseRemapper = new RereleaseRemapper(filterService, userService);
+			rereleaseRemapper = new RereleaseRemapper(filterService, cachedUserService);
 
 			login();
 			

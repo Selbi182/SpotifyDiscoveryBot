@@ -2,6 +2,7 @@ package spotify.bot.config.database;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -27,15 +28,17 @@ public class DatabaseCreationService {
           + "                      NOT NULL\n"
           + "                      PRIMARY KEY);";
 
-  private static final List<String> SQL_STATEMENTS = List.of(SQL_CACHE_ARTISTS, SQL_CACHE_RELEASES, SQL_CACHE_RELEASES_NAMES);
+  private static final List<String> SQL_TABLE_CREATION_COMMANDS = List.of(SQL_CACHE_ARTISTS, SQL_CACHE_RELEASES, SQL_CACHE_RELEASES_NAMES);
 
   /**
    * Create the discovery bot database with all required tables
    * (typically if this is the first time the app is launched)
    */
   public void createTables(Connection connection) throws SQLException {
-    for (String statement : SQL_STATEMENTS) {
-      connection.createStatement().execute(statement);
+    for (String tableCreationCommand : SQL_TABLE_CREATION_COMMANDS) {
+      Statement statement = connection.createStatement();
+      statement.execute(tableCreationCommand);
+      statement.closeOnCompletion();
     }
   }
 }

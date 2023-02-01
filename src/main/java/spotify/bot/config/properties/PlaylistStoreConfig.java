@@ -16,11 +16,11 @@ import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.enums.AlbumGroup;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import spotify.api.SpotifyCall;
+import spotify.bot.service.CachedUserService;
 import spotify.bot.service.PlaylistMetaService;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.services.UserService;
 
 @Configuration
 public class PlaylistStoreConfig {
@@ -29,12 +29,12 @@ public class PlaylistStoreConfig {
 	private Map<AlbumGroupExtended, PlaylistStore> playlistStoreMap;
 
 	private final SpotifyApi spotifyApi;
-	private final UserService userService;
+	private final CachedUserService cachedUserService;
 	private final DiscoveryBotLogger discoveryBotLogger;
 
-	PlaylistStoreConfig(SpotifyApi spotifyApi, UserService userService, DiscoveryBotLogger discoveryBotLogger) {
+	PlaylistStoreConfig(SpotifyApi spotifyApi, CachedUserService cachedUserService, DiscoveryBotLogger discoveryBotLogger) {
 		this.spotifyApi = spotifyApi;
-		this.userService = userService;
+		this.cachedUserService = cachedUserService;
 		this.discoveryBotLogger = discoveryBotLogger;
 		getPlaylistStoreFromPropertiesFile();
 	}
@@ -65,7 +65,7 @@ public class PlaylistStoreConfig {
 			String key = albumGroupExtended.getGroupName();
 			if (!properties.containsKey(key)) {
 				if (userId == null) {
-					userId = userService.getCurrentUser().getId();
+					userId = cachedUserService.getUserId();
 				}
 				String playlistName = PlaylistMetaService.INDICATOR_OFF + " " + albumGroupExtended.getHumanName();
 				Playlist newPlaylist = SpotifyCall.execute(spotifyApi.createPlaylist(userId, playlistName));

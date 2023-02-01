@@ -45,7 +45,7 @@ public class PlaylistMetaService {
 
   /**
    * New-songs indicator (currently no new songs), a black circle.
-   * This property is public so it can be directly put into the playlist during creation.
+   * This property is public, so it can be directly put into the playlist during creation.
    */
   public final static String INDICATOR_OFF = "\u26AB";
 

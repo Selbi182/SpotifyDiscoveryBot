@@ -28,7 +28,6 @@ import spotify.bot.config.database.DatabaseService;
 import spotify.bot.config.properties.BlacklistConfig;
 import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
-import spotify.bot.config.properties.UserOptionsConfig;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -41,18 +40,15 @@ public class FilterService {
 
 	private final static String VARIOUS_ARTISTS = "Various Artists";
 
-	private final UserOptionsConfig userOptions;
 	private final DiscoveryBotLogger log;
 	private final DatabaseService databaseService;
 	private final PlaylistStoreConfig playlistStoreConfig;
 	private final BlacklistConfig blacklistConfig;
 
-	FilterService(UserOptionsConfig userOptions,
-			DiscoveryBotLogger discoveryBotLogger,
+	FilterService(DiscoveryBotLogger discoveryBotLogger,
 			DatabaseService databaseService,
 			PlaylistStoreConfig playlistStoreConfig,
 			BlacklistConfig blacklistConfig) {
-		this.userOptions = userOptions;
 		this.log = discoveryBotLogger;
 		this.databaseService = databaseService;
 		this.playlistStoreConfig = playlistStoreConfig;
@@ -289,36 +285,34 @@ public class FilterService {
 	 * Also filter out any compilation appearances.
 	 */
 	public Map<AlbumGroup, List<AlbumTrackPair>> intelligentAppearsOnSearch(Map<AlbumGroup, List<AlbumTrackPair>> categorizedFilteredAlbums, List<String> followedArtists) {
-		if (userOptions.isIntelligentAppearsOnSearch()) {
-			List<AlbumTrackPair> unfilteredAppearsOnAlbums = categorizedFilteredAlbums.get(AlbumGroup.APPEARS_ON);
-			if (!unfilteredAppearsOnAlbums.isEmpty()) {
-				// Preprocess into HashSet to speed up contains() operations
-				Set<String> followedArtistsSet = new HashSet<>(followedArtists);
+		List<AlbumTrackPair> unfilteredAppearsOnAlbums = categorizedFilteredAlbums.get(AlbumGroup.APPEARS_ON);
+		if (!unfilteredAppearsOnAlbums.isEmpty()) {
+			// Preprocess into HashSet to speed up contains() operations
+			Set<String> followedArtistsSet = new HashSet<>(followedArtists);
 
-				// Filter out any collection, samplers, or albums whose primary artist is
-				// already a followee
-				List<AlbumTrackPair> albumsWithoutCollectionsOrSamplers = unfilteredAppearsOnAlbums.stream()
-					.filter(atp -> !isCollectionOrSampler(atp.getAlbum()))
+			// Filter out any collection, samplers, or albums whose primary artist is
+			// already a followee
+			List<AlbumTrackPair> albumsWithoutCollectionsOrSamplers = unfilteredAppearsOnAlbums.stream()
+				.filter(atp -> !isCollectionOrSampler(atp.getAlbum()))
+				.collect(Collectors.toList());
+
+			// Of those, filter out the actual songs where a featured artist is a followee
+			List<AlbumTrackPair> filteredAppearsOnAlbums = new ArrayList<>();
+			for (AlbumTrackPair atp : albumsWithoutCollectionsOrSamplers) {
+				List<TrackSimplified> selectedSongsOfAlbum = atp.getTracks().stream()
+					.filter(song -> containsFeaturedArtist(followedArtistsSet, song.getArtists()))
 					.collect(Collectors.toList());
-
-				// Of those, filter out the actual songs where a featured artist is a followee
-				List<AlbumTrackPair> filteredAppearsOnAlbums = new ArrayList<>();
-				for (AlbumTrackPair atp : albumsWithoutCollectionsOrSamplers) {
-					List<TrackSimplified> selectedSongsOfAlbum = atp.getTracks().stream()
-						.filter(song -> containsFeaturedArtist(followedArtistsSet, song.getArtists()))
-						.collect(Collectors.toList());
-					filteredAppearsOnAlbums.add(AlbumTrackPair.of(atp.getAlbum(), selectedSongsOfAlbum));
-				}
-
-				// Show log message
-				int droppedAppearsOnCount = unfilteredAppearsOnAlbums.size() - filteredAppearsOnAlbums.size();
-				log.printDroppedAlbumTrackPairDifference(unfilteredAppearsOnAlbums, filteredAppearsOnAlbums, String.format("Dropped %d APPEARS_ON release[s]:", droppedAppearsOnCount));
-
-				// Finalize
-				Map<AlbumGroup, List<AlbumTrackPair>> intelligentAppearsOnFilteredMap = new HashMap<>(categorizedFilteredAlbums);
-				intelligentAppearsOnFilteredMap.put(AlbumGroup.APPEARS_ON, filteredAppearsOnAlbums);
-				return intelligentAppearsOnFilteredMap;
+				filteredAppearsOnAlbums.add(AlbumTrackPair.of(atp.getAlbum(), selectedSongsOfAlbum));
 			}
+
+			// Show log message
+			int droppedAppearsOnCount = unfilteredAppearsOnAlbums.size() - filteredAppearsOnAlbums.size();
+			log.printDroppedAlbumTrackPairDifference(unfilteredAppearsOnAlbums, filteredAppearsOnAlbums, String.format("Dropped %d APPEARS_ON release[s]:", droppedAppearsOnCount));
+
+			// Finalize
+			Map<AlbumGroup, List<AlbumTrackPair>> intelligentAppearsOnFilteredMap = new HashMap<>(categorizedFilteredAlbums);
+			intelligentAppearsOnFilteredMap.put(AlbumGroup.APPEARS_ON, filteredAppearsOnAlbums);
+			return intelligentAppearsOnFilteredMap;
 		}
 		return categorizedFilteredAlbums;
 	}

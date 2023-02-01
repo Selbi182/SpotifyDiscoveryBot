@@ -20,7 +20,6 @@ import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.api.BotException;
 import spotify.bot.config.DeveloperMode;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
-import spotify.bot.config.properties.UserOptionsConfig;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.services.PlaylistService;
 import spotify.util.BotUtils;
@@ -35,12 +34,10 @@ public class PlaylistSongsService {
   private final static String TRACK_PREFIX = "spotify:track:";
 
   private final PlaylistService playlistService;
-  private final UserOptionsConfig userOptions;
   private final DiscoveryBotLogger log;
 
-  PlaylistSongsService(PlaylistService playlistService, UserOptionsConfig userOptions, DiscoveryBotLogger discoveryBotLogger) {
+  PlaylistSongsService(PlaylistService playlistService, DiscoveryBotLogger discoveryBotLogger) {
     this.playlistService = playlistService;
-    this.userOptions = userOptions;
     this.log = discoveryBotLogger;
   }
 
@@ -68,21 +65,17 @@ public class PlaylistSongsService {
    */
   private void addSongsToPlaylistId(String playlistId, List<AlbumTrackPair> albumTrackPairs) throws BotException {
     if (!albumTrackPairs.isEmpty()) {
-      boolean playlistHasCapacity = circularPlaylistFitting(playlistId, albumTrackPairs.stream()
-          .mapToInt(AlbumTrackPair::trackCount)
-          .sum());
-      if (playlistHasCapacity) {
-        List<List<TrackSimplified>> bundledReleases = extractTrackLists(albumTrackPairs);
-        for (List<TrackSimplified> t : bundledReleases) {
-          for (List<TrackSimplified> partition : Lists.partition(t, PLAYLIST_ADD_LIMIT)) {
-            List<String> ids = partition.stream().map(TrackSimplified::getId).collect(Collectors.toList());
-            Playlist playlist = playlistService.getPlaylist(playlistId);
-            playlistService.addSongsToPlaylistById(playlist, ids, TOP_OF_PLAYLIST);
-            BotUtils.sneakySleep(PLAYLIST_ADDITION_COOLDOWN);
-          }
+      circularPlaylistFitting(playlistId, albumTrackPairs.stream()
+        .mapToInt(AlbumTrackPair::trackCount)
+        .sum());
+      List<List<TrackSimplified>> bundledReleases = extractTrackLists(albumTrackPairs);
+      for (List<TrackSimplified> t : bundledReleases) {
+        for (List<TrackSimplified> partition : Lists.partition(t, PLAYLIST_ADD_LIMIT)) {
+          List<String> ids = partition.stream().map(TrackSimplified::getId).collect(Collectors.toList());
+          Playlist playlist = playlistService.getPlaylist(playlistId);
+          playlistService.addSongsToPlaylistById(playlist, ids, TOP_OF_PLAYLIST);
+          BotUtils.sneakySleep(PLAYLIST_ADDITION_COOLDOWN);
         }
-      } else {
-        log.error("Playlist has no capacity! " + playlistId);
       }
     }
   }
@@ -99,24 +92,15 @@ public class PlaylistSongsService {
   }
 
   /**
-   * Check if circular playlist fitting is required (if enabled; otherwise an
-   * exception is thrown)
-   *
-   * @return true on success, false if playlist is full and can't be cleared
+   * Check if circular playlist fitting is required
    */
-  private boolean circularPlaylistFitting(String playlistId, int songsToAddCount) throws BotException {
+  private void circularPlaylistFitting(String playlistId, int songsToAddCount) throws BotException {
     Playlist p = playlistService.getPlaylist(playlistId);
 
     final int currentPlaylistCount = p.getTracks().getTotal();
     if (currentPlaylistCount + songsToAddCount > PLAYLIST_SIZE_LIMIT) {
-      if (!userOptions.isCircularPlaylistFitting()) {
-        log.error(p.getName() + " is full! Maximum capacity is " + PLAYLIST_SIZE_LIMIT + ". "
-            + "Enable circularPlaylistFitting or flush the playlist for new songs.");
-        return false;
-      }
       deleteSongsFromBottomOnLimit(playlistId, currentPlaylistCount, songsToAddCount);
     }
-    return true;
   }
 
   /**

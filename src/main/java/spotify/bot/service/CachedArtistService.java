@@ -12,10 +12,13 @@ import org.springframework.stereotype.Service;
 
 import com.google.common.collect.ImmutableList;
 
+import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
 import spotify.api.BotException;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.filter.FilterService;
+import spotify.bot.service.performance.DiscoveryAlbumService;
+import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.data.CachedArtistsContainer;
 import spotify.services.ArtistService;
 import spotify.util.BotUtils;
@@ -24,16 +27,20 @@ import spotify.util.BotUtils;
 public class CachedArtistService {
   private final ArtistService artistService;
   private final DatabaseService databaseService;
+  private final DiscoveryAlbumService discoveryAlbumService;
   private final FilterService filterService;
+  private final DiscoveryBotLogger log;
 
   private final static int ARTIST_CACHE_EXPIRATION_DAYS = 1;
 
   private Date artistCacheLastUpdated;
 
-  CachedArtistService(ArtistService artistService, DatabaseService databaseService, FilterService filterService) {
+  CachedArtistService(ArtistService artistService, DatabaseService databaseService, FilterService filterService, DiscoveryAlbumService discoveryAlbumService, DiscoveryBotLogger discoveryBotLogger) {
     this.artistService = artistService;
     this.databaseService = databaseService;
     this.filterService = filterService;
+    this.discoveryAlbumService = discoveryAlbumService;
+    this.log = discoveryBotLogger;
     this.artistCacheLastUpdated = Date.from(Instant.ofEpochSecond(0));
   }
 
@@ -91,5 +98,21 @@ public class CachedArtistService {
       return !BotUtils.isWithinTimeoutWindow(artistCacheLastUpdated, ARTIST_CACHE_EXPIRATION_DAYS);
     }
     return false;
+  }
+
+  /////////////
+
+  public void initializeAlbumCacheForNewArtists(CachedArtistsContainer cachedArtistsContainer) throws SQLException {
+    List<String> newArtists = cachedArtistsContainer.getNewArtists();
+    if (!newArtists.isEmpty()) {
+      log.info("Initializing album cache for " + newArtists.size() + " newly followed artist[s]:");
+      log.info(artistService.getArtists(newArtists).stream()
+          .map(Artist::getName)
+          .collect(Collectors.joining(", ")));
+      List<AlbumSimplified> allAlbumsOfNewFollowees = discoveryAlbumService.getAllAlbumsOfArtists(newArtists);
+      List<AlbumSimplified> albumsToInitialize = filterService.getNonCachedAlbums(allAlbumsOfNewFollowees);
+      filterService.cacheAlbumIds(albumsToInitialize, false);
+      filterService.cacheAlbumNames(albumsToInitialize, false);
+    }
   }
 }

@@ -37,7 +37,7 @@ public class DeveloperMode {
 		DISABLE_PLAYLIST_ADDITIONS,
 
 		/**
-		 * Scheduled crawls that run once every 30 minutes will be completely disabled
+		 * Scheduled crawls that run once every hour will be completely disabled
 		 * only manual calls at {@code /crawl} will be executed
 		 */
 		DISABLE_SCHEDULED_CRAWLS,

@@ -1,7 +1,6 @@
 package spotify.bot;
 
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
@@ -11,7 +10,6 @@ import org.springframework.stereotype.Component;
 
 import se.michaelthelin.spotify.enums.AlbumGroup;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
-import se.michaelthelin.spotify.model_objects.specification.Artist;
 import spotify.api.BotException;
 import spotify.api.SpotifyApiAuthorization;
 import spotify.api.events.SpotifyApiLoggedInEvent;
@@ -21,15 +19,14 @@ import spotify.bot.filter.FilterService;
 import spotify.bot.filter.RelayService;
 import spotify.bot.filter.RemappingService;
 import spotify.bot.service.CachedArtistService;
-import spotify.bot.service.DiscoveryAlbumService;
 import spotify.bot.service.PlaylistMetaService;
 import spotify.bot.service.PlaylistSongsService;
+import spotify.bot.service.performance.DiscoveryAlbumService;
+import spotify.bot.service.performance.DiscoveryTrackService;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.CachedArtistsContainer;
-import spotify.services.ArtistService;
-import spotify.services.TrackService;
 import spotify.util.BotUtils;
 import spotify.util.data.AlbumTrackPair;
 
@@ -37,10 +34,9 @@ import spotify.util.data.AlbumTrackPair;
 public class DiscoveryBotCrawler {
 	private final SpotifyApiAuthorization spotifyApiAuthorization;
 	private final DiscoveryBotLogger log;
-	private final ArtistService artistService;
 	private final CachedArtistService cachedArtistService;
 	private final DiscoveryAlbumService discoveryAlbumService;
-	private final TrackService trackService;
+	private final DiscoveryTrackService discoveryTrackService;
 	private final PlaylistSongsService playlistSongsService;
 	private final PlaylistMetaService playlistMetaService;
 	private final FilterService filterService;
@@ -50,10 +46,9 @@ public class DiscoveryBotCrawler {
 	DiscoveryBotCrawler(
 			SpotifyApiAuthorization spotifyApiAuthorization,
 			DiscoveryBotLogger discoveryBotLogger,
-			ArtistService artistService,
 			CachedArtistService cachedArtistService,
 			DiscoveryAlbumService discoveryAlbumService,
-			TrackService trackService,
+			DiscoveryTrackService discoveryTrackService,
 			PlaylistSongsService playlistSongsService,
 			PlaylistMetaService playlistMetaService,
 			FilterService filterService,
@@ -62,10 +57,9 @@ public class DiscoveryBotCrawler {
 	) {
 		this.spotifyApiAuthorization = spotifyApiAuthorization;
 		this.log = discoveryBotLogger;
-		this.artistService = artistService;
 		this.cachedArtistService = cachedArtistService;
 		this.discoveryAlbumService = discoveryAlbumService;
-		this.trackService = trackService;
+		this.discoveryTrackService = discoveryTrackService;
 		this.playlistSongsService = playlistSongsService;
 		this.playlistMetaService = playlistMetaService;
 		this.filterService = filterService;
@@ -193,17 +187,7 @@ public class DiscoveryBotCrawler {
 	 */
 	private List<String> getFollowedArtists() throws SQLException, BotException {
 		CachedArtistsContainer cachedArtistsContainer = cachedArtistService.getFollowedArtistsIds();
-		List<String> newArtists = cachedArtistsContainer.getNewArtists();
-		if (!newArtists.isEmpty()) {
-			log.info("Initializing album cache for " + newArtists.size() + " newly followed artist[s]:");
-			artistService.getArtists(newArtists).stream()
-					.map(Artist::getName)
-					.forEach(name -> log.info("- " + name));
-			List<AlbumSimplified> allAlbumsOfNewFollowees = discoveryAlbumService.getAllAlbumsOfArtists(newArtists);
-			List<AlbumSimplified> albumsToInitialize = filterService.getNonCachedAlbums(allAlbumsOfNewFollowees);
-			filterService.cacheAlbumIds(albumsToInitialize, false);
-			filterService.cacheAlbumNames(albumsToInitialize, false);
-		}
+		cachedArtistService.initializeAlbumCacheForNewArtists(cachedArtistsContainer);
 		return cachedArtistsContainer.getAllArtists();
 	}
 
@@ -217,24 +201,22 @@ public class DiscoveryBotCrawler {
 		filterService.cacheAlbumIds(noFutureAlbums, true);
 		List<AlbumSimplified> insertedAppearOnArtistsAlbums = discoveryAlbumService.resolveViaAppearsOnArtistNames(noFutureAlbums);
 		List<AlbumSimplified> filteredNoDuplicatesAlbums = filterService.filterDuplicateAlbums(insertedAppearOnArtistsAlbums);
-		List<AlbumSimplified> filteredAlbums = filterService.filterNewAlbumsOnly(filteredNoDuplicatesAlbums);
-		return filteredAlbums;
+		return filterService.filterNewAlbumsOnly(filteredNoDuplicatesAlbums);
 	}
 
 	/**
 	 * Phase 2: Get the tracks of the new releases and map them to their respective target playlist store
 	 */
 	private Map<PlaylistStore, List<AlbumTrackPair>> getNewTracksByTargetPlaylist(List<AlbumSimplified> filteredAlbums, List<String> followedArtists) throws BotException {
-		List<AlbumTrackPair> tracksByAlbums = trackService.getTracksOfAlbums(filteredAlbums);
+		List<AlbumTrackPair> tracksByAlbums = discoveryTrackService.getTracksOfAlbums(filteredAlbums);
 		Map<AlbumGroup, List<AlbumTrackPair>> categorizedFilteredAlbums = filterService.categorizeAlbumsByAlbumGroup(tracksByAlbums);
 		Map<AlbumGroup, List<AlbumTrackPair>> intelligentAppearsOnFilteredAlbums = filterService.intelligentAppearsOnSearch(categorizedFilteredAlbums, followedArtists);
 		if (!BotUtils.isAllEmptyLists(intelligentAppearsOnFilteredAlbums)) {
 			Map<PlaylistStore, List<AlbumTrackPair>> songsByMainPlaylist = remappingService.mapToTargetPlaylist(intelligentAppearsOnFilteredAlbums);
 			Map<PlaylistStore, List<AlbumTrackPair>> songsByExtendedPlaylist = remappingService.remapIntoExtendedPlaylists(songsByMainPlaylist);
-			Map<PlaylistStore, List<AlbumTrackPair>> songsFilteredWithBlacklistedArtistReleasePairs = filterService.filterBlacklistedReleaseTypesForArtists(songsByExtendedPlaylist);
-			return songsFilteredWithBlacklistedArtistReleasePairs;
+			return filterService.filterBlacklistedReleaseTypesForArtists(songsByExtendedPlaylist);
 		}
-		return Collections.emptyMap();
+		return Map.of();
 	}
 
 	/**

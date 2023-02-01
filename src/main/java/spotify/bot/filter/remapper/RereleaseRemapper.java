@@ -11,8 +11,8 @@ import com.neovisionaries.i18n.CountryCode;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.bot.filter.FilterService;
+import spotify.bot.service.CachedUserService;
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.services.UserService;
 import spotify.util.data.AlbumTrackPair;
 
 @Component
@@ -23,11 +23,11 @@ public class RereleaseRemapper implements Remapper {
 			Pattern.CASE_INSENSITIVE);
 
 	private final FilterService filterService;
-	private final UserService userService;
+	private final CachedUserService cachedUserService;
 
-	public RereleaseRemapper(FilterService filterService, UserService userService) {
+	public RereleaseRemapper(FilterService filterService, CachedUserService cachedUserService) {
 		this.filterService = filterService;
-		this.userService = userService;
+		this.cachedUserService = cachedUserService;
 	}
 
 	@Override
@@ -105,7 +105,7 @@ public class RereleaseRemapper implements Remapper {
 	}
 
 	private boolean isTrackAvailable(TrackSimplified ts) {
-		CountryCode requiredMarket = userService.getMarketOfCurrentUser();
+		CountryCode requiredMarket = cachedUserService.getUserMarket();
 		for (CountryCode market : ts.getAvailableMarkets()) {
 			if (requiredMarket.equals(market)) {
 				return true;

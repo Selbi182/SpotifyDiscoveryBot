@@ -44,7 +44,6 @@ client_secret=hdow93[...]
 ```
 
 ### Step 2: Setting the target playlists
-(This is an optional step; if you're okay with the bot creating the playlists automatically, make sure the file `config/playlist.properties` is **deleted**!)
 To set custom targets for the discovery results, open `config/playlist.properties`, where you can enter the target playlist IDs like so:
 ```
 album=0DOQiI2FP82IXy9Z0nHdTz
@@ -56,6 +55,9 @@ compilation=6s18DTSGfkRA7hZR1sTzxL
 re_release=0jddpHmZZtfAdxzauw1aCF
 appears_on=1wMWWCP4XKK9jfVWvUoz0y
 ```
+All eight of these groups are required to be in the properties file. If an entry is missing, the bot will automatically create the missing playlist on startup and set the property entry on its own.
+
+You can also disable a certain groups alltogether. To do this, simply keep the part after the `=` blank for the respective group you want to disable.
 
 ### Step 3: Starting the bot for the first time
 To start the bot, make sure you have at least Java 11 installed and run the fatJar:

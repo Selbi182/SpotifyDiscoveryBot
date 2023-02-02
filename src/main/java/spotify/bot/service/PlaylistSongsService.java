@@ -21,10 +21,10 @@ import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.api.BotException;
 import spotify.bot.config.DeveloperMode;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
-import spotify.bot.service.performance.SpotifyOptimizedExecutorService;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.services.PlaylistService;
 import spotify.util.BotUtils;
+import spotify.util.SpotifyOptimizedExecutorService;
 import spotify.util.data.AlbumTrackPair;
 
 @Service

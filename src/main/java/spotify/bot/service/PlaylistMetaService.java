@@ -27,10 +27,10 @@ import spotify.api.SpotifyCall;
 import spotify.bot.config.DeveloperMode;
 import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
-import spotify.bot.service.performance.SpotifyOptimizedExecutorService;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.services.PlaylistService;
 import spotify.util.BotUtils;
+import spotify.util.SpotifyOptimizedExecutorService;
 import spotify.util.data.AlbumTrackPair;
 
 @Service

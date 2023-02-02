@@ -7,8 +7,8 @@ import java.util.concurrent.Callable;
 import org.springframework.stereotype.Component;
 
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
-import spotify.bot.service.performance.SpotifyOptimizedExecutorService;
 import spotify.services.TrackService;
+import spotify.util.SpotifyOptimizedExecutorService;
 import spotify.util.data.AlbumTrackPair;
 
 @Component

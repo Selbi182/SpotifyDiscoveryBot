@@ -24,9 +24,9 @@ import se.michaelthelin.spotify.requests.data.artists.GetArtistsAlbumsRequest;
 import spotify.api.BotException;
 import spotify.api.SpotifyCall;
 import spotify.bot.service.performance.CachedUserService;
-import spotify.bot.service.performance.SpotifyOptimizedExecutorService;
 import spotify.services.AlbumService;
 import spotify.util.BotUtils;
+import spotify.util.SpotifyOptimizedExecutorService;
 
 @Service
 public class DiscoveryAlbumService {

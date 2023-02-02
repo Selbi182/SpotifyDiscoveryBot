@@ -16,13 +16,14 @@ import org.springframework.stereotype.Repository;
 
 import spotify.SpotifyDiscoveryBot;
 import spotify.bot.util.DiscoveryBotLogger;
+import spotify.bot.util.DiscoveryBotUtils;
 import spotify.util.BotUtils;
 
 @Repository
 public class DiscoveryDatabase {
 
 	// Database base constants
-	private final static String DB_FILE_NAME = "config/database.db";
+	private final static String DB_FILE_NAME = DiscoveryBotUtils.BASE_CONFIG_PATH + "database.db";
 	private final static String DB_URL_PREFIX = "jdbc:sqlite:";
 
 	private final static String FULL_SELECT_QUERY_MASK = "SELECT * FROM %s";

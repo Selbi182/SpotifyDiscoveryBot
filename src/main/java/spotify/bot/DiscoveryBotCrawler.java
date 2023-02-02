@@ -214,7 +214,8 @@ public class DiscoveryBotCrawler {
 		if (!BotUtils.isAllEmptyLists(intelligentAppearsOnFilteredAlbums)) {
 			Map<PlaylistStore, List<AlbumTrackPair>> songsByMainPlaylist = remappingService.mapToTargetPlaylist(intelligentAppearsOnFilteredAlbums);
 			Map<PlaylistStore, List<AlbumTrackPair>> songsByExtendedPlaylist = remappingService.remapIntoExtendedPlaylists(songsByMainPlaylist);
-			return filterService.filterBlacklistedReleaseTypesForArtists(songsByExtendedPlaylist);
+			Map<PlaylistStore, List<AlbumTrackPair>> songsByExtendedPlaylistFiltered = remappingService.removeDisabledPlaylistStores(songsByExtendedPlaylist);
+			return filterService.filterBlacklistedReleaseTypesForArtists(songsByExtendedPlaylistFiltered);
 		}
 		return Map.of();
 	}

@@ -107,10 +107,12 @@ public class PlaylistMetaService {
     boolean changed = false;
     if (!DeveloperMode.isPlaylistAdditionDisabled()) {
       for (PlaylistStore ps : playlistStoreConfig.getAllPlaylistStores()) {
-        if (ps.isForceUpdateOnFirstTime() || shouldIndicatorBeMarkedAsRead(ps)) {
-          if (updatePlaylistTitleAndDescription(ps, INDICATOR_NEW, INDICATOR_OFF, false)) {
-            changed = true;
-            playlistStoreConfig.unsetPlaylistStoreUpdatedRecently(ps.getAlbumGroupExtended());
+        if (!playlistStoreConfig.getDisabledAlbumGroups().contains(ps.getAlbumGroupExtended())) {
+          if (ps.isForceUpdateOnFirstTime() || shouldIndicatorBeMarkedAsRead(ps)) {
+            if (updatePlaylistTitleAndDescription(ps, INDICATOR_NEW, INDICATOR_OFF, false)) {
+              changed = true;
+              playlistStoreConfig.unsetPlaylistStoreUpdatedRecently(ps.getAlbumGroupExtended());
+            }
           }
         }
       }

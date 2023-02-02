@@ -4,75 +4,104 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.enums.AlbumGroup;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
+import spotify.api.BotException;
 import spotify.api.SpotifyCall;
-import spotify.bot.service.performance.CachedUserService;
 import spotify.bot.service.PlaylistMetaService;
+import spotify.bot.service.performance.CachedUserService;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
 
 @Configuration
+@DependsOn("spotifyApiAuthorization")
 public class PlaylistStoreConfig {
-	private final static String PLAYLIST_STORE_FILENAME = "./config/playlist.properties";
+	private final static String PLAYLIST_STORE_FILENAME = DiscoveryBotUtils.BASE_CONFIG_PATH + "playlist.properties";
 
-	private Map<AlbumGroupExtended, PlaylistStore> playlistStoreMap;
+	private final Map<AlbumGroupExtended, PlaylistStore> playlistStoreMap;
+	private final List<AlbumGroupExtended> disabledAlbumGroups;
 
 	private final SpotifyApi spotifyApi;
 	private final CachedUserService cachedUserService;
-	private final DiscoveryBotLogger discoveryBotLogger;
+	private final DiscoveryBotLogger log;
 
 	PlaylistStoreConfig(SpotifyApi spotifyApi, CachedUserService cachedUserService, DiscoveryBotLogger discoveryBotLogger) {
 		this.spotifyApi = spotifyApi;
 		this.cachedUserService = cachedUserService;
-		this.discoveryBotLogger = discoveryBotLogger;
-		getPlaylistStoreFromPropertiesFile();
+		this.log = discoveryBotLogger;
+		this.disabledAlbumGroups = new ArrayList<>();
+		this.playlistStoreMap = getPlaylistStoreFromPropertiesFile();
 	}
 
-	private void getPlaylistStoreFromPropertiesFile() {
+	private Map<AlbumGroupExtended, PlaylistStore> getPlaylistStoreFromPropertiesFile() {
 		try {
 			File propertiesFile = new File(PLAYLIST_STORE_FILENAME);
 			if (!propertiesFile.exists()) {
-				if (propertiesFile.getParentFile().mkdirs() & propertiesFile.createNewFile()) {
-					discoveryBotLogger.info("Playlist properties file not found. Creating new playlists for each album type and link them to the file");
+				if (propertiesFile.getParentFile().mkdirs()) {
+					log.info(propertiesFile.getParent() + " folder was automatically created");
+				}
+				if (propertiesFile.createNewFile()) {
+					log.info("Playlist properties file not found. Creating new playlists for each album type and link them to the file");
 				}
 			}
 			FileReader reader = new FileReader(propertiesFile);
 			Properties properties = new Properties();
 			properties.load(reader);
+			verifyPlaylists(properties);
 			createMissingPlaylists(properties);
-			this.playlistStoreMap = createPlaylistStoreMap(properties);
+			return createPlaylistStoreMap(properties);
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.out.println("Failed to read " + PLAYLIST_STORE_FILENAME + ". Terminating!");
 			System.exit(1);
+			return null;
+		}
+	}
+
+	private void verifyPlaylists(Properties properties) {
+		for (AlbumGroupExtended albumGroupExtended : DiscoveryBotUtils.DEFAULT_PLAYLIST_GROUP_ORDER_REVERSED) {
+			String key = albumGroupExtended.getGroupName();
+			String playlistId = properties.getProperty(key);
+			if (playlistId != null && !playlistId.isBlank()) {
+				try {
+					SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
+				} catch (BotException e) {
+					throw new IllegalStateException("Playlist ID for '" + albumGroupExtended.getGroupName() + "' is invalid");
+				}
+			} else {
+				disabledAlbumGroups.add(albumGroupExtended);
+			}
+		}
+		if (!disabledAlbumGroups.isEmpty()) {
+			log.warning("Disabled album groups (no IDs set in " + PLAYLIST_STORE_FILENAME + "): " + disabledAlbumGroups);
 		}
 	}
 
 	private void createMissingPlaylists(Properties properties) throws IOException {
-		String userId = null;
+		boolean changes = false;
 		for (AlbumGroupExtended albumGroupExtended : DiscoveryBotUtils.DEFAULT_PLAYLIST_GROUP_ORDER_REVERSED) {
 			String key = albumGroupExtended.getGroupName();
 			if (!properties.containsKey(key)) {
-				if (userId == null) {
-					userId = cachedUserService.getUserId();
-				}
-				String playlistName = PlaylistMetaService.INDICATOR_OFF + " " + albumGroupExtended.getHumanName();
-				Playlist newPlaylist = SpotifyCall.execute(spotifyApi.createPlaylist(userId, playlistName));
+				changes = true;
+				String playlistName = PlaylistMetaService.INDICATOR_OFF + " New " + albumGroupExtended.getHumanName();
+				Playlist newPlaylist = SpotifyCall.execute(spotifyApi.createPlaylist(cachedUserService.getUserId(), playlistName));
 				properties.putIfAbsent(albumGroupExtended.getGroupName(), newPlaylist.getId());
 			}
 		}
-		if (userId != null) {
+		if (changes) {
 			properties.store(new FileOutputStream(PLAYLIST_STORE_FILENAME), null);
 		}
 	}
@@ -118,6 +147,13 @@ public class PlaylistStoreConfig {
 	 */
 	public PlaylistStore getPlaylistStore(AlbumGroupExtended albumGroupExtended) {
 		return getPlaylistStoreMap().get(albumGroupExtended);
+	}
+
+	/**
+	 * Returns the list of album groups that were disabled in the playlist.properties
+	 */
+	public List<AlbumGroupExtended> getDisabledAlbumGroups() {
+		return disabledAlbumGroups;
 	}
 
 	/**

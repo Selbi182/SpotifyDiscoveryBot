@@ -8,6 +8,7 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 
 import se.michaelthelin.spotify.enums.AlbumGroup;
+import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.filter.remapper.EpRemapper;
@@ -125,5 +126,30 @@ public class RemappingService {
 				baseTrackMap.put(ps, remappedReleases);
 			}
 		}
+	}
+
+	public Map<PlaylistStore, List<AlbumTrackPair>> removeDisabledPlaylistStores(Map<PlaylistStore, List<AlbumTrackPair>> songsByPS) {
+		List<AlbumGroupExtended> disabledAlbumGroups = playlistStoreConfig.getDisabledAlbumGroups();
+
+		List<Map.Entry<AlbumSimplified, AlbumGroupExtended>> allDroppedReleases = new ArrayList<>();
+		List<PlaylistStore> disabledPlaylistStores = new ArrayList<>();
+		for (Map.Entry<PlaylistStore, List<AlbumTrackPair>> entry : songsByPS.entrySet()) {
+			PlaylistStore playlistStore = entry.getKey();
+			AlbumGroupExtended albumGroupExtended = playlistStore.getAlbumGroupExtended();
+			if (disabledAlbumGroups.contains(albumGroupExtended)) {
+				disabledPlaylistStores.add(playlistStore);
+			}
+		}
+		for (PlaylistStore playlistStore : disabledPlaylistStores) {
+			List<AlbumTrackPair> removedPlaylistStore = songsByPS.remove(playlistStore);
+			for (AlbumTrackPair atp : removedPlaylistStore) {
+				allDroppedReleases.add(Map.entry(atp.getAlbum(), playlistStore.getAlbumGroupExtended()));
+			}
+		}
+
+		if (!allDroppedReleases.isEmpty()) {
+			log.printDroppedAlbumsCustomGroup(allDroppedReleases, "Dropped " + allDroppedReleases.size() + " release[s] for disabled album groups:");
+		}
+		return songsByPS;
 	}
 }

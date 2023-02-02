@@ -44,6 +44,11 @@ public class DiscoveryBotUtils {
   public final static Comparator<AlbumGroupExtended> DEFAULT_PLAYLIST_GROUP_ORDER_COMPARATOR = Ordering.explicit(DEFAULT_PLAYLIST_GROUP_ORDER);
 
   /**
+   * Base path to the config files
+   */
+  public final static String BASE_CONFIG_PATH = "./config/";
+
+  /**
    * Utility class
    */
   private DiscoveryBotUtils() {

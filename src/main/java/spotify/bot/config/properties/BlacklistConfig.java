@@ -11,11 +11,12 @@ import java.util.Properties;
 
 import org.springframework.context.annotation.Configuration;
 
+import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
 
 @Configuration
 public class BlacklistConfig {
-  private final static String BLACKLIST_FILENAME = "./config/blacklist.properties";
+  private final static String BLACKLIST_FILENAME = DiscoveryBotUtils.BASE_CONFIG_PATH + "blacklist.properties";
 
   private final Map<String, List<AlbumGroupExtended>> blacklistMap;
 

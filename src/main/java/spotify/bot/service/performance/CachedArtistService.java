@@ -1,8 +1,8 @@
 package spotify.bot.service.performance;
 
 import java.sql.SQLException;
-import java.time.Instant;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -24,9 +24,9 @@ import spotify.services.ArtistService;
 import spotify.util.BotUtils;
 
 /**
- * Performance service to cache the user's followed artists and only update them once every 24 hours.
+ * Performance service to cache the user's followed artists and only update them once each midnight.
  * This is because it's very unlikely that a user follows an artist and then the artist immediately
- * releases new material (i.e. in that 24-hour timeframe after the follow).
+ * releases new material (i.e. on the same day of the follow).
  */
 @Service
 public class CachedArtistService {
@@ -36,9 +36,7 @@ public class CachedArtistService {
   private final FilterService filterService;
   private final DiscoveryBotLogger log;
 
-  private final static int ARTIST_CACHE_EXPIRATION_DAYS = 1;
-
-  private Date artistCacheLastUpdated;
+  private LocalDate artistCacheLastUpdated;
 
   CachedArtistService(ArtistService artistService, DatabaseService databaseService, FilterService filterService, DiscoveryAlbumService discoveryAlbumService, DiscoveryBotLogger discoveryBotLogger) {
     this.artistService = artistService;
@@ -46,7 +44,6 @@ public class CachedArtistService {
     this.filterService = filterService;
     this.discoveryAlbumService = discoveryAlbumService;
     this.log = discoveryBotLogger;
-    this.artistCacheLastUpdated = Date.from(Instant.ofEpochSecond(0));
   }
 
   /**
@@ -54,13 +51,13 @@ public class CachedArtistService {
    */
   public CachedArtistsContainer getFollowedArtistsIds() throws SQLException, BotException {
     List<String> cachedArtists = getCachedArtistIds();
-    if (isArtistCacheExpired(cachedArtists)) {
+    if (isArtistCacheExpired()) {
       List<String> followedArtistIds = getRealArtistIds();
       if (followedArtistIds.isEmpty()) {
         throw new BotException(new IllegalArgumentException("No followed artists found!"));
       }
       filterService.cacheArtistIds(followedArtistIds, false);
-      this.artistCacheLastUpdated = new Date();
+      this.artistCacheLastUpdated = ZonedDateTime.now().toLocalDate();
       return repackageIntoContainer(followedArtistIds, cachedArtists);
     } else {
       return new CachedArtistsContainer(cachedArtists, ImmutableList.of());
@@ -98,11 +95,8 @@ public class CachedArtistService {
     return cachedArtists;
   }
 
-  private boolean isArtistCacheExpired(List<String> cachedArtists) {
-    if (cachedArtists == null || cachedArtists.isEmpty()) {
-      return !BotUtils.isWithinTimeoutWindow(artistCacheLastUpdated, ARTIST_CACHE_EXPIRATION_DAYS);
-    }
-    return false;
+  private boolean isArtistCacheExpired() {
+    return artistCacheLastUpdated == null || ZonedDateTime.now().toLocalDate().isAfter(artistCacheLastUpdated);
   }
 
   /////////////

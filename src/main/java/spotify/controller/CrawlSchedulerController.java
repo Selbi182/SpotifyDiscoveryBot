@@ -64,9 +64,8 @@ public class CrawlSchedulerController {
 	public ResponseEntity<String> runCrawler() throws BotException, SQLException {
 		if (crawler.isReady()) {
 			try {
-				long startTime = System.currentTimeMillis();
 				Map<AlbumGroupExtended, Integer> results = crawler.tryCrawl();
-				String response = DiscoveryBotUtils.compileResultString(results, startTime);
+				String response = DiscoveryBotUtils.compileResultString(results);
 				if (!response.isBlank()) {
 					log.info(response);
 					return ResponseEntity.ok(response);

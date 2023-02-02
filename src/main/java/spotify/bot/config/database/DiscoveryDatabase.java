@@ -129,13 +129,6 @@ public class DiscoveryDatabase {
 			String values = strings.stream().map(s -> String.format("('%s')", s)).collect(Collectors.joining(", "));
 			statement.executeUpdate(String.format(INSERT_QUERY_MASK, table, column, values));
 			statement.closeOnCompletion();
-
-			vacuum(statement);
 		}
-	}
-
-	private void vacuum(Statement statement) throws SQLException {
-		statement.execute("vacuum;");
-		statement.closeOnCompletion();
 	}
 }

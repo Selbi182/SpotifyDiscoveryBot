@@ -98,21 +98,6 @@ public class DiscoveryBotUtils {
   }
 
   /**
-   * Variation of compileResultString that also displays how long the request took
-   *
-   * @param songsAddedPerAlbumGroups the count of songs per album group
-   * @param startTime the start time (provided elsewhere)
-   * @return the result string
-   */
-  public static String compileResultString(Map<AlbumGroupExtended, Integer> songsAddedPerAlbumGroups, long startTime) {
-    String result = compileResultString(songsAddedPerAlbumGroups);
-    if (!result.isBlank()) {
-      result += " (time taken: " + (System.currentTimeMillis() - startTime) + "ms)";
-    }
-    return result;
-  }
-
-  /**
    * Build a readable String for dropped AlbumSimplified with a custom album group
    */
   public static String formatAlbum(AlbumSimplified as, AlbumGroupExtended customAlbumGroup) {

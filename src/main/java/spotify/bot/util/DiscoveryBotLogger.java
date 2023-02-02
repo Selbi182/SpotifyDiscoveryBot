@@ -211,7 +211,7 @@ public class DiscoveryBotLogger extends BotLogger {
    */
   public void printAlbumTrackPairs(List<AlbumTrackPair> albumTrackPairs, AlbumGroupExtended albumGroupExtended) {
     for (AlbumTrackPair atp : albumTrackPairs) {
-      debug(INDENT + DiscoveryBotUtils.toStringExtended(atp, albumGroupExtended));
+      info(INDENT + DiscoveryBotUtils.toStringExtended(atp, albumGroupExtended));
     }
   }
 
@@ -221,7 +221,7 @@ public class DiscoveryBotLogger extends BotLogger {
    */
   private void printDroppedAlbumSimplified(List<AlbumSimplified> albumSimplifieds) {
     for (AlbumSimplified as : albumSimplifieds) {
-      debug(DROPPED_PREFIX + INDENT + BotUtils.formatAlbum(as));
+      info(DROPPED_PREFIX + INDENT + BotUtils.formatAlbum(as));
     }
   }
 
@@ -248,7 +248,7 @@ public class DiscoveryBotLogger extends BotLogger {
   public void printDroppedAlbums(Collection<AlbumSimplified> droppedAlbums, String logDescription) {
     if (!droppedAlbums.isEmpty()) {
       if (logDescription != null) {
-        debug(DROPPED_PREFIX + logDescription);
+        info(DROPPED_PREFIX + logDescription);
       }
       List<AlbumSimplified> sortedDroppedAlbums = droppedAlbums.stream().sorted(ALBUM_SIMPLIFIED_COMPARATOR).collect(Collectors.toList());
       printDroppedAlbumSimplified(sortedDroppedAlbums);
@@ -267,10 +267,10 @@ public class DiscoveryBotLogger extends BotLogger {
   public void printDroppedAlbumsCustomGroup(List<Map.Entry<AlbumSimplified, AlbumGroupExtended>> droppedAlbums, String logDescription){
     if (!droppedAlbums.isEmpty()) {
       if (logDescription != null) {
-        debug(DROPPED_PREFIX + logDescription);
+        info(DROPPED_PREFIX + logDescription);
       }
       for (Map.Entry<AlbumSimplified, AlbumGroupExtended> droppedAlbum : droppedAlbums) {
-        debug(DROPPED_PREFIX + INDENT + DiscoveryBotUtils.formatAlbum(droppedAlbum.getKey(), droppedAlbum.getValue()));
+        info(DROPPED_PREFIX + INDENT + DiscoveryBotUtils.formatAlbum(droppedAlbum.getKey(), droppedAlbum.getValue()));
       }
     }
   }

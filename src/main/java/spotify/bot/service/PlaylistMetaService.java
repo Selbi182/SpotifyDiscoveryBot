@@ -92,7 +92,6 @@ public class PlaylistMetaService {
           playlistStoreConfig.setPlaylistStoreUpdatedJustNow(ps.getAlbumGroupExtended());
           return null; // must return something for Void class
         });
-        log.printAlbumTrackPairs(albumTrackPairs, ps.getAlbumGroupExtended());
       }
       spotifyOptimizedExecutorService.executeAndWaitVoid(callables);
     }

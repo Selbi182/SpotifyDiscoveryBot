@@ -56,10 +56,10 @@ public class PlaylistSongsService {
       List<AlbumTrackPair> albumTrackPairs = songsByPlaylist.get(ps);
       Collections.sort(albumTrackPairs);
       callables.add(() -> {
+        log.printAlbumTrackPairs(albumTrackPairs, ps.getAlbumGroupExtended());
         addSongsForPlaylistStore(ps, albumTrackPairs);
         return null; // must return something for Void class
       });
-      log.printAlbumTrackPairs(albumTrackPairs, ps.getAlbumGroupExtended());
     }
     spotifyOptimizedExecutorService.executeAndWaitVoid(callables);
   }

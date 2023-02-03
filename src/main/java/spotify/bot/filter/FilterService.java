@@ -239,9 +239,8 @@ public class FilterService {
 	private List<AlbumSimplified> filterDuplicatedAlbumsReleasedRecently(List<AlbumSimplified> unfilteredAlbums) throws SQLException {
 		Set<String> releaseNamesCache = new HashSet<>(databaseService.getReleaseNamesCache());
 		List<AlbumSimplified> leftoverAlbums = unfilteredAlbums.stream()
-			.filter(as -> !isValidDate(as) || !releaseNamesCache.contains(BotUtils.albumIdentifierString(as)))
+			.filter(albumSimplified -> isValidDate(albumSimplified) && !releaseNamesCache.contains(BotUtils.albumIdentifierString(albumSimplified)))
 			.collect(Collectors.toList());
-		
 		cacheAlbumNames(leftoverAlbums, true);
 		log.printDroppedAlbumDifference(unfilteredAlbums, leftoverAlbums,
 			String.format("Dropped %d duplicate[s] already released recently:", unfilteredAlbums.size() - leftoverAlbums.size()));

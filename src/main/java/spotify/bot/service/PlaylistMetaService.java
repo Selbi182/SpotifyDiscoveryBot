@@ -22,7 +22,7 @@ import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import se.michaelthelin.spotify.requests.data.playlists.ChangePlaylistsDetailsRequest;
-import spotify.api.BotException;
+import spotify.api.SpotifyApiException;
 import spotify.api.SpotifyCall;
 import spotify.bot.config.DeveloperMode;
 import spotify.bot.config.properties.PlaylistStoreConfig;
@@ -80,7 +80,7 @@ public class PlaylistMetaService {
    * Display the [NEW] notifiers of the given album groups' playlists titles, if
    * any songs were added
    */
-  public void showNotifiers(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws BotException {
+  public void showNotifiers(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws SpotifyApiException {
     if (!DeveloperMode.isPlaylistAdditionDisabled()) {
       List<PlaylistStore> sortedPlaylistStores = songsByPlaylist.keySet().stream().sorted().collect(Collectors.toList());
       List<Callable<Void>> callables = new ArrayList<>();
@@ -102,7 +102,7 @@ public class PlaylistMetaService {
    *
    * @return true if at least one playlist name was changed
    */
-  public boolean clearObsoleteNotifiers() throws BotException {
+  public boolean clearObsoleteNotifiers() throws SpotifyApiException {
     boolean changed = false;
     if (!DeveloperMode.isPlaylistAdditionDisabled()) {
       for (PlaylistStore ps : playlistStoreConfig.getAllPlaylistStores()) {
@@ -132,7 +132,7 @@ public class PlaylistMetaService {
    * @return true if the playlist name was changed (a changed playlist description
    *         has no effect on its own)
    */
-  private boolean updatePlaylistTitleAndDescription(PlaylistStore playlistStore, String notifierTarget, String notifierReplacement, boolean timestamp) throws BotException {
+  private boolean updatePlaylistTitleAndDescription(PlaylistStore playlistStore, String notifierTarget, String notifierReplacement, boolean timestamp) throws SpotifyApiException {
     boolean changed = false;
     String playlistId = playlistStore.getPlaylistId();
     if (playlistId != null) {

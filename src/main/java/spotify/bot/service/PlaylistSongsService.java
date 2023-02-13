@@ -18,7 +18,7 @@ import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
-import spotify.api.BotException;
+import spotify.api.SpotifyApiException;
 import spotify.bot.config.DeveloperMode;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.util.DiscoveryBotLogger;
@@ -48,7 +48,7 @@ public class PlaylistSongsService {
   /**
    * Adds all releases to the given playlists
    */
-  public void addAllReleasesToSetPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws BotException {
+  public void addAllReleasesToSetPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws SpotifyApiException {
     log.info("Adding to playlists:");
     List<PlaylistStore> sortedPlaylistStores = songsByPlaylist.keySet().stream().sorted().collect(Collectors.toList());
     List<Callable<Void>> callables = new ArrayList<>();
@@ -74,7 +74,7 @@ public class PlaylistSongsService {
    * Add the given list of song IDs to the playlist (a delay of a second per
    * release is used to retain order). May remove older songs to make room.
    */
-  public void addSongsToPlaylistId(String playlistId, List<AlbumTrackPair> albumTrackPairs) throws BotException {
+  public void addSongsToPlaylistId(String playlistId, List<AlbumTrackPair> albumTrackPairs) throws SpotifyApiException {
     if (!albumTrackPairs.isEmpty()) {
       Playlist playlist = playlistService.getPlaylist(playlistId);
       circularPlaylistFitting(playlist, albumTrackPairs);
@@ -103,7 +103,7 @@ public class PlaylistSongsService {
   /**
    * Check if circular playlist fitting is required
    */
-  private void circularPlaylistFitting(Playlist playlist, List<AlbumTrackPair> albumTrackPairs) throws BotException {
+  private void circularPlaylistFitting(Playlist playlist, List<AlbumTrackPair> albumTrackPairs) throws SpotifyApiException {
     int songsToAddCount = albumTrackPairs.stream().mapToInt(AlbumTrackPair::trackCount).sum();
     final int currentPlaylistCount = playlist.getTracks().getTotal();
     if (currentPlaylistCount + songsToAddCount > PLAYLIST_SIZE_LIMIT) {
@@ -118,7 +118,7 @@ public class PlaylistSongsService {
    * If circularPlaylistFitting isn't enabled, an exception is thrown on a full
    * playlist instead.
    */
-  private void deleteSongsFromBottomOnLimit(Playlist playlist, int currentPlaylistCount, int songsToAddCount) throws BotException {
+  private void deleteSongsFromBottomOnLimit(Playlist playlist, int currentPlaylistCount, int songsToAddCount) throws SpotifyApiException {
     String playlistId = playlist.getId();
 
     int totalSongsToDeleteCount = currentPlaylistCount + songsToAddCount - PLAYLIST_SIZE_LIMIT;

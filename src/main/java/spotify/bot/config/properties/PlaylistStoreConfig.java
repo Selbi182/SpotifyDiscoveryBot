@@ -18,7 +18,7 @@ import org.springframework.context.annotation.DependsOn;
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.enums.AlbumGroup;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
-import spotify.api.BotException;
+import spotify.api.SpotifyApiException;
 import spotify.api.SpotifyCall;
 import spotify.bot.service.PlaylistMetaService;
 import spotify.bot.service.performance.CachedUserService;
@@ -78,7 +78,7 @@ public class PlaylistStoreConfig {
 			if (playlistId != null && !playlistId.isBlank()) {
 				try {
 					SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
-				} catch (BotException e) {
+				} catch (SpotifyApiException e) {
 					throw new IllegalStateException("Playlist ID for '" + albumGroupExtended.getGroupName() + "' is invalid");
 				}
 			} else {

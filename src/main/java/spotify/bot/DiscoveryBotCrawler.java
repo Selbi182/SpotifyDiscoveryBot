@@ -10,19 +10,19 @@ import org.springframework.stereotype.Component;
 
 import se.michaelthelin.spotify.enums.AlbumGroup;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
-import spotify.api.BotException;
 import spotify.api.SpotifyApiAuthorization;
+import spotify.api.SpotifyApiException;
 import spotify.api.events.SpotifyApiLoggedInEvent;
 import spotify.bot.config.DeveloperMode;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.filter.FilterService;
 import spotify.bot.filter.RelayService;
 import spotify.bot.filter.RemappingService;
-import spotify.bot.service.performance.CachedArtistService;
-import spotify.bot.service.PlaylistMetaService;
-import spotify.bot.service.PlaylistSongsService;
 import spotify.bot.service.DiscoveryAlbumService;
 import spotify.bot.service.DiscoveryTrackService;
+import spotify.bot.service.PlaylistMetaService;
+import spotify.bot.service.PlaylistSongsService;
+import spotify.bot.service.performance.CachedArtistService;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -74,7 +74,7 @@ public class DiscoveryBotCrawler {
 
 	/**
 	 * Indicate whether the crawler is currently available
-	 * 
+	 *
 	 * @return true if the lock exists and is not locked
 	 */
 	public boolean isReady() {
@@ -83,13 +83,13 @@ public class DiscoveryBotCrawler {
 
 	/**
 	 * Run the Spotify New Discovery crawler if it's ready. Lock it if so.
-	 * 
+	 *
 	 * @return a result map containing the number of added songs by album type, null
 	 *         if lock wasn't available
-	 * @throws BotException on an external exception related to the Spotify Web API
+	 * @throws SpotifyApiException on an external exception related to the Spotify Web API
 	 * @throws SQLException on an internal exception related to the SQLite database
 	 */
-	public Map<AlbumGroupExtended, Integer> tryCrawl() throws BotException, SQLException {
+	public Map<AlbumGroupExtended, Integer> tryCrawl() throws SpotifyApiException, SQLException {
 		if (lock.tryLock()) {
 			try {
 				return crawl();
@@ -104,12 +104,12 @@ public class DiscoveryBotCrawler {
 	 * Event that will be fired once the Spring application has fully booted. It
 	 * will automatically initiate the first crawling iteration. After completion,
 	 * the bot will be made available for scheduled and external (manual) crawling.
-	 * 
-	 * @throws BotException on an external exception related to the Spotify Web API
+	 *
+	 * @throws SpotifyApiException on an external exception related to the Spotify Web API
 	 * @throws SQLException on an internal exception related to the SQLite database
 	 */
 	@EventListener(SpotifyApiLoggedInEvent.class)
-	public void firstCrawlAndEnableReadyState() throws BotException, SQLException {
+	public void firstCrawlAndEnableReadyState() throws SpotifyApiException, SQLException {
 		log.printLine();
 		log.info("Executing initial crawl...", false);
 		long time = System.currentTimeMillis();
@@ -130,10 +130,10 @@ public class DiscoveryBotCrawler {
 	/**
 	 * Clears obsolete [NEW] notifiers from playlists where applicable. This method
 	 * cannot require the lock.
-	 * 
-	 * @throws BotException on an external exception related to the Spotify Web API
+	 *
+	 * @throws SpotifyApiException on an external exception related to the Spotify Web API
 	 */
-	public boolean clearObsoleteNotifiers() throws BotException {
+	public boolean clearObsoleteNotifiers() throws SpotifyApiException {
 		return playlistMetaService.clearObsoleteNotifiers();
 	}
 
@@ -142,7 +142,7 @@ public class DiscoveryBotCrawler {
 	/**
 	 * This is the main crawler logic.<br/>
 	 * <br/>
-	 * 
+	 *
 	 * The process for new album searching is always the same chain of tasks:
 	 * <ol>
 	 * <li>Get all followed artists (will be cached every 24 hours)</li>
@@ -152,13 +152,13 @@ public class DiscoveryBotCrawler {
 	 * <li>Get the songs IDs of the remaining (new) albums</li>
 	 * <li>Sort the releases and add them to the respective playlists</li>
 	 * </ol>
-	 * 
+	 *
 	 * Finally, store the album IDs to the DB to prevent them from getting added a
 	 * second time<br/>
 	 * This happens even if no new songs are added, because it will significantly
 	 * speed up the future search processes
 	 */
-	private Map<AlbumGroupExtended, Integer> crawl() throws BotException, SQLException {
+	private Map<AlbumGroupExtended, Integer> crawl() throws SpotifyApiException, SQLException {
 		spotifyApiAuthorization.refresh();
 		return crawlScript();
 	}
@@ -168,7 +168,7 @@ public class DiscoveryBotCrawler {
 	/**
 	 * Main crawl script with fail-fast mechanisms to save bandwidth
 	 */
-	private Map<AlbumGroupExtended, Integer> crawlScript() throws BotException, SQLException {
+	private Map<AlbumGroupExtended, Integer> crawlScript() throws SpotifyApiException, SQLException {
 		List<String> followedArtists = getFollowedArtists();
 		if (!followedArtists.isEmpty()) {
 			List<AlbumSimplified> filteredAlbums = getNewAlbumsFromArtists(followedArtists);
@@ -185,7 +185,7 @@ public class DiscoveryBotCrawler {
 	/**
 	 * Phase 0: Get all followed artists and initialize cache for any new ones
 	 */
-	private List<String> getFollowedArtists() throws SQLException, BotException {
+	private List<String> getFollowedArtists() throws SQLException, SpotifyApiException {
 		CachedArtistsContainer cachedArtistsContainer = cachedArtistService.getFollowedArtistsIds();
 		cachedArtistService.initializeAlbumCacheForNewArtists(cachedArtistsContainer);
 		return cachedArtistsContainer.getAllArtists();
@@ -194,7 +194,7 @@ public class DiscoveryBotCrawler {
 	/**
 	 * Phase 1: Get all new releases from the list of followed artists
 	 */
-	private List<AlbumSimplified> getNewAlbumsFromArtists(List<String> followedArtists) throws BotException, SQLException {
+	private List<AlbumSimplified> getNewAlbumsFromArtists(List<String> followedArtists) throws SpotifyApiException, SQLException {
 		List<AlbumSimplified> allAlbums = discoveryAlbumService.getAllAlbumsOfArtists(followedArtists);
 		List<AlbumSimplified> nonCachedAlbums = filterService.getNonCachedAlbums(allAlbums);
 		List<AlbumSimplified> noFutureAlbums = filterService.filterFutureAlbums(nonCachedAlbums);
@@ -207,7 +207,7 @@ public class DiscoveryBotCrawler {
 	/**
 	 * Phase 2: Get the tracks of the new releases and map them to their respective target playlist store
 	 */
-	private Map<PlaylistStore, List<AlbumTrackPair>> getNewTracksByTargetPlaylist(List<AlbumSimplified> filteredAlbums, List<String> followedArtists) throws BotException {
+	private Map<PlaylistStore, List<AlbumTrackPair>> getNewTracksByTargetPlaylist(List<AlbumSimplified> filteredAlbums, List<String> followedArtists) throws SpotifyApiException {
 		List<AlbumTrackPair> tracksByAlbums = discoveryTrackService.getTracksOfAlbums(filteredAlbums);
 		Map<AlbumGroup, List<AlbumTrackPair>> categorizedFilteredAlbums = filterService.categorizeAlbumsByAlbumGroup(tracksByAlbums);
 		Map<AlbumGroup, List<AlbumTrackPair>> intelligentAppearsOnFilteredAlbums = filterService.intelligentAppearsOnSearch(categorizedFilteredAlbums, followedArtists);
@@ -223,7 +223,7 @@ public class DiscoveryBotCrawler {
 	/**
 	 * Phase 3: Add all releases to their target playlists and collect the results
 	 */
-	private Map<AlbumGroupExtended, Integer> addReleasesToPlaylistsAndCollectResults(Map<PlaylistStore, List<AlbumTrackPair>> newTracksByTargetPlaylist) throws BotException {
+	private Map<AlbumGroupExtended, Integer> addReleasesToPlaylistsAndCollectResults(Map<PlaylistStore, List<AlbumTrackPair>> newTracksByTargetPlaylist) throws SpotifyApiException {
 		playlistSongsService.addAllReleasesToSetPlaylists(newTracksByTargetPlaylist);
 		playlistMetaService.showNotifiers(newTracksByTargetPlaylist);
 		relayService.relayResults(newTracksByTargetPlaylist);

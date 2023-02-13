@@ -14,7 +14,7 @@ import com.google.common.collect.ImmutableList;
 
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
-import spotify.api.BotException;
+import spotify.api.SpotifyApiException;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.filter.FilterService;
 import spotify.bot.service.DiscoveryAlbumService;
@@ -49,12 +49,12 @@ public class CachedArtistService {
   /**
    * Get all the user's followed artists
    */
-  public CachedArtistsContainer getFollowedArtistsIds() throws SQLException, BotException {
+  public CachedArtistsContainer getFollowedArtistsIds() throws SQLException, SpotifyApiException {
     List<String> cachedArtists = getCachedArtistIds();
     if (isArtistCacheExpired()) {
       List<String> followedArtistIds = getRealArtistIds();
       if (followedArtistIds.isEmpty()) {
-        throw new BotException(new IllegalArgumentException("No followed artists found!"));
+        throw new SpotifyApiException(new IllegalArgumentException("No followed artists found!"));
       }
       filterService.cacheArtistIds(followedArtistIds, false);
       this.artistCacheLastUpdated = ZonedDateTime.now().toLocalDate();
@@ -77,7 +77,7 @@ public class CachedArtistService {
   /**
    * Get the real artist IDs directly from the Spotify API
    */
-  private List<String> getRealArtistIds() throws BotException {
+  private List<String> getRealArtistIds() throws SpotifyApiException {
     List<Artist> followedArtists = artistService.getFollowedArtists();
     List<String> followedArtistIds = followedArtists.stream()
         .map(Artist::getId)

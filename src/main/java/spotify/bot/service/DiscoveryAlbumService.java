@@ -21,7 +21,7 @@ import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
 import se.michaelthelin.spotify.model_objects.specification.Paging;
 import se.michaelthelin.spotify.requests.data.IPagingRequestBuilder;
 import se.michaelthelin.spotify.requests.data.artists.GetArtistsAlbumsRequest;
-import spotify.api.BotException;
+import spotify.api.SpotifyApiException;
 import spotify.api.SpotifyCall;
 import spotify.bot.service.performance.CachedUserService;
 import spotify.services.AlbumService;
@@ -50,7 +50,7 @@ public class DiscoveryAlbumService {
    * the majority of the crawling process, as it requires firing at least one
    * Spotify Web API request for EVERY SINGLE ARTIST!)
    */
-  public List<AlbumSimplified> getAllAlbumsOfArtists(List<String> followedArtists) throws BotException {
+  public List<AlbumSimplified> getAllAlbumsOfArtists(List<String> followedArtists) throws SpotifyApiException {
     CountryCode marketOfCurrentUser = cachedUserService.getUserMarket();
 
     List<Callable<List<AlbumSimplified>>> callables = new ArrayList<>();
@@ -68,7 +68,7 @@ public class DiscoveryAlbumService {
    * @param market the market to check for
    * @return the albums
    */
-  private List<AlbumSimplified> getAlbumIdsOfSingleArtist(String artistId, String albumGroupString, CountryCode market) throws BotException {
+  private List<AlbumSimplified> getAlbumIdsOfSingleArtist(String artistId, String albumGroupString, CountryCode market) throws SpotifyApiException {
     List<AlbumSimplified> allAlbums = executePagingStopAtFirstAppearsOn(spotifyApi
         .getArtistsAlbums(artistId)
         .market(market)
@@ -80,7 +80,7 @@ public class DiscoveryAlbumService {
   /**
    * A custom version of SpotifyCall.executePaging that stops as soon as it finds an appears_on release
    */
-  private List<AlbumSimplified> executePagingStopAtFirstAppearsOn(IPagingRequestBuilder<AlbumSimplified, GetArtistsAlbumsRequest.Builder> pagingRequestBuilder) throws BotException {
+  private List<AlbumSimplified> executePagingStopAtFirstAppearsOn(IPagingRequestBuilder<AlbumSimplified, GetArtistsAlbumsRequest.Builder> pagingRequestBuilder) throws SpotifyApiException {
     List<AlbumSimplified> resultList = new ArrayList<>();
     Paging<AlbumSimplified> paging = null;
     do {
@@ -160,9 +160,9 @@ public class DiscoveryAlbumService {
    *
    * @param albums the albums to work with
    * @return the new albums
-   * @throws BotException if anything goes wrong
+   * @throws SpotifyApiException if anything goes wrong
    */
-  public List<AlbumSimplified> resolveViaAppearsOnArtistNames(List<AlbumSimplified> albums) throws BotException {
+  public List<AlbumSimplified> resolveViaAppearsOnArtistNames(List<AlbumSimplified> albums) throws SpotifyApiException {
     List<String> relevantAppearsOnArtistsIds = albums.stream()
         .filter(album -> AlbumGroup.APPEARS_ON.equals(album.getAlbumGroup()))
         .map(BotUtils::getLastArtistName)

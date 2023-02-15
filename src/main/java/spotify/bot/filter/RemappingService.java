@@ -73,6 +73,7 @@ public class RemappingService {
 		// Copy map first to retain the input map (makes debugging easier)
 		Map<PlaylistStore, List<AlbumTrackPair>> regroupedMap = new HashMap<>(songsByPS);
 
+		rereleaseRemapper.refreshCachedReleaseNames();
 		remap(rereleaseRemapper, regroupedMap);
 		remap(remixRemapper, regroupedMap);
 		remap(liveRemapper, regroupedMap);

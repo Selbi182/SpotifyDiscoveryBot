@@ -40,7 +40,7 @@ public class SpotifyDiscoveryBot {
 	}
 
 	@Component
-	public static class SpotifyBigPictureScopes implements SpotifyApiScopes {
+	public static class Scopes implements SpotifyApiScopes {
 
 		@Override
 		public List<String> requiredScopes() {

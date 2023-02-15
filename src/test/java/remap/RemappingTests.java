@@ -19,8 +19,9 @@ import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.model_objects.specification.Album;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
-import spotify.api.BotException;
+import spotify.SpotifyDiscoveryBot;
 import spotify.api.SpotifyApiAuthorization;
+import spotify.api.SpotifyApiException;
 import spotify.api.SpotifyApiWrapper;
 import spotify.api.SpotifyCall;
 import spotify.bot.config.database.DatabaseCreationService;
@@ -58,7 +59,10 @@ import spotify.util.data.AlbumTrackPair;
 	CachedUserService.class,
 	DatabaseCreationService.class,
 	PlaylistStoreConfig.class,
-	BlacklistConfig.class
+	BlacklistConfig.class,
+	DatabaseService.class,
+	SpotifyDiscoveryBot.Scopes.class
+
 })
 @EnableConfigurationProperties
 public class RemappingTests {
@@ -78,6 +82,9 @@ public class RemappingTests {
 	@Autowired
 	private CachedUserService cachedUserService;
 
+	@Autowired
+	private DatabaseService databaseService;
+
 	private static EpRemapper epRemapper;
 	private static LiveRemapper liveRemapper;
 	private static RemixRemapper remixRemapper;
@@ -92,7 +99,7 @@ public class RemappingTests {
 			liveRemapper = new LiveRemapper(trackService);
 			remixRemapper = new RemixRemapper();
 
-			rereleaseRemapper = new RereleaseRemapper(filterService, cachedUserService);
+			rereleaseRemapper = new RereleaseRemapper(filterService, cachedUserService, databaseService);
 
 			login();
 			
@@ -103,7 +110,7 @@ public class RemappingTests {
 	private void login() {
 		try {
 			spotifyApiAuthorization.initialLogin();
-		} catch (BotException e) {
+		} catch (SpotifyApiException e) {
 			e.printStackTrace();
 			fail("Couldn't log in to Spotify Web API!");
 		}
@@ -130,19 +137,19 @@ public class RemappingTests {
 			List<TrackSimplified> tracks = getTracksOfSingleAlbum(album);
 			AlbumTrackPair atp = AlbumTrackPair.of(album, tracks);
 			return remapper.determineRemapAction(atp);
-		} catch (BotException e) {
+		} catch (SpotifyApiException e) {
 			e.printStackTrace();
 			fail();
 			return null;
 		}
 	}
 
-	private AlbumSimplified getAlbumSimplified(String albumId) throws BotException {
+	private AlbumSimplified getAlbumSimplified(String albumId) throws SpotifyApiException {
 		Album album = SpotifyCall.execute(spotifyApi.getAlbum(albumId));
 		return BotUtils.asAlbumSimplified(album);
 	}
 
-	private List<TrackSimplified> getTracksOfSingleAlbum(AlbumSimplified album) throws BotException {
+	private List<TrackSimplified> getTracksOfSingleAlbum(AlbumSimplified album) throws SpotifyApiException {
 		return SpotifyCall.executePaging(spotifyApi
 			.getAlbumsTracks(album.getId())
 			.limit(50));

@@ -10,8 +10,6 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
-import com.google.common.collect.ImmutableList;
-
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
 import spotify.api.SpotifyApiException;
@@ -56,11 +54,11 @@ public class CachedArtistService {
       if (followedArtistIds.isEmpty()) {
         throw new SpotifyApiException(new IllegalArgumentException("No followed artists found!"));
       }
-      filterService.cacheArtistIds(followedArtistIds, false);
+      filterService.cacheArtistIds(followedArtistIds);
       this.artistCacheLastUpdated = ZonedDateTime.now().toLocalDate();
       return repackageIntoContainer(followedArtistIds, cachedArtists);
     } else {
-      return new CachedArtistsContainer(cachedArtists, ImmutableList.of());
+      return new CachedArtistsContainer(cachedArtists, List.of());
     }
   }
 
@@ -111,8 +109,8 @@ public class CachedArtistService {
           .collect(Collectors.joining(", ")));
       List<AlbumSimplified> allAlbumsOfNewFollowees = discoveryAlbumService.getAllAlbumsOfArtists(newArtists);
       List<AlbumSimplified> albumsToInitialize = filterService.getNonCachedAlbums(allAlbumsOfNewFollowees);
-      filterService.cacheAlbumIds(albumsToInitialize, false);
-      filterService.cacheAlbumNames(albumsToInitialize, false);
+      filterService.cacheAlbumIds(albumsToInitialize);
+      filterService.cacheAlbumNames(albumsToInitialize);
     }
   }
 }

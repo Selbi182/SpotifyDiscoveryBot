@@ -43,6 +43,8 @@ public class DiscoveryBotCrawler {
 	private final RemappingService remappingService;
 	private final RelayService relayService;
 
+	private List<AlbumSimplified> albumsToCache;
+
 	DiscoveryBotCrawler(
 			SpotifyApiAuthorization spotifyApiAuthorization,
 			DiscoveryBotLogger discoveryBotLogger,
@@ -160,7 +162,11 @@ public class DiscoveryBotCrawler {
 	 */
 	private Map<AlbumGroupExtended, Integer> crawl() throws SpotifyApiException, SQLException {
 		spotifyApiAuthorization.refresh();
-		return crawlScript();
+		try {
+			return crawlScript();
+		} finally {
+			updateAlbumCache();
+		}
 	}
 
 	/////////////////////////
@@ -198,9 +204,9 @@ public class DiscoveryBotCrawler {
 		List<AlbumSimplified> allAlbums = discoveryAlbumService.getAllAlbumsOfArtists(followedArtists);
 		List<AlbumSimplified> nonCachedAlbums = filterService.getNonCachedAlbums(allAlbums);
 		List<AlbumSimplified> noFutureAlbums = filterService.filterFutureAlbums(nonCachedAlbums);
-		filterService.cacheAlbumIds(noFutureAlbums, true);
+		albumsToCache = List.copyOf(noFutureAlbums);
 		List<AlbumSimplified> insertedAppearOnArtistsAlbums = discoveryAlbumService.resolveViaAppearsOnArtistNames(noFutureAlbums);
-		List<AlbumSimplified> filteredNoDuplicatesAlbums = filterService.filterDuplicateAlbums(insertedAppearOnArtistsAlbums);
+		List<AlbumSimplified> filteredNoDuplicatesAlbums = filterService.filterDuplicatedAlbumsReleasedSimultaneously(insertedAppearOnArtistsAlbums);
 		return filterService.filterNewAlbumsOnly(filteredNoDuplicatesAlbums);
 	}
 
@@ -228,5 +234,16 @@ public class DiscoveryBotCrawler {
 		playlistMetaService.showNotifiers(newTracksByTargetPlaylist);
 		relayService.relayResults(newTracksByTargetPlaylist);
 		return DiscoveryBotUtils.collectSongAdditionResults(newTracksByTargetPlaylist);
+	}
+
+	/**
+	 * Post: Cache any new album IDs found during this crawl process
+	 */
+	private void updateAlbumCache() {
+		if (albumsToCache != null && !albumsToCache.isEmpty()) {
+			filterService.cacheAlbumIds(albumsToCache);
+			filterService.cacheAlbumNames(albumsToCache);
+			albumsToCache = null;
+		}
 	}
 }

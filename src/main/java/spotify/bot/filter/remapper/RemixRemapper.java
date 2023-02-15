@@ -19,7 +19,7 @@ public class RemixRemapper implements Remapper {
 	 */
 	@Override
 	public boolean isAllowedAlbumGroup(AlbumGroupExtended albumGroupExtended) {
-		return! albumGroupExtended.isExtendedType();
+		return !albumGroupExtended.isExtendedType();
 	}
 
 	@Override

@@ -1,18 +1,21 @@
 package spotify.bot.filter.remapper;
 
+import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
 
-import com.neovisionaries.i18n.CountryCode;
-
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
+import spotify.bot.config.database.DatabaseService;
 import spotify.bot.filter.FilterService;
 import spotify.bot.service.performance.CachedUserService;
 import spotify.bot.util.data.AlbumGroupExtended;
+import spotify.util.BotUtils;
 import spotify.util.data.AlbumTrackPair;
 
 @Component
@@ -24,10 +27,15 @@ public class RereleaseRemapper implements Remapper {
 
 	private final FilterService filterService;
 	private final CachedUserService cachedUserService;
+	private final DatabaseService databaseService;
 
-	public RereleaseRemapper(FilterService filterService, CachedUserService cachedUserService) {
+	private Set<String> releaseNamesCache;
+
+	public RereleaseRemapper(FilterService filterService, CachedUserService cachedUserService, DatabaseService databaseService) {
 		this.filterService = filterService;
 		this.cachedUserService = cachedUserService;
+		this.databaseService = databaseService;
+		this.releaseNamesCache = Set.of();
 	}
 
 	@Override
@@ -36,13 +44,11 @@ public class RereleaseRemapper implements Remapper {
 	}
 
 	/**
-	 * Only rereleased albums are relevant. While singles and EPs get rereleased
-	 * too, they are way less interesting, and it'd not be worth the effort to deal
-	 * with them too.
+	 * Any non-extended album group qualifies as relevant for Rerelease remapping
 	 */
 	@Override
 	public boolean isAllowedAlbumGroup(AlbumGroupExtended albumGroupExtended) {
-		return AlbumGroupExtended.ALBUM.equals(albumGroupExtended);
+		return !albumGroupExtended.isExtendedType();
 	}
 
 	/**
@@ -51,16 +57,25 @@ public class RereleaseRemapper implements Remapper {
 	 * incomplete reupload. Full chart:
 	 * 
 	 * <pre>
-	 * NORMAL | COMPLETE | RECENT || NONE | REMAP | ERASE
-	 * -------|----------|--------||------|-------|------
-	 *  yes   |  yes     |  yes   ||  x   |       |      
-	 *  yes   |  yes     |  no    ||      |  x    |      
-	 *  yes   |  no      |  yes   ||  x   |       |     
-	 *  yes   |  no      |  no    ||      |       |  x         
-	 *  no    |  yes     |  yes   ||      |  x    |      
-	 *  no    |  yes     |  no    ||      |  x    |      
-	 *  no    |  no      |  yes   ||      |  x    |      
-	 *  no    |  no      |  no    ||      |       |  x
+	 * CACHED | NORMAL | COMPLETE | RECENT || NONE | REMAP | ERASE
+	 * -------|--------|----------|--------||------|-------|------
+	 * no     |  yes   |  yes     |  yes   ||  x   |       |
+	 * no     |  yes   |  yes     |  no    ||      |  x    |
+	 * no     |  yes   |  no      |  yes   ||  x   |       |
+	 * no     |  yes   |  no      |  no    ||      |       |  x
+	 * no     |  no    |  yes     |  yes   ||      |  x    |
+	 * no     |  no    |  yes     |  no    ||      |  x    |
+	 * no     |  no    |  no      |  yes   ||      |  x    |
+	 * no     |  no    |  no      |  no    ||      |       |  x
+	 * -------|--------|----------|--------||------|-------|------
+	 * yes    |  yes   |  yes     |  yes   ||      |  x    |
+ 	 * yes    |  yes   |  yes     |  no    ||      |  x    |
+ 	 * yes    |  yes   |  no      |  yes   ||      |       |  x
+ 	 * yes    |  yes   |  no      |  no    ||      |       |  x
+ 	 * yes    |  no    |  yes     |  yes   ||      |  x    |
+ 	 * yes    |  no    |  yes     |  no    ||      |  x    |
+ 	 * yes    |  no    |  no      |  yes   ||      |       |  x
+ 	 * yes    |  no    |  no      |  no    ||      |       |  x
 	 * </pre>
 	 * 
 	 * Legend:
@@ -81,19 +96,28 @@ public class RereleaseRemapper implements Remapper {
 		boolean normal = !containsRereleaseWord(album.getName());
 		boolean complete = tracks.stream().allMatch(this::isTrackAvailable);
 		boolean recent = filterService.isValidDate(album);
+		boolean cached = hasReleaseNameBeenCachedAlready(album);
 
-		if (normal) {
-			if (recent) {
-				return Action.NONE;
-			} else if (!complete) {
+		if (cached) {
+			if (complete) {
+				return Action.REMAP;
+			} else {
 				return Action.ERASE;
 			}
 		} else {
-			if (!complete && !recent) {
-				return Action.ERASE;
+			if (normal) {
+				if (recent) {
+					return Action.NONE;
+				} else if (!complete) {
+					return Action.ERASE;
+				}
+			} else {
+				if (!complete && !recent) {
+					return Action.ERASE;
+				}
 			}
+			return Action.REMAP;
 		}
-		return Action.REMAP;
 	}
 
 	private boolean containsRereleaseWord(String albumTitle) {
@@ -105,12 +129,19 @@ public class RereleaseRemapper implements Remapper {
 	}
 
 	private boolean isTrackAvailable(TrackSimplified ts) {
-		CountryCode requiredMarket = cachedUserService.getUserMarket();
-		for (CountryCode market : ts.getAvailableMarkets()) {
-			if (requiredMarket.equals(market)) {
-				return true;
-			}
+		return Arrays.stream(ts.getAvailableMarkets())
+				.anyMatch(m -> m.equals(cachedUserService.getUserMarket()));
+	}
+
+	private boolean hasReleaseNameBeenCachedAlready(AlbumSimplified album) {
+		return releaseNamesCache.contains(BotUtils.albumIdentifierString(album));
+	}
+
+	public void refreshCachedReleaseNames() {
+		try {
+			this.releaseNamesCache = Set.copyOf(databaseService.getReleaseNamesCache());
+		} catch (SQLException e) {
+			e.printStackTrace();
 		}
-		return false;
 	}
 }

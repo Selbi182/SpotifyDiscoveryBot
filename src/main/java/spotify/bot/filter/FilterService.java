@@ -36,8 +36,6 @@ import spotify.util.data.AlbumTrackPair;
 
 @Service
 public class FilterService {
-	private final static int LOOKBACK_DAYS = 60;
-
 	private final static String VARIOUS_ARTISTS = "Various Artists";
 
 	private final DiscoveryBotLogger log;
@@ -112,14 +110,10 @@ public class FilterService {
 	/**
 	 * Cache the given artist IDs in the database
 	 */
-	public void cacheArtistIds(List<String> artistIds, boolean async) {
+	public void cacheArtistIds(List<String> artistIds) {
 		if (!DeveloperMode.isCacheDisabled()) {
 			if (!artistIds.isEmpty()) {
-				if (async) {
-					databaseService.cacheArtistIdsAsync(artistIds);
-				} else {
-					databaseService.cacheArtistIdsSync(artistIds);
-				}
+				databaseService.cacheArtistIds(artistIds);
 			}
 		}
 	}
@@ -127,29 +121,24 @@ public class FilterService {
 	/**
 	 * Cache the given album IDs in the database
 	 */
-	public void cacheAlbumIds(List<AlbumSimplified> albums, boolean async) {
+	public void cacheAlbumIds(List<AlbumSimplified> albums) {
 		if (!DeveloperMode.isCacheDisabled()) {
 			if (!albums.isEmpty()) {
-				if (async) {
-					databaseService.cacheAlbumIdsAsync(albums);
-				} else {
-					databaseService.cacheAlbumIdsSync(albums);
-				}
+				databaseService.cacheAlbumIds(albums);
 			}
 		}
 	}
 
+	/////////////////////
+	// CACHED ALBUM NAMES
+
 	/**
 	 * Cache the given album names in the database
 	 */
-	public void cacheAlbumNames(List<AlbumSimplified> albums, boolean async) {
+	public void cacheAlbumNames(List<AlbumSimplified> albums) {
 		if (!DeveloperMode.isCacheDisabled()) {
 			if (!albums.isEmpty()) {
-				if (async) {
-					databaseService.cacheAlbumNamesAsync(albums);
-				} else {
-					databaseService.cacheAlbumNamesSync(albums);
-				}
+				databaseService.cacheAlbumNames(albums);
 			}
 		}
 	}
@@ -208,17 +197,9 @@ public class FilterService {
 	}
 
 	/**
-	 * Filter duplicate albums (either released simultaneously or recently already)
-	 */
-	public List<AlbumSimplified> filterDuplicateAlbums(List<AlbumSimplified> unfilteredAlbums) throws SQLException {
-		List<AlbumSimplified> filterSimultaneous = filterDuplicatedAlbumsReleasedSimultaneously(unfilteredAlbums);
-		return filterDuplicatedAlbumsReleasedRecently(filterSimultaneous);
-	}
-
-	/**
 	 * Filter duplicate albums with an identical or very similar name released during the current crawl session
 	 */
-	private List<AlbumSimplified> filterDuplicatedAlbumsReleasedSimultaneously(List<AlbumSimplified> unfilteredAlbums) {
+	public List<AlbumSimplified> filterDuplicatedAlbumsReleasedSimultaneously(List<AlbumSimplified> unfilteredAlbums) {
 		Map<String, AlbumSimplified> uniqueMap = new HashMap<>();
 		for (AlbumSimplified as : unfilteredAlbums) {
 			String identifier = BotUtils.albumIdentifierString(as);
@@ -229,21 +210,6 @@ public class FilterService {
 		Collection<AlbumSimplified> leftoverAlbums = uniqueMap.values();
 		log.printDroppedAlbumDifference(unfilteredAlbums, leftoverAlbums,
 			String.format("Dropped %d duplicate[s] released at the same time:", unfilteredAlbums.size() - leftoverAlbums.size()));
-		return new ArrayList<>(leftoverAlbums);
-	}
-	
-	/**
-	 * Filter duplicate albums with an identical or very similar name released within the lookback days
-	 * (not the ones before that for potential re-releases though)
-	 */
-	private List<AlbumSimplified> filterDuplicatedAlbumsReleasedRecently(List<AlbumSimplified> unfilteredAlbums) throws SQLException {
-		Set<String> releaseNamesCache = new HashSet<>(databaseService.getReleaseNamesCache());
-		List<AlbumSimplified> leftoverAlbums = unfilteredAlbums.stream()
-			.filter(albumSimplified -> isValidDate(albumSimplified) && !releaseNamesCache.contains(BotUtils.albumIdentifierString(albumSimplified)))
-			.collect(Collectors.toList());
-		cacheAlbumNames(leftoverAlbums, true);
-		log.printDroppedAlbumDifference(unfilteredAlbums, leftoverAlbums,
-			String.format("Dropped %d duplicate[s] already released recently:", unfilteredAlbums.size() - leftoverAlbums.size()));
 		return new ArrayList<>(leftoverAlbums);
 	}
 	
@@ -267,7 +233,7 @@ public class FilterService {
 	 */
 	public boolean isValidDate(AlbumSimplified album) {
 		try {
-			LocalDate lowerReleaseDateBoundary = LocalDate.now().minusDays(LOOKBACK_DAYS);
+			LocalDate lowerReleaseDateBoundary = LocalDate.now().minusDays(DiscoveryBotUtils.LOOKBACK_DAYS);
 			LocalDate releaseDate = LocalDate.parse(album.getReleaseDate(), RELEASE_DATE_PARSER);
 			return releaseDate.isAfter(lowerReleaseDateBoundary);
 		} catch (DateTimeParseException e) {

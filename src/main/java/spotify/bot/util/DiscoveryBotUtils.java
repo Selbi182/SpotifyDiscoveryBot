@@ -18,6 +18,12 @@ import spotify.util.BotUtils;
 import spotify.util.data.AlbumTrackPair;
 
 public class DiscoveryBotUtils {
+  /**
+   * Indicates how many days in the past are to be considered "present".
+   * This is required due to rare occasions where a song gets added slightly later
+   * on Spotify than, say, on physical media or Bandcamp.
+   */
+  public final static int LOOKBACK_DAYS = 60;
 
   /**
    * A common order of the different playlist groups: Album > Single > EP > Remix

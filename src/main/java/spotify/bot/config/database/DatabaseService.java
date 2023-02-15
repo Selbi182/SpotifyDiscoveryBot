@@ -4,8 +4,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -18,12 +16,10 @@ import spotify.util.BotUtils;
 public class DatabaseService {
 	private final DiscoveryDatabase database;
 	private final DiscoveryBotLogger log;
-	private final ExecutorService executorService;
 
 	DatabaseService(DiscoveryDatabase discoveryDatabase, DiscoveryBotLogger botLogger) {
 		this.database = discoveryDatabase;
 		this.log = botLogger;
-		this.executorService = Executors.newFixedThreadPool(3);
 	}
 
 	////////////////////////
@@ -71,7 +67,7 @@ public class DatabaseService {
 	/**
 	 * Cache the album IDs of the given list of albums
 	 */
-	public void cacheAlbumIdsSync(List<AlbumSimplified> albumsSimplified) {
+	public void cacheAlbumIds(List<AlbumSimplified> albumsSimplified) {
 		List<String> albumIds = albumsSimplified.stream()
 			.map(AlbumSimplified::getId)
 			.collect(Collectors.toList());
@@ -86,16 +82,9 @@ public class DatabaseService {
 	}
 
 	/**
-	 * Cache the album IDs of the given list of albums in a separate thread
-	 */
-	public synchronized void cacheAlbumIdsAsync(List<AlbumSimplified> albumsSimplified) {
-		executorService.execute(() -> cacheAlbumIdsSync(albumsSimplified));
-	}
-
-	/**
 	 * Cache the album names of the given list of albums
 	 */
-	public void cacheAlbumNamesSync(List<AlbumSimplified> albumsSimplified) {
+	public void cacheAlbumNames(List<AlbumSimplified> albumsSimplified) {
 		List<String> albumIds = albumsSimplified.stream()
 			.map(BotUtils::albumIdentifierString)
 			.collect(Collectors.toList());
@@ -108,18 +97,11 @@ public class DatabaseService {
 			log.stackTrace(e);
 		}
 	}
-	
-	/**
-	 * Cache the album name identifiers of the given list of albums in a separate thread
-	 */
-	public synchronized void cacheAlbumNamesAsync(List<AlbumSimplified> albumsSimplified) {
-		executorService.execute(() -> cacheAlbumNamesSync(albumsSimplified));
-	}
 
 	/**
 	 * Cache the artist IDs in a separate thread
 	 */
-	public synchronized void cacheArtistIdsSync(List<String> followedArtists) {
+	public synchronized void cacheArtistIds(List<String> followedArtists) {
 		try {
 			List<String> cachedArtists = getArtistCache();
 			if (cachedArtists != null) {
@@ -131,12 +113,5 @@ public class DatabaseService {
 		} catch (SQLException e) {
 			log.stackTrace(e);
 		}
-	}
-
-	/**
-	 * Cache the artist IDs in a separate thread
-	 */
-	public synchronized void cacheArtistIdsAsync(List<String> followedArtists) {
-		executorService.execute(() -> cacheArtistIdsSync(followedArtists));
 	}
 }

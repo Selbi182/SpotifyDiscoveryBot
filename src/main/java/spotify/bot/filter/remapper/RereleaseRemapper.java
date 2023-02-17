@@ -9,6 +9,8 @@ import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
 
+import com.neovisionaries.i18n.CountryCode;
+
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.bot.config.database.DatabaseService;
@@ -129,8 +131,8 @@ public class RereleaseRemapper implements Remapper {
 	}
 
 	private boolean isTrackAvailable(TrackSimplified ts) {
-		return Arrays.stream(ts.getAvailableMarkets())
-				.anyMatch(m -> m.equals(cachedUserService.getUserMarket()));
+		CountryCode userMarket = cachedUserService.getUserMarket();
+		return Arrays.asList(ts.getAvailableMarkets()).contains(userMarket);
 	}
 
 	private boolean hasReleaseNameBeenCachedAlready(AlbumSimplified album) {

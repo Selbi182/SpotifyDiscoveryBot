@@ -115,6 +115,7 @@ public class DiscoveryBotCrawler {
 		log.printLine();
 		log.info("Executing initial crawl...", false);
 		long time = System.currentTimeMillis();
+		playlistMetaService.initLastUpdatedFromPlaylistDescriptions();
 		if (!DeveloperMode.isInitialCrawlDisabled()) {
 			Map<AlbumGroupExtended, Integer> results = crawl();
 			String response = DiscoveryBotUtils.compileResultString(results);

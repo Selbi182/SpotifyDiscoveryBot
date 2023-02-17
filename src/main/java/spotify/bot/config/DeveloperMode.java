@@ -37,6 +37,12 @@ public class DeveloperMode {
 		DISABLE_PLAYLIST_ADDITIONS,
 
 		/**
+		 * The black and white circles of the target playlists will not be modified
+		 * under any circumstance
+		 */
+		DISABLE_NOTIFICATION_MARKERS,
+
+		/**
 		 * Scheduled crawls that run once every half hour will be completely disabled
 		 * only manual calls at {@code /crawl} will be executed
 		 */
@@ -102,6 +108,13 @@ public class DeveloperMode {
 	 */
 	public static boolean isPlaylistAdditionDisabled() {
 		return devModes.contains(DevMode.DISABLE_PLAYLIST_ADDITIONS);
+	}
+
+	/**
+	 * Return true if notification markers are disabled
+	 */
+	public static boolean isNotificationMarkersDisabled() {
+		return devModes.contains(DevMode.DISABLE_NOTIFICATION_MARKERS);
 	}
 
 	/**

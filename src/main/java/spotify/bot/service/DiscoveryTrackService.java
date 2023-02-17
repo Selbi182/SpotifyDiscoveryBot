@@ -7,6 +7,7 @@ import java.util.concurrent.Callable;
 import org.springframework.stereotype.Component;
 
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
+import spotify.api.SpotifyApiException;
 import spotify.services.TrackService;
 import spotify.util.SpotifyOptimizedExecutorService;
 import spotify.util.data.AlbumTrackPair;
@@ -24,7 +25,14 @@ public class DiscoveryTrackService {
   public List<AlbumTrackPair> getTracksOfAlbums(List<AlbumSimplified> albums) {
     List<Callable<List<AlbumTrackPair>>> callables = new ArrayList<>();
     for (AlbumSimplified album : albums) {
-      callables.add(() -> List.of(trackService.getTracksOfSingleAlbum(album)));
+      callables.add(() -> {
+        try {
+          AlbumTrackPair tracksOfSingleAlbum = trackService.getTracksOfSingleAlbum(album);
+          return List.of(tracksOfSingleAlbum);
+        } catch (SpotifyApiException e) {
+          return List.of();
+        }
+      });
     }
     return spotifyOptimizedExecutorService.executeAndWait(callables);
   }

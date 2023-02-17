@@ -4,13 +4,14 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
@@ -32,6 +33,7 @@ public class PlaylistStoreConfig {
 	private final static String PLAYLIST_STORE_FILENAME = DiscoveryBotUtils.BASE_CONFIG_PATH + "playlist.properties";
 
 	private final Map<AlbumGroupExtended, PlaylistStore> playlistStoreMap;
+	private final List<AlbumGroupExtended> enabledAlbumGroups;
 	private final List<AlbumGroupExtended> disabledAlbumGroups;
 
 	private final SpotifyApi spotifyApi;
@@ -42,6 +44,7 @@ public class PlaylistStoreConfig {
 		this.spotifyApi = spotifyApi;
 		this.cachedUserService = cachedUserService;
 		this.log = discoveryBotLogger;
+		this.enabledAlbumGroups = new ArrayList<>();
 		this.disabledAlbumGroups = new ArrayList<>();
 		this.playlistStoreMap = getPlaylistStoreFromPropertiesFile();
 	}
@@ -78,6 +81,7 @@ public class PlaylistStoreConfig {
 			if (playlistId != null && !playlistId.isBlank()) {
 				try {
 					SpotifyCall.execute(spotifyApi.getPlaylist(playlistId));
+					enabledAlbumGroups.add(albumGroupExtended);
 				} catch (SpotifyApiException e) {
 					throw new IllegalStateException("Playlist ID for '" + albumGroupExtended.getGroupName() + "' is invalid");
 				}
@@ -135,6 +139,15 @@ public class PlaylistStoreConfig {
 	}
 
 	/**
+	 * Returns all set playlist stores.
+	 */
+	public Collection<PlaylistStore> getEnabledPlaylistStores() {
+		return getAllPlaylistStores().stream()
+				.filter(ps -> getEnabledAlbumGroups().contains(ps.getAlbumGroupExtended()))
+				.collect(Collectors.toList());
+	}
+
+	/**
 	 * 
 	 * Returns the stored playlist store by the given album group.
 	 */
@@ -150,6 +163,13 @@ public class PlaylistStoreConfig {
 	}
 
 	/**
+	 * Returns the list of album groups that are enabled
+	 */
+	public List<AlbumGroupExtended> getEnabledAlbumGroups() {
+		return enabledAlbumGroups;
+	}
+
+	/**
 	 * Returns the list of album groups that were disabled in the playlist.properties
 	 */
 	public List<AlbumGroupExtended> getDisabledAlbumGroups() {
@@ -160,7 +180,7 @@ public class PlaylistStoreConfig {
 	 * Set the playlist store for this album group to be last updated just now
 	 */
 	public void setPlaylistStoreUpdatedJustNow(AlbumGroupExtended albumGroup) {
-		playlistStoreMap.get(albumGroup).setLastUpdate(new Date());
+		playlistStoreMap.get(albumGroup).setLastUpdate(LocalDateTime.now());
 	}
 
 	/**
@@ -174,13 +194,11 @@ public class PlaylistStoreConfig {
 		private final AlbumGroupExtended albumGroupExtended;
 		private final String playlistId;
 
-		private Date lastUpdate;
-		private boolean forceUpdateOnFirstTime;
+		private LocalDateTime lastUpdate;
 
 		public PlaylistStore(AlbumGroupExtended albumGroupExtended, String playlistId) {
 			this.albumGroupExtended = albumGroupExtended;
 			this.playlistId = playlistId;
-			this.forceUpdateOnFirstTime = true;
 		}
 
 		/////////////
@@ -193,22 +211,14 @@ public class PlaylistStoreConfig {
 			return playlistId;
 		}
 
-		public Date getLastUpdate() {
+		public LocalDateTime getLastUpdate() {
 			return lastUpdate;
 		}
 
 		/////////////
 
-		public void setLastUpdate(Date lastUpdate) {
+		public void setLastUpdate(LocalDateTime lastUpdate) {
 			this.lastUpdate = lastUpdate;
-		}
-
-		public boolean isForceUpdateOnFirstTime() {
-			if (forceUpdateOnFirstTime) {
-				forceUpdateOnFirstTime = false;
-				return true;
-			}
-			return false;
 		}
 
 		/////////////

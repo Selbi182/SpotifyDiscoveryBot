@@ -1,11 +1,11 @@
 package spotify.bot.service;
 
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -56,7 +56,12 @@ public class PlaylistMetaService {
   /**
    * The description timestamp. Example: "January 1, 2000 - 00:00"
    */
-  private final static SimpleDateFormat DESCRIPTION_TIMESTAMP_FORMAT = new SimpleDateFormat("MMMMM d, yyyy \u2014 HH:mm", Locale.ENGLISH);
+  private final static DateTimeFormatter DESCRIPTION_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("MMMM d, yyyy \u2014 HH:mm", Locale.ENGLISH);
+
+  /**
+   * The prefix for the automatically created description
+   */
+  public static final String DESCRIPTION_PREFIX = "Last Discovery: ";
 
   private final SpotifyApi spotifyApi;
   private final PlaylistService playlistService;
@@ -77,11 +82,38 @@ public class PlaylistMetaService {
   }
 
   /**
+   * To be run once at startup, before the first crawl. This sets the "last updated" parameter
+   * inside the PlaylistStores based on their value from the description.
+   */
+  public void initLastUpdatedFromPlaylistDescriptions() {
+    if (!DeveloperMode.isNotificationMarkersDisabled()) {
+      List<Callable<Void>> callables = new ArrayList<>();
+      for (PlaylistStore ps : playlistStoreConfig.getEnabledPlaylistStores()) {
+        callables.add(() -> {
+          Playlist playlist = SpotifyCall.execute(spotifyApi.getPlaylist(ps.getPlaylistId()));
+          String description = playlist.getDescription();
+          if (description.startsWith(DESCRIPTION_PREFIX)) {
+            String rawDate = description.replace(DESCRIPTION_PREFIX, "").trim();
+            try {
+              LocalDateTime lastUpdateFromDescription = DESCRIPTION_TIMESTAMP_FORMAT.parse(rawDate, LocalDateTime::from);
+              ps.setLastUpdate(lastUpdateFromDescription);
+            } catch (DateTimeParseException e) {
+              e.printStackTrace();
+            }
+          }
+          return null; // must return something for Void class
+        });
+      }
+      spotifyOptimizedExecutorService.executeAndWaitVoid(callables);
+    }
+  }
+
+  /**
    * Display the [NEW] notifiers of the given album groups' playlists titles, if
    * any songs were added
    */
   public void showNotifiers(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws SpotifyApiException {
-    if (!DeveloperMode.isPlaylistAdditionDisabled()) {
+    if (!DeveloperMode.isNotificationMarkersDisabled()) {
       List<PlaylistStore> sortedPlaylistStores = songsByPlaylist.keySet().stream().sorted().collect(Collectors.toList());
       List<Callable<Void>> callables = new ArrayList<>();
       for (PlaylistStore ps : sortedPlaylistStores) {
@@ -104,14 +136,12 @@ public class PlaylistMetaService {
    */
   public boolean clearObsoleteNotifiers() throws SpotifyApiException {
     boolean changed = false;
-    if (!DeveloperMode.isPlaylistAdditionDisabled()) {
-      for (PlaylistStore ps : playlistStoreConfig.getAllPlaylistStores()) {
-        if (!playlistStoreConfig.getDisabledAlbumGroups().contains(ps.getAlbumGroupExtended())) {
-          if (ps.isForceUpdateOnFirstTime() || shouldIndicatorBeMarkedAsRead(ps)) {
-            if (updatePlaylistTitleAndDescription(ps, INDICATOR_NEW, INDICATOR_OFF, false)) {
-              changed = true;
-              playlistStoreConfig.unsetPlaylistStoreUpdatedRecently(ps.getAlbumGroupExtended());
-            }
+    if (!DeveloperMode.isNotificationMarkersDisabled()) {
+      for (PlaylistStore ps : playlistStoreConfig.getEnabledPlaylistStores()) {
+        if (shouldIndicatorBeMarkedAsRead(ps)) {
+          if (updatePlaylistTitleAndDescription(ps, INDICATOR_NEW, INDICATOR_OFF, false)) {
+            changed = true;
+            playlistStoreConfig.unsetPlaylistStoreUpdatedRecently(ps.getAlbumGroupExtended());
           }
         }
       }
@@ -140,7 +170,7 @@ public class PlaylistMetaService {
       String newDescription = null;
 
       if (timestamp) {
-        newDescription = "Last Discovery: " + DESCRIPTION_TIMESTAMP_FORMAT.format(Calendar.getInstance().getTime());
+        newDescription = DESCRIPTION_PREFIX + LocalDateTime.now().format(DESCRIPTION_TIMESTAMP_FORMAT);
       }
 
       Playlist p = playlistService.getPlaylist(playlistId);
@@ -176,7 +206,7 @@ public class PlaylistMetaService {
   private boolean shouldIndicatorBeMarkedAsRead(PlaylistStore playlistStore) {
     try {
       // Case 1: Notification timestamp is already unset
-      Date lastUpdated = playlistStore.getLastUpdate();
+      LocalDateTime lastUpdated = playlistStore.getLastUpdate();
       if (lastUpdated == null) {
         return true;
       }

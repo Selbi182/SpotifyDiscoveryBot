@@ -31,7 +31,7 @@ import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.util.BotUtils;
+import spotify.util.SpotifyUtils;
 import spotify.util.data.AlbumTrackPair;
 
 @Service
@@ -68,9 +68,7 @@ public class FilterService {
 	 * @return the leftover (new) albums
 	 */
 	public List<AlbumSimplified> getNonCachedAlbums(List<AlbumSimplified> allAlbums) throws SQLException {
-		List<AlbumSimplified> filteredAlbums = filterNonCachedAlbumsOnly(allAlbums);
-		BotUtils.removeNulls(filteredAlbums);
-		return filteredAlbums;
+		return filterNonCachedAlbumsOnly(allAlbums);
 	}
 
 	/**
@@ -186,7 +184,7 @@ public class FilterService {
 	 * GROUPS (aka the return context of the simplified album object)
 	 */
 	public Map<AlbumGroup, List<AlbumTrackPair>> categorizeAlbumsByAlbumGroup(List<AlbumTrackPair> albumTrackPairs) {
-		Map<AlbumGroup, List<AlbumTrackPair>> categorized = BotUtils.createAlbumGroupToListOfTMap();
+		Map<AlbumGroup, List<AlbumTrackPair>> categorized = SpotifyUtils.createAlbumGroupToListOfTMap();
 		for (AlbumTrackPair atp : albumTrackPairs) {
 			AlbumGroup albumGroupOfAlbum = atp.getAlbum().getAlbumGroup();
 			if (albumGroupOfAlbum != null) {
@@ -202,7 +200,7 @@ public class FilterService {
 	public List<AlbumSimplified> filterDuplicatedAlbumsReleasedSimultaneously(List<AlbumSimplified> unfilteredAlbums) {
 		Map<String, AlbumSimplified> uniqueMap = new HashMap<>();
 		for (AlbumSimplified as : unfilteredAlbums) {
-			String identifier = BotUtils.albumIdentifierString(as);
+			String identifier = SpotifyUtils.albumIdentifierString(as);
 			if (!uniqueMap.containsKey(identifier)) {
 				uniqueMap.put(identifier, as);
 			}
@@ -315,7 +313,7 @@ public class FilterService {
 					List<AlbumTrackPair> albumTrackPairsToRemove = new ArrayList<>();
 					List<AlbumTrackPair> list = songsByPS.get(playlistStore);
 					for (AlbumTrackPair atp : list) {
-						if (BotUtils.anyArtistMatches(atp.getAlbum(), blacklistedPair.getKey())) {
+						if (SpotifyUtils.anyArtistMatches(atp.getAlbum(), blacklistedPair.getKey())) {
 							albumTrackPairsToRemove.add(atp);
 							allDroppedReleases.add(Map.entry(atp.getAlbum(), albumGroupExtended));
 						}

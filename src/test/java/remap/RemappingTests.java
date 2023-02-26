@@ -42,7 +42,7 @@ import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.config.SpotifyApiConfig;
 import spotify.services.TrackService;
 import spotify.services.UserService;
-import spotify.util.BotUtils;
+import spotify.util.SpotifyUtils;
 import spotify.util.data.AlbumTrackPair;
 
 @RunWith(SpringRunner.class)
@@ -146,7 +146,7 @@ public class RemappingTests {
 
 	private AlbumSimplified getAlbumSimplified(String albumId) throws SpotifyApiException {
 		Album album = SpotifyCall.execute(spotifyApi.getAlbum(albumId));
-		return BotUtils.asAlbumSimplified(album);
+		return SpotifyUtils.asAlbumSimplified(album);
 	}
 
 	private List<TrackSimplified> getTracksOfSingleAlbum(AlbumSimplified album) throws SpotifyApiException {

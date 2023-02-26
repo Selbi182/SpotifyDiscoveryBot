@@ -1,20 +1,17 @@
 package spotify.bot.util;
 
 import java.util.Arrays;
-import java.util.Comparator;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Ordering;
-
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.util.BotUtils;
+import spotify.util.SpotifyUtils;
 import spotify.util.data.AlbumTrackPair;
 
 public class DiscoveryBotUtils {
@@ -40,16 +37,6 @@ public class DiscoveryBotUtils {
       AlbumGroupExtended.APPEARS_ON);
 
   /**
-   * Same as DEFAULT_PLAYLIST_GROUP_ORDER, but reversed
-   */
-  public final static List<AlbumGroupExtended> DEFAULT_PLAYLIST_GROUP_ORDER_REVERSED = Lists.reverse(DEFAULT_PLAYLIST_GROUP_ORDER);
-
-  /**
-   * {@link DiscoveryBotUtils#DEFAULT_PLAYLIST_GROUP_ORDER} as explicit Comparator
-   */
-  public final static Comparator<AlbumGroupExtended> DEFAULT_PLAYLIST_GROUP_ORDER_COMPARATOR = Ordering.explicit(DEFAULT_PLAYLIST_GROUP_ORDER);
-
-  /**
    * Base path to the config files
    */
   public final static String BASE_CONFIG_PATH = "./config/";
@@ -73,7 +60,7 @@ public class DiscoveryBotUtils {
     if (album == null || tracks == null) {
       return albumTrackPair.toString();
     }
-    String baseRepresentation = String.format("[%s] %s - %s (%s)", albumGroupExtended.toString(), BotUtils.joinArtists(album.getArtists()), album.getName(), album.getReleaseDate());
+    String baseRepresentation = String.format("[%s] %s - %s (%s)", albumGroupExtended.toString(), SpotifyUtils.joinArtists(album.getArtists()), album.getName(), album.getReleaseDate());
     if (tracks.size() != 1) {
       return String.format("%s <%d>", baseRepresentation, tracks.size());
     }
@@ -109,7 +96,7 @@ public class DiscoveryBotUtils {
   public static String formatAlbum(AlbumSimplified as, AlbumGroupExtended customAlbumGroup) {
     return String.format("[%s] %s - %s (%s)",
         customAlbumGroup.toString(),
-        BotUtils.joinArtists(as.getArtists()),
+        SpotifyUtils.joinArtists(as.getArtists()),
         as.getName(),
         as.getReleaseDate());
   }
@@ -126,4 +113,21 @@ public class DiscoveryBotUtils {
     return targetCountMap;
   }
 
+  /**
+   * Return a string which only contains a single character repeated n times
+   */
+  public static String repeatChar(char character, int length) {
+    char[] build = new char[length];
+    Arrays.fill(build, character);
+    return String.valueOf(build);
+  }
+
+  /**
+   * Same as DEFAULT_PLAYLIST_GROUP_ORDER, but reversed
+   */
+  public static List<AlbumGroupExtended> defaultPlaylistGroupOrderReversed() {
+    List<AlbumGroupExtended> shallowCopy = DEFAULT_PLAYLIST_GROUP_ORDER.subList(0, DEFAULT_PLAYLIST_GROUP_ORDER.size());
+    Collections.reverse(shallowCopy);
+    return shallowCopy;
+  }
 }

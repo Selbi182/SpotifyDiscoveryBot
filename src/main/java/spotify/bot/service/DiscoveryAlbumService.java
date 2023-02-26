@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
-import com.google.common.collect.Lists;
 import com.neovisionaries.i18n.CountryCode;
 
 import se.michaelthelin.spotify.SpotifyApi;
@@ -25,8 +24,8 @@ import spotify.api.SpotifyApiException;
 import spotify.api.SpotifyCall;
 import spotify.bot.service.performance.CachedUserService;
 import spotify.services.AlbumService;
-import spotify.util.BotUtils;
 import spotify.util.SpotifyOptimizedExecutorService;
+import spotify.util.SpotifyUtils;
 
 @Service
 public class DiscoveryAlbumService {
@@ -89,7 +88,7 @@ public class DiscoveryAlbumService {
       }
       paging = SpotifyCall.execute(pagingRequestBuilder);
       AlbumSimplified[] newItems = paging.getItems();
-      BotUtils.addToListIfNotBlank(newItems, resultList);
+      SpotifyUtils.addToListIfNotBlank(newItems, resultList);
 
       // Fetches are sorted by AlbumGroup, so if the first entry of this paged result is an Appears-On release, we can stop
       if (newItems == null || newItems.length == 0 || newItems[0].getAlbumGroup().equals(AlbumGroup.APPEARS_ON)) {
@@ -165,11 +164,11 @@ public class DiscoveryAlbumService {
   public List<AlbumSimplified> resolveViaAppearsOnArtistNames(List<AlbumSimplified> albums) throws SpotifyApiException {
     List<String> relevantAppearsOnArtistsIds = albums.stream()
         .filter(album -> AlbumGroup.APPEARS_ON.equals(album.getAlbumGroup()))
-        .map(BotUtils::getLastArtistName)
+        .map(SpotifyUtils::getLastArtistName)
         .collect(Collectors.toList());
 
     Map<String, String> artistIdToName = new HashMap<>();
-    for (List<String> sublistArtistIds : Lists.partition(relevantAppearsOnArtistsIds, 50)) {
+    for (List<String> sublistArtistIds : SpotifyUtils.partitionList(relevantAppearsOnArtistsIds, 50)) {
       Artist[] execute = SpotifyCall.execute(spotifyApi.getSeveralArtists(sublistArtistIds.toArray(String[]::new)));
       for (Artist a : execute) {
         artistIdToName.put(a.getId(), a.getName());
@@ -178,7 +177,7 @@ public class DiscoveryAlbumService {
 
     for (AlbumSimplified as : albums) {
       if (AlbumGroup.APPEARS_ON.equals(as.getAlbumGroup())) {
-        String viaArtistId = BotUtils.getLastArtistName(as);
+        String viaArtistId = SpotifyUtils.getLastArtistName(as);
         String viaArtistName = artistIdToName.get(viaArtistId);
         if (viaArtistName != null) {
           ArtistSimplified viaArtistWithName = new ArtistSimplified.Builder()

@@ -17,7 +17,7 @@ import org.springframework.stereotype.Repository;
 import spotify.SpotifyDiscoveryBot;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
-import spotify.util.BotUtils;
+import spotify.util.SpotifyUtils;
 
 @Repository
 public class DiscoveryDatabase {
@@ -45,7 +45,7 @@ public class DiscoveryDatabase {
 		this.log = discoveryBotLogger;
 		this.databaseCreationService = databaseCreationService;
 		try {
-			File dbFilePath = BotUtils.normalizeFile(getDbFilePath());
+			File dbFilePath = SpotifyUtils.normalizeFile(getDbFilePath());
 			this.dbUrl = DB_URL_PREFIX + dbFilePath.getAbsolutePath();
 			log.info("Establishing SQLite database connection: " + dbFilePath.getAbsolutePath(), false);
 			getConnectionInstance();

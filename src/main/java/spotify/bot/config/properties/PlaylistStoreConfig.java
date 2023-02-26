@@ -75,7 +75,7 @@ public class PlaylistStoreConfig {
 	}
 
 	private void verifyPlaylists(Properties properties) {
-		for (AlbumGroupExtended albumGroupExtended : DiscoveryBotUtils.DEFAULT_PLAYLIST_GROUP_ORDER_REVERSED) {
+		for (AlbumGroupExtended albumGroupExtended : DiscoveryBotUtils.defaultPlaylistGroupOrderReversed()) {
 			String key = albumGroupExtended.getGroupName();
 			String playlistId = properties.getProperty(key);
 			if (playlistId != null && !playlistId.isBlank()) {
@@ -96,7 +96,7 @@ public class PlaylistStoreConfig {
 
 	private void createMissingPlaylists(Properties properties) throws IOException {
 		boolean changes = false;
-		for (AlbumGroupExtended albumGroupExtended : DiscoveryBotUtils.DEFAULT_PLAYLIST_GROUP_ORDER_REVERSED) {
+		for (AlbumGroupExtended albumGroupExtended : DiscoveryBotUtils.defaultPlaylistGroupOrderReversed()) {
 			String key = albumGroupExtended.getGroupName();
 			if (!properties.containsKey(key)) {
 				changes = true;
@@ -232,7 +232,9 @@ public class PlaylistStoreConfig {
 
 		@Override
 		public int compareTo(PlaylistStore o) {
-			return DiscoveryBotUtils.DEFAULT_PLAYLIST_GROUP_ORDER_COMPARATOR.compare(this.getAlbumGroupExtended(), o.getAlbumGroupExtended());
+			return Integer.compare(
+					DiscoveryBotUtils.DEFAULT_PLAYLIST_GROUP_ORDER.indexOf(this.getAlbumGroupExtended()),
+					DiscoveryBotUtils.DEFAULT_PLAYLIST_GROUP_ORDER.indexOf(o.getAlbumGroupExtended()));
 		}
 
 		@Override

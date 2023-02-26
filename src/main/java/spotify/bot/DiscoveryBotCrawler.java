@@ -27,7 +27,7 @@ import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.bot.util.data.CachedArtistsContainer;
-import spotify.util.BotUtils;
+import spotify.util.SpotifyUtils;
 import spotify.util.data.AlbumTrackPair;
 
 @Component
@@ -181,7 +181,7 @@ public class DiscoveryBotCrawler {
 			List<AlbumSimplified> filteredAlbums = getNewAlbumsFromArtists(followedArtists);
 			if (!filteredAlbums.isEmpty()) {
 				Map<PlaylistStore, List<AlbumTrackPair>> newTracksByTargetPlaylist = getNewTracksByTargetPlaylist(filteredAlbums, followedArtists);
-				if (!BotUtils.isAllEmptyLists(newTracksByTargetPlaylist)) {
+				if (!SpotifyUtils.isAllEmptyLists(newTracksByTargetPlaylist)) {
 					return addReleasesToPlaylistsAndCollectResults(newTracksByTargetPlaylist);
 				}
 			}
@@ -218,7 +218,7 @@ public class DiscoveryBotCrawler {
 		List<AlbumTrackPair> tracksByAlbums = discoveryTrackService.getTracksOfAlbums(filteredAlbums);
 		Map<AlbumGroup, List<AlbumTrackPair>> categorizedFilteredAlbums = filterService.categorizeAlbumsByAlbumGroup(tracksByAlbums);
 		Map<AlbumGroup, List<AlbumTrackPair>> intelligentAppearsOnFilteredAlbums = filterService.intelligentAppearsOnSearch(categorizedFilteredAlbums, followedArtists);
-		if (!BotUtils.isAllEmptyLists(intelligentAppearsOnFilteredAlbums)) {
+		if (!SpotifyUtils.isAllEmptyLists(intelligentAppearsOnFilteredAlbums)) {
 			Map<PlaylistStore, List<AlbumTrackPair>> songsByMainPlaylist = remappingService.mapToTargetPlaylist(intelligentAppearsOnFilteredAlbums);
 			Map<PlaylistStore, List<AlbumTrackPair>> songsByExtendedPlaylist = remappingService.remapIntoExtendedPlaylists(songsByMainPlaylist);
 			Map<PlaylistStore, List<AlbumTrackPair>> songsByExtendedPlaylistFiltered = remappingService.removeDisabledPlaylistStores(songsByExtendedPlaylist);

@@ -29,7 +29,7 @@ import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.services.PlaylistService;
-import spotify.util.BotUtils;
+import spotify.util.SpotifyUtils;
 import spotify.util.SpotifyOptimizedExecutorService;
 import spotify.util.data.AlbumTrackPair;
 
@@ -212,7 +212,7 @@ public class PlaylistMetaService {
       }
 
       // Case 2: Timeout since playlist was last updated expired
-      if (!BotUtils.isWithinTimeoutWindow(lastUpdated, NEW_NOTIFICATION_TIMEOUT_DAYS)) {
+      if (!SpotifyUtils.isWithinTimeoutWindow(lastUpdated, NEW_NOTIFICATION_TIMEOUT_DAYS)) {
         return true;
       }
 
@@ -224,7 +224,7 @@ public class PlaylistMetaService {
           .limit(MAX_PLAYLIST_TRACK_FETCH_LIMIT))
           .getItems();
       List<PlaylistTrack> recentlyAddedPlaylistTracks = Arrays.stream(topmostPlaylistTracks)
-          .filter((pt -> BotUtils.isWithinTimeoutWindow(pt.getAddedAt(), NEW_NOTIFICATION_TIMEOUT_DAYS)))
+          .filter((pt -> SpotifyUtils.isWithinTimeoutWindow(pt.getAddedAt(), NEW_NOTIFICATION_TIMEOUT_DAYS)))
           .collect(Collectors.toList());
 
       // -- Case 3a: Playlist does not have recently added tracks or is still empty

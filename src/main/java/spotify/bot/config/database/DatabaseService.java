@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import spotify.bot.util.DiscoveryBotLogger;
-import spotify.util.BotUtils;
+import spotify.util.SpotifyUtils;
 
 @Service
 public class DatabaseService {
@@ -56,7 +56,10 @@ public class DatabaseService {
 		ResultSet rs = database.selectAll(DBConstants.TABLE_CACHE_ARTISTS);
 		List<String> cachedArtists = new ArrayList<>();
 		while (rs.next()) {
-			cachedArtists.add(rs.getString(DBConstants.COL_ARTIST_ID));
+			String string = rs.getString(DBConstants.COL_ARTIST_ID);
+			if (!SpotifyUtils.isNullString(string)) {
+				cachedArtists.add(string);
+			}
 		}
 		return cachedArtists;
 	}
@@ -86,7 +89,7 @@ public class DatabaseService {
 	 */
 	public void cacheAlbumNames(List<AlbumSimplified> albumsSimplified) {
 		List<String> albumIds = albumsSimplified.stream()
-			.map(BotUtils::albumIdentifierString)
+			.map(SpotifyUtils::albumIdentifierString)
 			.collect(Collectors.toList());
 		try {
 			database.insertAll(

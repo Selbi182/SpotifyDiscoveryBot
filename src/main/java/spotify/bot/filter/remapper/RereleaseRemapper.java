@@ -17,7 +17,7 @@ import spotify.bot.config.database.DatabaseService;
 import spotify.bot.filter.FilterService;
 import spotify.bot.service.performance.CachedUserService;
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.util.BotUtils;
+import spotify.util.SpotifyUtils;
 import spotify.util.data.AlbumTrackPair;
 
 @Component
@@ -136,7 +136,7 @@ public class RereleaseRemapper implements Remapper {
 	}
 
 	private boolean hasReleaseNameBeenCachedAlready(AlbumSimplified album) {
-		return releaseNamesCache.contains(BotUtils.albumIdentifierString(album));
+		return releaseNamesCache.contains(SpotifyUtils.albumIdentifierString(album));
 	}
 
 	public void refreshCachedReleaseNames() {

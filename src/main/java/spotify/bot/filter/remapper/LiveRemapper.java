@@ -4,7 +4,7 @@ import org.springframework.stereotype.Component;
 
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.services.TrackService;
-import spotify.util.BotUtils;
+import spotify.util.SpotifyUtils;
 import spotify.util.data.AlbumTrackPair;
 
 @Component
@@ -32,6 +32,6 @@ public class LiveRemapper implements Remapper {
 
 	@Override
 	public Action determineRemapAction(AlbumTrackPair atp) {
-		return Action.of(BotUtils.isLiveRelease(atp, trackService));
+		return Action.of(SpotifyUtils.isLiveRelease(atp, trackService));
 	}
 }

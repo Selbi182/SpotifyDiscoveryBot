@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
-import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -23,8 +22,8 @@ import spotify.bot.config.DeveloperMode;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.services.PlaylistService;
-import spotify.util.BotUtils;
 import spotify.util.SpotifyOptimizedExecutorService;
+import spotify.util.SpotifyUtils;
 import spotify.util.data.AlbumTrackPair;
 
 @Service
@@ -80,10 +79,10 @@ public class PlaylistSongsService {
       circularPlaylistFitting(playlist, albumTrackPairs);
       List<List<TrackSimplified>> bundledReleases = extractTrackLists(albumTrackPairs);
       for (List<TrackSimplified> t : bundledReleases) {
-        for (List<TrackSimplified> partition : Lists.partition(t, PLAYLIST_ADD_LIMIT)) {
+        for (List<TrackSimplified> partition : SpotifyUtils.partitionList(t, PLAYLIST_ADD_LIMIT)) {
           List<String> ids = partition.stream().map(TrackSimplified::getId).collect(Collectors.toList());
           playlistService.addSongsToPlaylistById(playlist, ids, TOP_OF_PLAYLIST);
-          BotUtils.sneakySleep(PLAYLIST_ADDITION_COOLDOWN);
+          SpotifyUtils.sneakySleep(PLAYLIST_ADDITION_COOLDOWN);
         }
       }
     }

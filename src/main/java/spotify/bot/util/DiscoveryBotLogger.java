@@ -19,16 +19,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import com.google.common.base.Strings;
-
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.util.BotLogger;
-import spotify.util.BotUtils;
+import spotify.util.SpotifyLogger;
+import spotify.util.SpotifyUtils;
 import spotify.util.data.AlbumTrackPair;
 
 @Component
-public class DiscoveryBotLogger extends BotLogger {
+public class DiscoveryBotLogger extends SpotifyLogger {
   private final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
   /**
@@ -37,7 +35,7 @@ public class DiscoveryBotLogger extends BotLogger {
    */
   private final static Comparator<AlbumSimplified> ALBUM_SIMPLIFIED_COMPARATOR = Comparator
       .comparing(AlbumSimplified::getAlbumGroup)
-      .thenComparing(BotUtils::getFirstArtistName)
+      .thenComparing(SpotifyUtils::getFirstArtistName)
       .thenComparing(AlbumSimplified::getReleaseDate)
       .thenComparing(AlbumSimplified::getName);
   
@@ -157,8 +155,8 @@ public class DiscoveryBotLogger extends BotLogger {
    * @param lineCharacter the character
    * @return the line
    */
-  public String line(String lineCharacter) {
-    return Strings.repeat(lineCharacter, MAX_LINE_LENGTH - ELLIPSIS.length());
+  public String line(char lineCharacter) {
+    return DiscoveryBotUtils.repeatChar(lineCharacter, MAX_LINE_LENGTH - ELLIPSIS.length());
   }
 
   private void writeToExternalLog(String message) throws IOException {
@@ -221,7 +219,7 @@ public class DiscoveryBotLogger extends BotLogger {
    */
   private void printDroppedAlbumSimplified(List<AlbumSimplified> albumSimplifieds) {
     for (AlbumSimplified as : albumSimplifieds) {
-      info(DROPPED_PREFIX + INDENT + BotUtils.formatAlbum(as));
+      info(DROPPED_PREFIX + INDENT + SpotifyUtils.formatAlbum(as));
     }
   }
 

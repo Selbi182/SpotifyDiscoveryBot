@@ -3,7 +3,7 @@ package spotify.bot.filter.remapper;
 import org.springframework.stereotype.Component;
 
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.util.BotUtils;
+import spotify.util.SpotifyUtils;
 import spotify.util.data.AlbumTrackPair;
 
 @Component
@@ -23,6 +23,6 @@ public class EpRemapper implements Remapper {
 
 	@Override
 	public Action determineRemapAction(AlbumTrackPair atp) {
-		return Action.of(BotUtils.isExtendedPlay(atp));
+		return Action.of(SpotifyUtils.isExtendedPlay(atp));
 	}
 }

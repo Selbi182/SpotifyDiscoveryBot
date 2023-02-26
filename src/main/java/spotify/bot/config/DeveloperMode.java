@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 
 import org.springframework.context.annotation.Configuration;
 
-import com.google.common.base.Strings;
+import spotify.bot.util.DiscoveryBotUtils;
 
 /**
  * This class controls the developer mode state of the application. Cache and
@@ -82,9 +82,9 @@ public class DeveloperMode {
 
 			String devModeText = String.format(">>> DEVELOPER MODE [%s] <<<", devModesString);
 
-			System.out.println(Strings.repeat("=", devModeText.length()));
+			System.out.println(DiscoveryBotUtils.repeatChar('=', devModeText.length()));
 			System.out.println(devModeText);
-			System.out.println(Strings.repeat("=", devModeText.length()));
+			System.out.println(DiscoveryBotUtils.repeatChar('=', devModeText.length()));
 		}
 	}
 

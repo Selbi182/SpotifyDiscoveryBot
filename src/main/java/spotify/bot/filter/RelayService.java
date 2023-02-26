@@ -23,7 +23,7 @@ import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.util.BotUtils;
+import spotify.util.SpotifyUtils;
 import spotify.util.data.AlbumTrackPair;
 
 @Service
@@ -86,7 +86,7 @@ public class RelayService {
 	}
 
 	private void relayFilteredResult(AlbumTrackPair atp) {
-		String message = String.format(messageMask, BotUtils.getFirstArtistName(atp.getAlbum()), atp.getAlbum().getId());
+		String message = String.format(messageMask, SpotifyUtils.getFirstArtistName(atp.getAlbum()), atp.getAlbum().getId());
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.setAccept(List.of(MediaType.APPLICATION_JSON));

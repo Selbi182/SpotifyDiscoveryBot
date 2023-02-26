@@ -16,7 +16,7 @@ import org.springframework.web.servlet.ModelAndView;
 
 import spotify.bot.DiscoveryBotCrawler;
 import spotify.bot.util.DiscoveryBotLogger;
-import spotify.util.BotUtils;
+import spotify.util.SpotifyUtils;
 
 @RestController
 @Component
@@ -55,7 +55,7 @@ public class MiscController {
 			List<List<String>> groupedLog = new ArrayList<>();
 			List<String> currentBlock = new ArrayList<>();
 			for (String logLine : readLog) {
-				if (logLine.contains(log.line("-"))) {
+				if (logLine.contains(log.line('-'))) {
 					groupedLog.add(currentBlock);
 					currentBlock = new ArrayList<>();
 				} else {
@@ -99,7 +99,7 @@ public class MiscController {
 		}
 		while (!crawler.isReady()) {
 			log.warning("Can't stop application during a crawl! Trying again in 10 seconds...", false);
-			BotUtils.sneakySleep(SHUTDOWN_RETRY_SLEEP);
+			SpotifyUtils.sneakySleep(SHUTDOWN_RETRY_SLEEP);
 		}
 		System.exit(0);
 	}

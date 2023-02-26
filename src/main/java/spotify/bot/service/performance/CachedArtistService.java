@@ -19,7 +19,7 @@ import spotify.bot.service.DiscoveryAlbumService;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.data.CachedArtistsContainer;
 import spotify.services.ArtistService;
-import spotify.util.BotUtils;
+import spotify.util.SpotifyUtils;
 
 /**
  * Performance service to cache the user's followed artists and only update them once each midnight.
@@ -77,20 +77,17 @@ public class CachedArtistService {
    */
   private List<String> getRealArtistIds() throws SpotifyApiException {
     List<Artist> followedArtists = artistService.getFollowedArtists();
-    List<String> followedArtistIds = followedArtists.stream()
+    return followedArtists.stream()
         .map(Artist::getId)
+        .filter(id -> !SpotifyUtils.isNullString(id))
         .collect(Collectors.toList());
-    BotUtils.removeNullStrings(followedArtistIds);
-    return followedArtistIds;
   }
 
   /**
    * Get the list of cached artists from the DB
    */
   private List<String> getCachedArtistIds() throws SQLException {
-    List<String> cachedArtists = databaseService.getArtistCache();
-    BotUtils.removeNullStrings(cachedArtists);
-    return cachedArtists;
+    return databaseService.getArtistCache();
   }
 
   private boolean isArtistCacheExpired() {

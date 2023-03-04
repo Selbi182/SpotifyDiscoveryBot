@@ -23,7 +23,10 @@ public class SpotifyDiscoveryBot {
 					"user-read-playback-position",
 					"user-read-playback-state",
 					"user-read-currently-playing",
-					"user-read-private"
+					"user-read-private",
+					"playlist-modify-private",
+					"playlist-read-private",
+					"user-follow-read"
 			);
 		}
 

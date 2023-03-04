@@ -57,7 +57,7 @@ appears_on=1wMWWCP4XKK9jfVWvUoz0y
 ```
 All eight of these groups are required to be in the properties file. If an entry is missing, the bot will automatically create the missing playlist on startup and set the property entry on its own.
 
-You can also disable a certain groups alltogether. To do this, simply keep the part after the `=` blank for the respective group you want to disable.
+You can also disable certain groups altogether. To do this, simply keep the part after the `=` blank for the respective group you want to disable.
 
 ### Step 3: Starting the bot for the first time
 To start the bot, make sure you have at least Java 11 installed and run the fatJar:

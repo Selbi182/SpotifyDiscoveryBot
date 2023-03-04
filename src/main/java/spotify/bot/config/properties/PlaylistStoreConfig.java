@@ -14,7 +14,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.DependsOn;
 
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.enums.AlbumGroup;
@@ -28,11 +27,11 @@ import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
 
 @Configuration
-@DependsOn("spotifyApiAuthorization")
 public class PlaylistStoreConfig {
 	private final static String PLAYLIST_STORE_FILENAME = DiscoveryBotUtils.BASE_CONFIG_PATH + "playlist.properties";
 
-	private final Map<AlbumGroupExtended, PlaylistStore> playlistStoreMap;
+	private Map<AlbumGroupExtended, PlaylistStore> playlistStoreMap;
+
 	private final List<AlbumGroupExtended> enabledAlbumGroups;
 	private final List<AlbumGroupExtended> disabledAlbumGroups;
 
@@ -46,10 +45,9 @@ public class PlaylistStoreConfig {
 		this.log = discoveryBotLogger;
 		this.enabledAlbumGroups = new ArrayList<>();
 		this.disabledAlbumGroups = new ArrayList<>();
-		this.playlistStoreMap = getPlaylistStoreFromPropertiesFile();
 	}
 
-	private Map<AlbumGroupExtended, PlaylistStore> getPlaylistStoreFromPropertiesFile() {
+	public void setupPlaylistStores() {
 		try {
 			File propertiesFile = new File(PLAYLIST_STORE_FILENAME);
 			if (!propertiesFile.exists()) {
@@ -65,12 +63,11 @@ public class PlaylistStoreConfig {
 			properties.load(reader);
 			verifyPlaylists(properties);
 			createMissingPlaylists(properties);
-			return createPlaylistStoreMap(properties);
+			this.playlistStoreMap = createPlaylistStoreMap(properties);
 		} catch (IOException e) {
 			e.printStackTrace();
-			System.out.println("Failed to read " + PLAYLIST_STORE_FILENAME + ". Terminating!");
 			System.exit(1);
-			return null;
+			throw new IllegalStateException("Failed to read " + PLAYLIST_STORE_FILENAME + ". Terminating!");
 		}
 	}
 

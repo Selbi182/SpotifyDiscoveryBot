@@ -60,7 +60,10 @@ public class RelayService {
 				try {
 					relayProperties.load(new FileInputStream(relayFile));
 					this.relayUrl = relayProperties.getProperty(PROP_RELAY_URL);
-					this.whitelistedArtistIds = Arrays.asList(relayProperties.getProperty(PROP_WHITELISTED_ARTIST_IDS).split(","));
+					String whiteListedArtistsRaw = relayProperties.getProperty(PROP_WHITELISTED_ARTIST_IDS);
+					if (whiteListedArtistsRaw != null) {
+						this.whitelistedArtistIds = Arrays.asList(whiteListedArtistsRaw.split(","));
+					}
 					this.messageMask = relayProperties.getProperty(PROP_MESSAGE_MASK);
 					this.active = true;
 					log.info("Relaying enabled! Results will be forwarded to: " + relayUrl, false);

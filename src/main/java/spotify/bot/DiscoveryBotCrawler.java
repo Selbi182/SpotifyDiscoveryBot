@@ -14,6 +14,7 @@ import spotify.api.SpotifyApiAuthorization;
 import spotify.api.SpotifyApiException;
 import spotify.api.events.SpotifyApiLoggedInEvent;
 import spotify.bot.config.DeveloperMode;
+import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.filter.FilterService;
 import spotify.bot.filter.RelayService;
@@ -37,6 +38,7 @@ public class DiscoveryBotCrawler {
 	private final CachedArtistService cachedArtistService;
 	private final DiscoveryAlbumService discoveryAlbumService;
 	private final DiscoveryTrackService discoveryTrackService;
+	private final PlaylistStoreConfig playlistStoreConfig;
 	private final PlaylistSongsService playlistSongsService;
 	private final PlaylistMetaService playlistMetaService;
 	private final FilterService filterService;
@@ -51,6 +53,7 @@ public class DiscoveryBotCrawler {
 			CachedArtistService cachedArtistService,
 			DiscoveryAlbumService discoveryAlbumService,
 			DiscoveryTrackService discoveryTrackService,
+			PlaylistStoreConfig playlistStoreConfig,
 			PlaylistSongsService playlistSongsService,
 			PlaylistMetaService playlistMetaService,
 			FilterService filterService,
@@ -62,6 +65,7 @@ public class DiscoveryBotCrawler {
 		this.cachedArtistService = cachedArtistService;
 		this.discoveryAlbumService = discoveryAlbumService;
 		this.discoveryTrackService = discoveryTrackService;
+		this.playlistStoreConfig = playlistStoreConfig;
 		this.playlistSongsService = playlistSongsService;
 		this.playlistMetaService = playlistMetaService;
 		this.filterService = filterService;
@@ -115,6 +119,7 @@ public class DiscoveryBotCrawler {
 		log.printLine();
 		log.info("Executing initial crawl...", false);
 		long time = System.currentTimeMillis();
+		playlistStoreConfig.setupPlaylistStores();
 		playlistMetaService.initLastUpdatedFromPlaylistDescriptions();
 		if (!DeveloperMode.isInitialCrawlDisabled()) {
 			Map<AlbumGroupExtended, Integer> results = crawl();

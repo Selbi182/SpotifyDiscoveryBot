@@ -14,7 +14,6 @@ import javax.annotation.PreDestroy;
 
 import org.springframework.stereotype.Repository;
 
-import spotify.SpotifyDiscoveryBot;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
 import spotify.util.SpotifyUtils;
@@ -56,14 +55,6 @@ public class DiscoveryDatabase {
 	}
 
 	private File getDbFilePath() throws IOException {
-		File alternateDatabaseFilepath = SpotifyDiscoveryBot.getAlternateDatabaseFilePath();
-		if (alternateDatabaseFilepath != null && alternateDatabaseFilepath.exists()) {
-			if (alternateDatabaseFilepath.canRead()) {
-				return alternateDatabaseFilepath;
-			}
-			throw new IOException("Could not access ALTERNATE database (file is locked)!");
-		}
-
 		File workingDirectoryDatabaseFilepath = new File(WORKSPACE_LOCATION, DB_FILE_NAME);
 		if (workingDirectoryDatabaseFilepath.exists()) {
 			if (workingDirectoryDatabaseFilepath.canRead()) {

@@ -98,7 +98,7 @@ public class PlaylistStoreConfig {
 			if (!properties.containsKey(key)) {
 				changes = true;
 				String playlistName = PlaylistMetaService.INDICATOR_OFF + " New " + albumGroupExtended.getHumanName();
-				Playlist newPlaylist = SpotifyCall.execute(spotifyApi.createPlaylist(cachedUserService.getUserId(), playlistName));
+				Playlist newPlaylist = SpotifyCall.execute(spotifyApi.createPlaylist(cachedUserService.getUserId(), playlistName).public_(false));
 				properties.putIfAbsent(albumGroupExtended.getGroupName(), newPlaylist.getId());
 			}
 		}

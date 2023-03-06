@@ -67,7 +67,7 @@ Explanation:
 **Note:** After the first launch, the bot will recreate this file with only the playlist IDs (as in, only the ID after the last / without the *?si* part). This is purely for performance reasons, so that future crawls don't need to parse the entire URLs over and over again.
 
 ### Step 3: Starting the bot for the first time
-To start the bot, make sure you have at least Java 11 installed and run the fatJar:
+To start the bot, make sure you have at least Java 11 installed and run the JAR:
 ```
 java -jar SpotifyDiscoveryBot.jar
 ```
@@ -98,7 +98,7 @@ Use this file to ban certain artists from certain release types. For example, yo
 ```
 
 ### `relay.properties`
-Use this file to automatically forward specific artist to a given URL. You can use this to, for example, post new releases to a webhook that is connected to a Discord bot. You must additionally have the artists followed on Spotify for this to work.
+Use this file to automatically forward new releases of specific artist to a given URL. You can use this to, for example, post new releases to a webhook that is connected to a Discord bot. You must additionally have the artists followed on Spotify for this to work.
 
 **Usage:**
 * `relay_url`: The target URL

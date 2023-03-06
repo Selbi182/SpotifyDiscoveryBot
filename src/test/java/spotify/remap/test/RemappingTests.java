@@ -1,4 +1,4 @@
-package remap;
+package spotify.remap.test;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -42,6 +42,7 @@ import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.config.SpotifyApiConfig;
 import spotify.services.TrackService;
 import spotify.services.UserService;
+import spotify.spring.SpringPortConfig;
 import spotify.util.SpotifyUtils;
 import spotify.util.data.AlbumTrackPair;
 
@@ -61,7 +62,8 @@ import spotify.util.data.AlbumTrackPair;
 	PlaylistStoreConfig.class,
 	BlacklistConfig.class,
 	DatabaseService.class,
-	SpotifyDiscoveryBot.Scopes.class
+	SpringPortConfig.class,
+	SpotifyDiscoveryBot.SpotifyDiscoveryBotSettings.class
 
 })
 @EnableConfigurationProperties

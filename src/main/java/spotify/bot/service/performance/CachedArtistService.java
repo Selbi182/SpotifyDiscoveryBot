@@ -47,12 +47,12 @@ public class CachedArtistService {
   /**
    * Get all the user's followed artists
    */
-  public CachedArtistsContainer getFollowedArtistsIds() throws SQLException, SpotifyApiException {
+  public CachedArtistsContainer getFollowedArtistsIds() throws SQLException, IllegalStateException {
     List<String> cachedArtists = getCachedArtistIds();
     if (isArtistCacheExpired()) {
       List<String> followedArtistIds = getRealArtistIds();
       if (followedArtistIds.isEmpty()) {
-        throw new SpotifyApiException(new IllegalArgumentException("No followed artists found!"));
+        throw new IllegalArgumentException("No followed artists found!");
       }
       filterService.cacheArtistIds(followedArtistIds);
       this.artistCacheLastUpdated = ZonedDateTime.now().toLocalDate();

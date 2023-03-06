@@ -1,25 +1,17 @@
 package spotify.bot.util;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
+import spotify.api.SpotifyDependenciesSettings;
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.util.SpotifyLogger;
 import spotify.util.SpotifyUtils;
@@ -27,8 +19,6 @@ import spotify.util.data.AlbumTrackPair;
 
 @Component
 public class DiscoveryBotLogger extends SpotifyLogger {
-  private final static SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
   /**
    * A comparator for {@link AlbumSimplified} following the order: Album Group >
    * (first) Artist > Release Date > Release Name
@@ -38,144 +28,80 @@ public class DiscoveryBotLogger extends SpotifyLogger {
       .thenComparing(SpotifyUtils::getFirstArtistName)
       .thenComparing(AlbumSimplified::getReleaseDate)
       .thenComparing(AlbumSimplified::getName);
-  
-  private final static String LOG_FILE_PATH = "./log.txt";
 
-  private final static int MAX_LINE_LENGTH = 160;
-  private final static String ELLIPSIS = "...";
   private final static String DROPPED_PREFIX = "x ";
   private final static String INDENT = " ";
 
   private boolean hasUnflushedLogs;
 
-  private final Logger log = LoggerFactory.getLogger(DiscoveryBotLogger.class);
+  DiscoveryBotLogger(SpotifyDependenciesSettings spotifyDependenciesSettings) {
+    super(spotifyDependenciesSettings);
+  }
 
   /////////////////////
 
   /**
    * Log a debug message
    */
+  @Override
   public void debug(String message) {
-    logAtLevel(message, Level.DEBUG, true);
+    debug(message, true);
   }
 
   /**
    * Log a debug message
    */
   public void debug(String message, boolean writeToExternalLog) {
+    updateFlushedStatus(writeToExternalLog);
     logAtLevel(message, Level.DEBUG, true, writeToExternalLog);
   }
 
   /**
    * Log an info message
    */
+  @Override
   public void info(String message) {
-    logAtLevel(message, Level.INFO, true);
+    info(message, true);
   }
 
   /**
    * Log an info message
    */
   public void info(String message, boolean writeToExternalLog) {
+    updateFlushedStatus(writeToExternalLog);
     logAtLevel(message, Level.INFO, true, writeToExternalLog);
   }
 
   /**
    * Log a warning message
    */
+  @Override
   public void warning(String message) {
-    logAtLevel(message, Level.WARNING, true);
+    warning(message, true);
   }
 
   /**
    * Log a warning message
    */
   public void warning(String message, boolean writeToExternalLog) {
+    updateFlushedStatus(writeToExternalLog);
     logAtLevel(message, Level.WARNING, true, writeToExternalLog);
   }
 
   /**
    * Log an error message
    */
+  @Override
   public void error(String message) {
-    logAtLevel(message, Level.ERROR, true);
+    error(message, true);
   }
 
   /**
    * Log an error message
    */
   public void error(String message, boolean writeToExternalLog) {
+    updateFlushedStatus(writeToExternalLog);
     logAtLevel(message, Level.ERROR, true, writeToExternalLog);
-  }
-
-  /**
-   * Log a message at the given log level (truncate enabled)
-   */
-  public void logAtLevel(String msg, Level level, boolean writeToExternalLog) {
-    logAtLevel(msg, level, true, writeToExternalLog);
-  }
-
-  /**
-   * Log a message at the given log level (truncation optional). Also writes to an
-   * external log.txt file.
-   */
-  public void logAtLevel(String msg, Level level, boolean truncate, boolean writeToExternalLog) {
-    if (truncate) {
-      msg = truncateToEllipsis(msg);
-    }
-    switch (level) {
-    case DEBUG:
-      log.debug(msg);
-      break;
-    case INFO:
-      log.info(msg);
-      break;
-    case WARNING:
-      log.warn(msg);
-      break;
-    case ERROR:
-      log.error(msg);
-      break;
-    }
-
-    if (writeToExternalLog) {
-      try {
-        writeToExternalLog(msg);
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
-
-    hasUnflushedLogs = true;
-  }
-
-  /**
-   * Get a String of the given char repeated by its max possible line length
-   *
-   * @param lineCharacter the character
-   * @return the line
-   */
-  public String line(char lineCharacter) {
-    return DiscoveryBotUtils.repeatChar(lineCharacter, MAX_LINE_LENGTH - ELLIPSIS.length());
-  }
-
-  private void writeToExternalLog(String message) throws IOException {
-    File logFile = new File(LOG_FILE_PATH);
-    if (!logFile.exists()) {
-      boolean fileCreated = logFile.createNewFile();
-      if (!fileCreated) {
-        throw new IOException("Unable to create log file");
-      }
-    }
-    String logMessage = String.format("[%s] %s", DATE_FORMAT.format(Date.from(Instant.now())), message);
-    if (logFile.canWrite()) {
-      BufferedWriter bw = new BufferedWriter(new FileWriter(logFile, true));
-      bw.write(logMessage);
-      bw.write('\n');
-      bw.close();
-    } else {
-      throw new IOException("Log file is currently locked, likely because it is being written to. Try again.");
-    }
   }
 
   /////////////////////
@@ -188,6 +114,13 @@ public class DiscoveryBotLogger extends SpotifyLogger {
       printLine();
       reset();
     }
+  }
+
+  /**
+   * Set the unflushed logs flag to true if it isn't already and the bot is writing to the external log
+   */
+  private void updateFlushedStatus(boolean writeToExternalLog) {
+    this.hasUnflushedLogs = hasUnflushedLogs || writeToExternalLog;
   }
 
   /**

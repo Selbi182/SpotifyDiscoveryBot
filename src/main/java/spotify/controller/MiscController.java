@@ -55,7 +55,7 @@ public class MiscController {
 			List<List<String>> groupedLog = new ArrayList<>();
 			List<String> currentBlock = new ArrayList<>();
 			for (String logLine : readLog) {
-				if (logLine.contains(log.line('-'))) {
+				if (logLine.contains("---")) {
 					groupedLog.add(currentBlock);
 					currentBlock = new ArrayList<>();
 				} else {

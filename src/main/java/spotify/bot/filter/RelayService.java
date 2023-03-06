@@ -18,26 +18,28 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
+import spotify.api.SpotifyDependenciesSettings;
 import spotify.bot.config.DeveloperMode;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.util.DiscoveryBotLogger;
-import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.util.SpotifyUtils;
 import spotify.util.data.AlbumTrackPair;
 
 @Service
 public class RelayService {
-	private static final String RELAY_FILE_NAME = DiscoveryBotUtils.BASE_CONFIG_PATH + "relay.properties";
-	private static final String PROP_RELAY_URL = "RELAY_URL";
-	private static final String PROP_WHITELISTED_ARTIST_IDS = "WHITELISTED_ARTIST_IDS";
-	private static final String PROP_MESSAGE_MASK = "MESSAGE_MASK";
+	private static final String RELAY_FILE_NAME = "relay.properties";
+	private static final String PROP_RELAY_URL = "relay_url";
+	private static final String PROP_WHITELISTED_ARTIST_IDS = "whitelisted_artist_ids";
+	private static final String PROP_MESSAGE_MASK = "message_mask";
 
 	private static final List<AlbumGroupExtended> WHITELISTED_ALBUM_GROUPS = List.of(
 			AlbumGroupExtended.ALBUM,
 			AlbumGroupExtended.SINGLE,
 			AlbumGroupExtended.EP
 	);
+
+	private final File relayFile;
 
 	private boolean active;
 	private String relayUrl;
@@ -46,15 +48,15 @@ public class RelayService {
 
 	private final DiscoveryBotLogger log;
 
-	RelayService(DiscoveryBotLogger botLogger) {
+	RelayService(DiscoveryBotLogger botLogger, SpotifyDependenciesSettings spotifyDependenciesSettings) {
 		this.log = botLogger;
+		this.relayFile = new File(spotifyDependenciesSettings.configFilesBase(), RELAY_FILE_NAME);
 	}
 
 	@PostConstruct
 	private void init() {
 		this.active = false;
 		if (!DeveloperMode.isRelayingDisabled()) {
-			File relayFile = new File(RELAY_FILE_NAME);
 			if (relayFile.canRead()) {
 				Properties relayProperties = new Properties();
 				try {
@@ -69,7 +71,7 @@ public class RelayService {
 					log.info("Relaying enabled! Results will be forwarded to: " + relayUrl, false);
 				} catch (Exception e) {
 					e.printStackTrace();
-					log.warning("Failed to parse " + RELAY_FILE_NAME + "!", false);
+					log.warning("Failed to parse " + relayFile + "!", false);
 				}
 			}
 		}

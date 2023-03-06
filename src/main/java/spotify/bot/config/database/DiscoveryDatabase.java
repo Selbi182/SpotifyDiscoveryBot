@@ -14,22 +14,19 @@ import javax.annotation.PreDestroy;
 
 import org.springframework.stereotype.Repository;
 
+import spotify.api.SpotifyDependenciesSettings;
 import spotify.bot.util.DiscoveryBotLogger;
-import spotify.bot.util.DiscoveryBotUtils;
 import spotify.util.SpotifyUtils;
 
 @Repository
 public class DiscoveryDatabase {
 
 	// Database base constants
-	private final static String DB_FILE_NAME = DiscoveryBotUtils.BASE_CONFIG_PATH + "database.db";
+	private final static String DB_FILE_NAME = "database.db";
 	private final static String DB_URL_PREFIX = "jdbc:sqlite:";
 
 	private final static String FULL_SELECT_QUERY_MASK = "SELECT * FROM %s";
 	private final static String INSERT_QUERY_MASK = "INSERT INTO %s (%s) VALUES %s";
-
-	// Instance
-	private final static File WORKSPACE_LOCATION = new File(".");
 
 	private final DiscoveryBotLogger log;
 	private final DatabaseCreationService databaseCreationService;
@@ -40,11 +37,11 @@ public class DiscoveryDatabase {
 	/**
 	 * Initialize the Database connection to the local database
 	 */
-	DiscoveryDatabase(DiscoveryBotLogger discoveryBotLogger, DatabaseCreationService databaseCreationService) {
+	DiscoveryDatabase(DiscoveryBotLogger discoveryBotLogger, DatabaseCreationService databaseCreationService, SpotifyDependenciesSettings spotifyDependenciesSettings) {
 		this.log = discoveryBotLogger;
 		this.databaseCreationService = databaseCreationService;
 		try {
-			File dbFilePath = SpotifyUtils.normalizeFile(getDbFilePath());
+			File dbFilePath = SpotifyUtils.normalizeFile(getDbFilePath(spotifyDependenciesSettings.configFilesBase()));
 			this.dbUrl = DB_URL_PREFIX + dbFilePath.getAbsolutePath();
 			log.info("Establishing SQLite database connection: " + dbFilePath.getAbsolutePath(), false);
 			getConnectionInstance();
@@ -54,17 +51,17 @@ public class DiscoveryDatabase {
 		}
 	}
 
-	private File getDbFilePath() throws IOException {
-		File workingDirectoryDatabaseFilepath = new File(WORKSPACE_LOCATION, DB_FILE_NAME);
-		if (workingDirectoryDatabaseFilepath.exists()) {
-			if (workingDirectoryDatabaseFilepath.canRead()) {
-				return workingDirectoryDatabaseFilepath;
+	private File getDbFilePath(File base) throws IOException {
+		File dbFilePath = new File(base, DB_FILE_NAME);
+		if (dbFilePath.exists()) {
+			if (dbFilePath.canRead()) {
+				return dbFilePath;
 			}
 			throw new IOException("Could not access WORKDIR database (file is locked)!");
 		} else {
 			log.warning("Database file does not exist and will be created automatically", false);
 		}
-		return workingDirectoryDatabaseFilepath;
+		return dbFilePath;
 	}
 
 	//////////////

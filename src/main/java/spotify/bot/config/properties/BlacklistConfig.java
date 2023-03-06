@@ -11,25 +11,26 @@ import java.util.Properties;
 
 import org.springframework.context.annotation.Configuration;
 
-import spotify.bot.util.DiscoveryBotUtils;
+import spotify.api.SpotifyDependenciesSettings;
 import spotify.bot.util.data.AlbumGroupExtended;
 
 @Configuration
 public class BlacklistConfig {
-  private final static String BLACKLIST_FILENAME = DiscoveryBotUtils.BASE_CONFIG_PATH + "blacklist.properties";
+  private final static String BLACKLIST_FILENAME = "blacklist.properties";
 
   private final Map<String, List<AlbumGroupExtended>> blacklistMap;
+  private final File blacklistFile;
 
-  BlacklistConfig() {
+  BlacklistConfig(SpotifyDependenciesSettings spotifyDependenciesSettings) {
+    this.blacklistFile = new File(spotifyDependenciesSettings.configFilesBase(), BLACKLIST_FILENAME);
     this.blacklistMap = getBlacklistFromPropertiesFile();
   }
 
   private Map<String, List<AlbumGroupExtended>> getBlacklistFromPropertiesFile() {
     Map<String, List<AlbumGroupExtended>> blacklistMap = new HashMap<>();
     try {
-      File propertiesFile = new File(BLACKLIST_FILENAME);
-      if (propertiesFile.canRead()) {
-        FileReader reader = new FileReader(propertiesFile);
+      if (blacklistFile.canRead()) {
+        FileReader reader = new FileReader(blacklistFile);
         Properties properties = new Properties();
         properties.load(reader);
 

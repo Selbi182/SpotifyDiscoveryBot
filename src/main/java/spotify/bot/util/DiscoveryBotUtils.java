@@ -1,7 +1,6 @@
 package spotify.bot.util;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,11 +34,6 @@ public class DiscoveryBotUtils {
       AlbumGroupExtended.COMPILATION,
       AlbumGroupExtended.RE_RELEASE,
       AlbumGroupExtended.APPEARS_ON);
-
-  /**
-   * Base path to the config files
-   */
-  public final static String BASE_CONFIG_PATH = "./config/";
 
   /**
    * Utility class
@@ -120,14 +114,5 @@ public class DiscoveryBotUtils {
     char[] build = new char[length];
     Arrays.fill(build, character);
     return String.valueOf(build);
-  }
-
-  /**
-   * Same as DEFAULT_PLAYLIST_GROUP_ORDER, but reversed
-   */
-  public static List<AlbumGroupExtended> defaultPlaylistGroupOrderReversed() {
-    List<AlbumGroupExtended> shallowCopy = DEFAULT_PLAYLIST_GROUP_ORDER.subList(0, DEFAULT_PLAYLIST_GROUP_ORDER.size());
-    Collections.reverse(shallowCopy);
-    return shallowCopy;
   }
 }

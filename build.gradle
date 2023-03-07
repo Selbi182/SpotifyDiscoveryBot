@@ -42,7 +42,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'spotify:spotify-dependencies:1.7.4'
+    implementation 'spotify:spotify-dependencies:1.7.7'
     implementation 'se.michaelthelin.spotify:spotify-web-api-java:8.0.0'
 
     implementation "org.springframework.boot:spring-boot-starter-web:$springVersion"

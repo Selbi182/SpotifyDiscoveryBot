@@ -28,14 +28,12 @@ public class DatabaseCreationService {
           + "                      NOT NULL\n"
           + "                      PRIMARY KEY);";
 
-  private static final List<String> SQL_TABLE_CREATION_COMMANDS = List.of(SQL_CACHE_ARTISTS, SQL_CACHE_RELEASES, SQL_CACHE_RELEASES_NAMES);
-
   /**
    * Create the discovery bot database with all required tables
    * (typically if this is the first time the app is launched)
    */
   public void createTables(Connection connection) throws SQLException {
-    for (String tableCreationCommand : SQL_TABLE_CREATION_COMMANDS) {
+    for (String tableCreationCommand : List.of(SQL_CACHE_ARTISTS, SQL_CACHE_RELEASES, SQL_CACHE_RELEASES_NAMES)) {
       Statement statement = connection.createStatement();
       statement.execute(tableCreationCommand);
       statement.closeOnCompletion();

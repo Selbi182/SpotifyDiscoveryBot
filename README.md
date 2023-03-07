@@ -1,4 +1,4 @@
-# SpotifyDiscoveryBot
+# Spotify Discovery Bot
 ![Banner](https://i.imgur.com/5LhM1TP.png)
 
 A Java-based bot that automatically crawls for new releases by your followed artists and puts them into playlists separated by release type. Never miss a Spotify release again and uncover hidden gems!

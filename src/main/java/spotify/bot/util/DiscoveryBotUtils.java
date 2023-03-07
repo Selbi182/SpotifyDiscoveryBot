@@ -1,6 +1,8 @@
 package spotify.bot.util;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,15 +17,8 @@ import spotify.util.data.AlbumTrackPair;
 
 public class DiscoveryBotUtils {
   /**
-   * Indicates how many days in the past are to be considered "present".
-   * This is required due to rare occasions where a song gets added slightly later
-   * on Spotify than, say, on physical media or Bandcamp.
-   */
-  public final static int LOOKBACK_DAYS = 60;
-
-  /**
-   * A common order of the different playlist groups: Album > Single > EP > Remix
-   * > Live > Compilation > Re-Release > Appears On
+   * A common order of the different playlist groups:
+   * Album > Single > EP > Remix > Live > Compilation > Re-Release > Appears On
    */
   public final static List<AlbumGroupExtended> DEFAULT_PLAYLIST_GROUP_ORDER = Arrays.asList(
       AlbumGroupExtended.ALBUM,
@@ -114,5 +109,17 @@ public class DiscoveryBotUtils {
     char[] build = new char[length];
     Arrays.fill(build, character);
     return String.valueOf(build);
+  }
+
+  /**
+   * Returns a reversed view of the given list without modifying it
+   *
+   * @param list the list to reverse
+   * @return a reversed view
+   */
+  public static <T>  List<T> reversedList(List<T> list) {
+    List<T> reversedList = new ArrayList<>(list);
+    Collections.reverse(reversedList);
+    return reversedList;
   }
 }

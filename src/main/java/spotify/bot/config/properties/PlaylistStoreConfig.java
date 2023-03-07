@@ -8,7 +8,6 @@ import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -56,8 +55,7 @@ public class PlaylistStoreConfig {
 		this.enabledAlbumGroups = new ArrayList<>();
 		this.disabledAlbumGroups = new ArrayList<>();
 		this.playlistPropertiesFile = new File(spotifyDependenciesSettings.configFilesBase(), PLAYLIST_PROPERTIES_FILENAME);
-		defaultPlaylistGroupOrderReversed = DiscoveryBotUtils.DEFAULT_PLAYLIST_GROUP_ORDER.subList(0, DiscoveryBotUtils.DEFAULT_PLAYLIST_GROUP_ORDER.size());
-		Collections.reverse(defaultPlaylistGroupOrderReversed);
+		this.defaultPlaylistGroupOrderReversed = DiscoveryBotUtils.reversedList(DiscoveryBotUtils.DEFAULT_PLAYLIST_GROUP_ORDER);
 	}
 
 	public void setupPlaylistStores() {
@@ -106,7 +104,6 @@ public class PlaylistStoreConfig {
 			properties.store(new FileOutputStream(playlistPropertiesFile), null);
 		}
 	}
-
 
 	private void verifyPlaylistsAndCreateMissingOnes(Properties properties) throws IOException {
 		boolean changes = false;

@@ -36,6 +36,16 @@ import spotify.util.data.AlbumTrackPair;
 
 @Service
 public class FilterService {
+	/**
+	 * Indicates how many days in the past are to be considered "present".
+	 * This is required due to rare occasions where a song gets added slightly later
+	 * on Spotify than, say, on physical media or Bandcamp.
+	 */
+	private final static int LOOKBACK_DAYS = 60;
+
+	/**
+	 * Any sampler is categorized under the artist "Various Artists".
+	 */
 	private final static String VARIOUS_ARTISTS = "Various Artists";
 
 	private final DiscoveryBotLogger log;
@@ -231,7 +241,7 @@ public class FilterService {
 	 */
 	public boolean isValidDate(AlbumSimplified album) {
 		try {
-			LocalDate lowerReleaseDateBoundary = LocalDate.now().minusDays(DiscoveryBotUtils.LOOKBACK_DAYS);
+			LocalDate lowerReleaseDateBoundary = LocalDate.now().minusDays(LOOKBACK_DAYS);
 			LocalDate releaseDate = LocalDate.parse(album.getReleaseDate(), RELEASE_DATE_PARSER);
 			return releaseDate.isAfter(lowerReleaseDateBoundary);
 		} catch (DateTimeParseException e) {

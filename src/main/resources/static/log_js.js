@@ -1,16 +1,30 @@
 (function() {
+	document.getElementById("copyright-current-year").innerHTML = new Date().getFullYear().toString();
+
 	const urlParams = new URLSearchParams(window.location.search);
-	let limit = urlParams.get("limit");
+	let limit = urlParams.get("limit") ?? 10;
+
+	let moreLogs = document.getElementById("more-logs");
+	moreLogs.onclick = () => {
+		const parser = new URL(window.location);
+		parser.searchParams.set("limit", (parseInt(limit) + 10).toString());
+		window.location = parser.href;
+	}
 	
-	fetch("/logblocks" + (limit ? "?limit=" + limit : ""))
+	fetch(`/logblocks?limit=${limit}`)
 		.then(response => response.json())
-		.then(json => processJson(json))
-		.catch(ex => console.error("Single request", ex));
+		.then(json => processLogBlocks(json))
+		.catch(ex => console.error("Error while fetching logs", ex));
 	
-	function processJson(json) {
+	function processLogBlocks(logs) {
+		if (logs.length < limit) {
+			moreLogs.classList.add("no-more");
+			moreLogs.innerHTML = "All Logs Loaded";
+		}
+
 		let logsContainer = document.getElementById("log");
 		let today = new Date();
-		for (let log of json) {
+		for (let log of logs) {
 			let currentLogContainer = document.createElement("div");
 			let unimportantLines = 0;
 			
@@ -53,14 +67,11 @@
 			
 			if (unimportantLines > 0) {
     			let lineCount = document.createElement("div");
-    			lineCount.classList.add("linecount");
+    			lineCount.classList.add("line-count");
     			currentLogContainer.appendChild(lineCount);
 			 	let timestamp = log[0].slice(0, log[0].indexOf('] ') + 1);
     			lineCount.innerHTML = `${timestamp} ... ${unimportantLines} line${unimportantLines !== 1 ? 's' : ''} hidden ...`;
     		}
 		}
 	}
-
-	document.getElementById("copyright-currentyear").innerHTML = new Date().getFullYear().toString();
-
 })();

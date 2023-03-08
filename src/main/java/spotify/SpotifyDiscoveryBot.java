@@ -1,10 +1,11 @@
 package spotify;
 
+import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.util.List;
 
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.stereotype.Component;
 
 import spotify.api.SpotifyDependenciesSettings;
@@ -12,7 +13,7 @@ import spotify.api.SpotifyDependenciesSettings;
 @SpringBootApplication
 public class SpotifyDiscoveryBot {
   public static void main(String[] args) {
-    SpringApplication.run(SpotifyDiscoveryBot.class, args);
+    new SpringApplicationBuilder(SpotifyDiscoveryBot.class).headless(GraphicsEnvironment.isHeadless()).run(args);
   }
 
   @Component

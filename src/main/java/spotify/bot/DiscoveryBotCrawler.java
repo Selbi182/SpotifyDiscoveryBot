@@ -23,7 +23,7 @@ import spotify.bot.service.DiscoveryAlbumService;
 import spotify.bot.service.DiscoveryTrackService;
 import spotify.bot.service.PlaylistMetaService;
 import spotify.bot.service.PlaylistSongsService;
-import spotify.bot.service.performance.CachedArtistService;
+import spotify.bot.service.CachedArtistService;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;

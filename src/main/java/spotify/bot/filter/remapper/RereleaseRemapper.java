@@ -15,8 +15,8 @@ import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.filter.FilterService;
-import spotify.bot.service.performance.CachedUserService;
 import spotify.bot.util.data.AlbumGroupExtended;
+import spotify.services.UserService;
 import spotify.util.SpotifyUtils;
 import spotify.util.data.AlbumTrackPair;
 
@@ -28,14 +28,14 @@ public class RereleaseRemapper implements Remapper {
 			Pattern.CASE_INSENSITIVE);
 
 	private final FilterService filterService;
-	private final CachedUserService cachedUserService;
+	private final UserService userService;
 	private final DatabaseService databaseService;
 
 	private Set<String> releaseNamesCache;
 
-	public RereleaseRemapper(FilterService filterService, CachedUserService cachedUserService, DatabaseService databaseService) {
+	public RereleaseRemapper(FilterService filterService, UserService userService, DatabaseService databaseService) {
 		this.filterService = filterService;
-		this.cachedUserService = cachedUserService;
+		this.userService = userService;
 		this.databaseService = databaseService;
 		this.releaseNamesCache = Set.of();
 	}
@@ -131,7 +131,7 @@ public class RereleaseRemapper implements Remapper {
 	}
 
 	private boolean isTrackAvailable(TrackSimplified ts) {
-		CountryCode userMarket = cachedUserService.getUserMarket();
+		CountryCode userMarket = userService.getMarketOfCurrentUser();
 		return Arrays.asList(ts.getAvailableMarkets()).contains(userMarket);
 	}
 

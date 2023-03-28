@@ -25,10 +25,10 @@ import spotify.api.SpotifyApiException;
 import spotify.api.SpotifyCall;
 import spotify.api.SpotifyDependenciesSettings;
 import spotify.bot.service.PlaylistMetaService;
-import spotify.bot.service.performance.CachedUserService;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
+import spotify.services.UserService;
 
 @Configuration
 public class PlaylistStoreConfig {
@@ -43,14 +43,14 @@ public class PlaylistStoreConfig {
 	private final List<AlbumGroupExtended> disabledAlbumGroups;
 
 	private final SpotifyApi spotifyApi;
-	private final CachedUserService cachedUserService;
+	private final UserService userService;
 	private final DiscoveryBotLogger log;
 
 	private final File playlistPropertiesFile;
 
-	PlaylistStoreConfig(SpotifyApi spotifyApi, CachedUserService cachedUserService, DiscoveryBotLogger discoveryBotLogger, SpotifyDependenciesSettings spotifyDependenciesSettings) {
+	PlaylistStoreConfig(SpotifyApi spotifyApi, UserService userService, DiscoveryBotLogger discoveryBotLogger, SpotifyDependenciesSettings spotifyDependenciesSettings) {
 		this.spotifyApi = spotifyApi;
-		this.cachedUserService = cachedUserService;
+		this.userService = userService;
 		this.log = discoveryBotLogger;
 		this.enabledAlbumGroups = new ArrayList<>();
 		this.disabledAlbumGroups = new ArrayList<>();
@@ -118,7 +118,7 @@ public class PlaylistStoreConfig {
 					throw new IOException("Playlist ID for '" + albumGroupExtended.getGroupName() + "' does not point to an existing playlist");
 				}
 				User playlistOwner = playlist.getOwner();
-				User currentUser = cachedUserService.getUser();
+				User currentUser = userService.getCurrentUser();
 				if (!Objects.equals(playlistOwner.getId(), currentUser.getId())) {
 					throw new IOException("You are not the owner of the playlist for '" + albumGroupExtended.getGroupName() + "'");
 				}
@@ -128,7 +128,7 @@ public class PlaylistStoreConfig {
 					disabledAlbumGroups.add(albumGroupExtended);
 				} else {
 					String playlistName = PlaylistMetaService.INDICATOR_OFF + " New " + albumGroupExtended.getHumanName();
-					Playlist newPlaylist = SpotifyCall.execute(spotifyApi.createPlaylist(cachedUserService.getUserId(), playlistName).public_(false));
+					Playlist newPlaylist = SpotifyCall.execute(spotifyApi.createPlaylist(userService.getCurrentUser().getId(), playlistName).public_(false));
 					properties.putIfAbsent(albumGroupExtended.getGroupName(), newPlaylist.getId());
 					changes = true;
 				}

@@ -1,4 +1,4 @@
-package spotify.bot.service.performance;
+package spotify.bot.service;
 
 import java.sql.SQLException;
 import java.time.LocalDate;

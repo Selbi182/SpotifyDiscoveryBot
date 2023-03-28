@@ -23,14 +23,13 @@ public class DiscoveryTrackService {
   }
 
   public List<AlbumTrackPair> getTracksOfAlbums(List<AlbumSimplified> albums) {
-    List<Callable<List<AlbumTrackPair>>> callables = new ArrayList<>();
+    List<Callable<AlbumTrackPair>> callables = new ArrayList<>();
     for (AlbumSimplified album : albums) {
       callables.add(() -> {
         try {
-          AlbumTrackPair tracksOfSingleAlbum = trackService.getTracksOfSingleAlbum(album);
-          return List.of(tracksOfSingleAlbum);
+          return trackService.getTracksOfSingleAlbum(album);
         } catch (SpotifyApiException e) {
-          return List.of();
+          return null;
         }
       });
     }

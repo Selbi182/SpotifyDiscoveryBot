@@ -22,8 +22,8 @@ import se.michaelthelin.spotify.requests.data.IPagingRequestBuilder;
 import se.michaelthelin.spotify.requests.data.artists.GetArtistsAlbumsRequest;
 import spotify.api.SpotifyApiException;
 import spotify.api.SpotifyCall;
-import spotify.bot.service.performance.CachedUserService;
 import spotify.services.AlbumService;
+import spotify.services.UserService;
 import spotify.util.SpotifyOptimizedExecutorService;
 import spotify.util.SpotifyUtils;
 
@@ -34,12 +34,12 @@ public class DiscoveryAlbumService {
   private final String albumGroupString;
 
   private final SpotifyApi spotifyApi;
-  private final CachedUserService cachedUserService;
+  private final UserService userService;
   private final SpotifyOptimizedExecutorService spotifyOptimizedExecutorService;
 
-  DiscoveryAlbumService(SpotifyApi spotifyApi, AlbumService albumService, CachedUserService cachedUserService, SpotifyOptimizedExecutorService spotifyOptimizedExecutorService) {
+  DiscoveryAlbumService(SpotifyApi spotifyApi, AlbumService albumService, UserService userService, SpotifyOptimizedExecutorService spotifyOptimizedExecutorService) {
     this.spotifyApi = spotifyApi;
-    this.cachedUserService = cachedUserService;
+    this.userService = userService;
     this.spotifyOptimizedExecutorService = spotifyOptimizedExecutorService;
     this.albumGroupString = albumService.createAlbumGroupString(Set.of(AlbumGroup.ALBUM, AlbumGroup.SINGLE, AlbumGroup.COMPILATION, AlbumGroup.APPEARS_ON));
   }
@@ -50,13 +50,13 @@ public class DiscoveryAlbumService {
    * Spotify Web API request for EVERY SINGLE ARTIST!)
    */
   public List<AlbumSimplified> getAllAlbumsOfArtists(List<String> followedArtists) throws SpotifyApiException {
-    CountryCode marketOfCurrentUser = cachedUserService.getUserMarket();
+    CountryCode marketOfCurrentUser = userService.getMarketOfCurrentUser();
 
     List<Callable<List<AlbumSimplified>>> callables = new ArrayList<>();
     for (String artist : followedArtists) {
       callables.add(() -> getAlbumIdsOfSingleArtist(artist, albumGroupString, marketOfCurrentUser));
     }
-    return spotifyOptimizedExecutorService.executeAndWait(callables);
+    return spotifyOptimizedExecutorService.executeAndWaitList(callables);
   }
 
   /**

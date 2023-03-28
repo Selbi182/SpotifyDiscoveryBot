@@ -117,7 +117,7 @@ public class DiscoveryBotUtils {
    * @param list the list to reverse
    * @return a reversed view
    */
-  public static <T>  List<T> reversedList(List<T> list) {
+  public static <T> List<T> reversedList(List<T> list) {
     List<T> reversedList = new ArrayList<>(list);
     Collections.reverse(reversedList);
     return reversedList;

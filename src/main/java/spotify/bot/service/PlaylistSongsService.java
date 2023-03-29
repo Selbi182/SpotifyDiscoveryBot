@@ -9,13 +9,9 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-
 import se.michaelthelin.spotify.model_objects.IPlaylistItem;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
-import se.michaelthelin.spotify.model_objects.specification.Track;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.api.SpotifyApiException;
 import spotify.bot.config.DeveloperMode;
@@ -28,11 +24,9 @@ import spotify.util.data.AlbumTrackPair;
 
 @Service
 public class PlaylistSongsService {
-  private final static int TOP_OF_PLAYLIST = 0;
   private final static int PLAYLIST_ADDITION_COOLDOWN = 1000;
   private final static int PLAYLIST_ADD_LIMIT = 100;
   private final static int PLAYLIST_SIZE_LIMIT = 10000;
-  private final static String TRACK_PREFIX = "spotify:track:";
 
   private final PlaylistService playlistService;
   private final SpotifyOptimizedExecutorService spotifyOptimizedExecutorService;
@@ -73,7 +67,7 @@ public class PlaylistSongsService {
    * Add the given list of song IDs to the playlist (a delay of a second per
    * release is used to retain order). May remove older songs to make room.
    */
-  public void addSongsToPlaylistId(String playlistId, List<AlbumTrackPair> albumTrackPairs) throws SpotifyApiException {
+  private void addSongsToPlaylistId(String playlistId, List<AlbumTrackPair> albumTrackPairs) throws SpotifyApiException {
     if (!albumTrackPairs.isEmpty()) {
       Playlist playlist = playlistService.getPlaylist(playlistId);
       circularPlaylistFitting(playlist, albumTrackPairs);
@@ -81,7 +75,7 @@ public class PlaylistSongsService {
       for (List<TrackSimplified> t : bundledReleases) {
         for (List<TrackSimplified> partition : SpotifyUtils.partitionList(t, PLAYLIST_ADD_LIMIT)) {
           List<String> ids = partition.stream().map(TrackSimplified::getId).collect(Collectors.toList());
-          playlistService.addSongsToPlaylistById(playlist, ids, TOP_OF_PLAYLIST);
+          playlistService.addSongsToPlaylistByIdTop(playlist, ids);
           SpotifyUtils.sneakySleep(PLAYLIST_ADDITION_COOLDOWN);
         }
       }
@@ -104,50 +98,25 @@ public class PlaylistSongsService {
    */
   private void circularPlaylistFitting(Playlist playlist, List<AlbumTrackPair> albumTrackPairs) throws SpotifyApiException {
     int songsToAddCount = albumTrackPairs.stream().mapToInt(AlbumTrackPair::trackCount).sum();
-    final int currentPlaylistCount = playlist.getTracks().getTotal();
-    if (currentPlaylistCount + songsToAddCount > PLAYLIST_SIZE_LIMIT) {
-      deleteSongsFromBottomOnLimit(playlist, currentPlaylistCount, songsToAddCount);
+    int currentTracksInPlaylistCount = playlist.getTracks().getTotal();
+    if (currentTracksInPlaylistCount + songsToAddCount > PLAYLIST_SIZE_LIMIT) {
+      deleteSongsFromBottomOnLimit(playlist, currentTracksInPlaylistCount, songsToAddCount);
     }
   }
 
   /**
    * Delete as many songs from the bottom as necessary to make room for any new
    * songs to add, as Spotify playlists have a fixed limit of 10000 songs.
-   *
-   * If circularPlaylistFitting isn't enabled, an exception is thrown on a full
-   * playlist instead.
    */
-  private void deleteSongsFromBottomOnLimit(Playlist playlist, int currentPlaylistCount, int songsToAddCount) throws SpotifyApiException {
+  private void deleteSongsFromBottomOnLimit(Playlist playlist, int currentTracksInPlaylistCount, int songsToAddCount) throws SpotifyApiException {
     String playlistId = playlist.getId();
 
-    int totalSongsToDeleteCount = currentPlaylistCount + songsToAddCount - PLAYLIST_SIZE_LIMIT;
-    boolean repeat = totalSongsToDeleteCount > PLAYLIST_ADD_LIMIT;
-    int songsToDeleteCount = repeat ? PLAYLIST_ADD_LIMIT : totalSongsToDeleteCount;
-    final int offset = currentPlaylistCount - songsToDeleteCount;
+    int totalSongsToDeleteCount = currentTracksInPlaylistCount + songsToAddCount - PLAYLIST_SIZE_LIMIT;
+    int offset = currentTracksInPlaylistCount - totalSongsToDeleteCount;
 
-    List<PlaylistTrack> tracksToDelete = playlistService.getPlaylistTracks(playlistId, offset);
-
-    JsonArray json = new JsonArray();
-    for (int i = 0; i < tracksToDelete.size(); i++) {
-      IPlaylistItem track = tracksToDelete.get(i).getTrack();
-      if (track instanceof Track) {
-        String id = track.getId();
-        JsonObject object = new JsonObject();
-        object.addProperty("uri", TRACK_PREFIX + id);
-        JsonArray positions = new JsonArray();
-        positions.add(currentPlaylistCount - songsToDeleteCount + i);
-        object.add("positions", positions);
-        json.add(object);
-      }
-    }
-
-    playlistService.deleteTracksFromPlaylist(playlistId, json);
-
-    // Repeat if more than 100 songs have to be added/deleted (should rarely happen,
-    // so a recursion will be slow, but it'll do the job)
-    if (repeat) {
-      deleteSongsFromBottomOnLimit(playlist, currentPlaylistCount - 100, songsToAddCount);
-    }
+    List<IPlaylistItem> tracksToDelete = playlistService.getPlaylistTracks(playlistId, offset).stream()
+      .map(PlaylistTrack::getTrack)
+      .collect(Collectors.toList());
+    playlistService.removeItemsFromPlaylist(playlistId, tracksToDelete);
   }
-
 }

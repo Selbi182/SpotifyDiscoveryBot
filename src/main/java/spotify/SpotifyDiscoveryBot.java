@@ -28,6 +28,8 @@ public class SpotifyDiscoveryBot {
           "user-read-private",
           "user-read-email",
           "playlist-modify-private",
+          "playlist-modify-public",
+          "playlist-read-collaborative",
           "playlist-read-private",
           "user-follow-read"
       );

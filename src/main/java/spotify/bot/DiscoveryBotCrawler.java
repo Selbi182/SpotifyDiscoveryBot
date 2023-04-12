@@ -141,8 +141,8 @@ public class DiscoveryBotCrawler {
 	 *
 	 * @throws SpotifyApiException on an external exception related to the Spotify Web API
 	 */
-	public boolean clearObsoleteNotifiers() throws SpotifyApiException {
-		return playlistMetaService.clearObsoleteNotifiers();
+	public void clearObsoleteNotifiers() throws SpotifyApiException {
+		playlistMetaService.clearObsoleteNotifiers();
 	}
 
 	///////////////////

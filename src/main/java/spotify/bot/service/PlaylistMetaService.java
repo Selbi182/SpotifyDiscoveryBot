@@ -5,6 +5,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -20,17 +21,15 @@ import se.michaelthelin.spotify.model_objects.IPlaylistItem;
 import se.michaelthelin.spotify.model_objects.miscellaneous.CurrentlyPlaying;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
-import se.michaelthelin.spotify.model_objects.specification.Track;
 import se.michaelthelin.spotify.requests.data.playlists.ChangePlaylistsDetailsRequest;
 import spotify.api.SpotifyApiException;
 import spotify.api.SpotifyCall;
 import spotify.bot.config.DeveloperMode;
 import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
-import spotify.bot.util.DiscoveryBotLogger;
 import spotify.services.PlaylistService;
-import spotify.util.SpotifyUtils;
 import spotify.util.SpotifyOptimizedExecutorService;
+import spotify.util.SpotifyUtils;
 import spotify.util.data.AlbumTrackPair;
 
 @Service
@@ -67,18 +66,15 @@ public class PlaylistMetaService {
   private final PlaylistService playlistService;
   private final PlaylistStoreConfig playlistStoreConfig;
   private final SpotifyOptimizedExecutorService spotifyOptimizedExecutorService;
-  private final DiscoveryBotLogger log;
 
   PlaylistMetaService(SpotifyApi spotifyApi,
-      PlaylistService playlistService,
-      PlaylistStoreConfig playlistStoreConfig,
-      SpotifyOptimizedExecutorService spotifyOptimizedExecutorService,
-      DiscoveryBotLogger discoveryBotLogger) {
+    PlaylistService playlistService,
+    PlaylistStoreConfig playlistStoreConfig,
+    SpotifyOptimizedExecutorService spotifyOptimizedExecutorService) {
     this.spotifyApi = spotifyApi;
     this.playlistService = playlistService;
     this.playlistStoreConfig = playlistStoreConfig;
     this.spotifyOptimizedExecutorService = spotifyOptimizedExecutorService;
-    this.log = discoveryBotLogger;
   }
 
   /**
@@ -131,23 +127,62 @@ public class PlaylistMetaService {
 
   /**
    * Convenience method to try and clear every obsolete New indicator
-   *
-   * @return true if at least one playlist name was changed
    */
-  public boolean clearObsoleteNotifiers() throws SpotifyApiException {
-    boolean changed = false;
+  public void clearObsoleteNotifiers() throws SpotifyApiException {
     if (!DeveloperMode.isNotificationMarkersDisabled()) {
-      for (PlaylistStore ps : playlistStoreConfig.getEnabledPlaylistStores()) {
-        if (shouldIndicatorBeMarkedAsRead(ps)) {
-          if (updatePlaylistTitleAndDescription(ps, INDICATOR_NEW, INDICATOR_OFF, false)) {
-            changed = true;
-            playlistStoreConfig.unsetPlaylistStoreUpdatedRecently(ps.getAlbumGroupExtended());
+      Collection<PlaylistStore> enabledPlaylistStores = playlistStoreConfig.getEnabledPlaylistStores();
+
+      // Do a lite pre-check to see if ANY playlists even need a deep check.
+      // This is reduces the number of API calls as much as possible.
+      List<PlaylistStore> requireDeepCheck = enabledPlaylistStores.parallelStream()
+        .filter(playlistStore -> playlistStore.getLastUpdate() != null && !SpotifyUtils.isWithinTimeoutWindow(playlistStore.getLastUpdate(), NEW_NOTIFICATION_TIMEOUT_DAYS))
+        .collect(Collectors.toList());
+
+      if (!requireDeepCheck.isEmpty()) {
+        // Once it's been established that at least one playlist needs a deep check for notifier clearance,
+        // compare the currently playing song with the recently added songs of the playlists
+        CurrentlyPlaying currentlyPlaying = SpotifyCall.execute(spotifyApi.getUsersCurrentlyPlayingTrack());
+
+        if (currentlyPlaying != null) {
+          List<Callable<Void>> callables = new ArrayList<>();
+          for (PlaylistStore ps : requireDeepCheck) {
+            callables.add(() -> {
+              if (shouldIndicatorBeMarkedAsRead(ps, currentlyPlaying)) {
+                updatePlaylistTitleAndDescription(ps, INDICATOR_NEW, INDICATOR_OFF, false);
+              }
+              playlistStoreConfig.unsetPlaylistStoreUpdatedRecently(ps.getAlbumGroupExtended());
+              return null;
+            });
           }
+          spotifyOptimizedExecutorService.executeAndWaitVoid(callables);
         }
       }
     }
-    return changed;
   }
+
+  /**
+   * Check if the [NEW] indicator for this playlist store should be removed
+   */
+  private boolean shouldIndicatorBeMarkedAsRead(PlaylistStore playlistStore, CurrentlyPlaying currentlyPlaying) {
+    String playlistId = playlistStore.getPlaylistId();
+
+    List<PlaylistTrack> recentlyAddedPlaylistTracks = Arrays.stream(SpotifyCall.execute(spotifyApi.getPlaylistsItems(playlistId).limit(MAX_PLAYLIST_TRACK_FETCH_LIMIT)).getItems())
+      .filter(pt -> SpotifyUtils.isWithinTimeoutWindow(pt.getAddedAt(), NEW_NOTIFICATION_TIMEOUT_DAYS))
+      .collect(Collectors.toList());
+
+    if (!recentlyAddedPlaylistTracks.isEmpty()) {
+      String currentlyPlayingItemId = currentlyPlaying.getItem().getId();
+      return recentlyAddedPlaylistTracks.stream()
+        .map(PlaylistTrack::getTrack)
+        .map(IPlaylistItem::getId)
+        .filter(Objects::nonNull)
+        .anyMatch(id -> Objects.equals(id, currentlyPlayingItemId));
+    }
+
+    return false;
+  }
+
+  ////////////////////////////////
 
   /**
    * Update the playlist name by replacing the target symbol with the replacement
@@ -159,11 +194,8 @@ public class PlaylistMetaService {
    * @param notifierReplacement the replacement String
    * @param timestamp           write the "Last Discovery" timestamp in the
    *                            description
-   * @return true if the playlist name was changed (a changed playlist description
-   *         has no effect on its own)
    */
-  private boolean updatePlaylistTitleAndDescription(PlaylistStore playlistStore, String notifierTarget, String notifierReplacement, boolean timestamp) throws SpotifyApiException {
-    boolean changed = false;
+  private void updatePlaylistTitleAndDescription(PlaylistStore playlistStore, String notifierTarget, String notifierReplacement, boolean timestamp) throws SpotifyApiException {
     String playlistId = playlistStore.getPlaylistId();
     if (playlistId != null) {
       String newPlaylistName = null;
@@ -178,7 +210,6 @@ public class PlaylistMetaService {
         String playlistName = p.getName();
         if (playlistName != null && playlistName.contains(notifierTarget)) {
           newPlaylistName = playlistName.replace(notifierTarget, notifierReplacement).trim();
-          changed = true;
         }
       }
 
@@ -193,63 +224,5 @@ public class PlaylistMetaService {
         SpotifyCall.execute(playlistDetailsBuilder);
       }
     }
-    return changed;
-  }
-
-  ////////////////////////////////
-
-  /**
-   * Check if the [NEW] indicator for this playlist store should be removed. This
-   * is either done by timeout or by checking if the currently played song is
-   * within the most recently added songs of the playlist.
-   */
-  private boolean shouldIndicatorBeMarkedAsRead(PlaylistStore playlistStore) {
-    try {
-      // Case 1: Notification timestamp is already unset
-      LocalDateTime lastUpdated = playlistStore.getLastUpdate();
-      if (lastUpdated == null) {
-        return true;
-      }
-
-      // Case 2: Timeout since playlist was last updated expired
-      if (!SpotifyUtils.isWithinTimeoutWindow(lastUpdated, NEW_NOTIFICATION_TIMEOUT_DAYS)) {
-        return true;
-      }
-
-      // Case 3: Currently played song is within the recently added playlist tracks
-      String playlistId = playlistStore.getPlaylistId();
-
-      PlaylistTrack[] topmostPlaylistTracks = SpotifyCall.execute(spotifyApi
-          .getPlaylistsItems(playlistId)
-          .limit(MAX_PLAYLIST_TRACK_FETCH_LIMIT))
-          .getItems();
-      List<PlaylistTrack> recentlyAddedPlaylistTracks = Arrays.stream(topmostPlaylistTracks)
-          .filter((pt -> SpotifyUtils.isWithinTimeoutWindow(pt.getAddedAt(), NEW_NOTIFICATION_TIMEOUT_DAYS)))
-          .collect(Collectors.toList());
-
-      // -- Case 3a: Playlist does not have recently added tracks or is still empty
-      if (recentlyAddedPlaylistTracks.isEmpty()) {
-        return true;
-      }
-
-      // -- Case 3b: Playlist does have recently added tracks, check if the currently
-      // played song is within that list
-      CurrentlyPlaying currentlyPlaying = SpotifyCall.execute(spotifyApi.getUsersCurrentlyPlayingTrack());
-      if (currentlyPlaying != null) {
-        IPlaylistItem item = currentlyPlaying.getItem();
-        if (item instanceof Track) {
-          String currentlyPlayingSongId = item.getId();
-          return recentlyAddedPlaylistTracks.stream()
-              .map(PlaylistTrack::getTrack)
-              .map(IPlaylistItem::getId)
-              .filter(Objects::nonNull)
-              .anyMatch(id -> Objects.equals(id, currentlyPlayingSongId));
-        }
-      }
-    } catch (Exception e) {
-      // Don't care, indicator clearance has absolutely no priority
-      log.stackTrace(e);
-    }
-    return false;
   }
 }

@@ -247,8 +247,6 @@ public class PlaylistStoreConfig {
 			return lastUpdate;
 		}
 
-		/////////////
-
 		public void setLastUpdate(LocalDateTime lastUpdate) {
 			this.lastUpdate = lastUpdate;
 		}

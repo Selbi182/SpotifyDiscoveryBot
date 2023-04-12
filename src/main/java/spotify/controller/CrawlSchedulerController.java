@@ -100,9 +100,7 @@ public class CrawlSchedulerController {
 		if (!crawler.isReady()) {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body("Can't clear [NEW] indicators now, as crawler is currently in progress...");
 		}
-		if (crawler.clearObsoleteNotifiers()) {
-			return ResponseEntity.ok("New indicator[s] removed!");
-		}
-		return ResponseEntity.ok("All notifiers were already cleared");
+		crawler.clearObsoleteNotifiers();
+		return ResponseEntity.ok("All notifiers were cleared!");
 	}
 }

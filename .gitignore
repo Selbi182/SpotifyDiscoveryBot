@@ -40,3 +40,4 @@ build/
 /application.properties
 /log.txt
 /spotifybot.properties
+deploy.sh

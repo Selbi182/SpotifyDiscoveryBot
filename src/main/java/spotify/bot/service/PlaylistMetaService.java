@@ -6,7 +6,6 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -110,11 +109,8 @@ public class PlaylistMetaService {
    */
   public void showNotifiers(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws SpotifyApiException {
     if (!DeveloperMode.isNotificationMarkersDisabled()) {
-      List<PlaylistStore> sortedPlaylistStores = songsByPlaylist.keySet().stream().sorted().collect(Collectors.toList());
       List<Callable<Void>> callables = new ArrayList<>();
-      for (PlaylistStore ps : sortedPlaylistStores) {
-        List<AlbumTrackPair> albumTrackPairs = songsByPlaylist.get(ps);
-        Collections.sort(albumTrackPairs);
+      for (PlaylistStore ps : songsByPlaylist.keySet()) {
         callables.add(() -> {
           updatePlaylistTitleAndDescription(ps, INDICATOR_OFF, INDICATOR_NEW, true);
           playlistStoreConfig.setPlaylistStoreUpdatedJustNow(ps.getAlbumGroupExtended());
@@ -135,7 +131,7 @@ public class PlaylistMetaService {
       // Do a lite pre-check to see if ANY playlists even need a deep check.
       // This is reduces the number of API calls as much as possible.
       List<PlaylistStore> requireDeepCheck = enabledPlaylistStores.parallelStream()
-        .filter(playlistStore -> playlistStore.getLastUpdate() != null && !SpotifyUtils.isWithinTimeoutWindow(playlistStore.getLastUpdate(), NEW_NOTIFICATION_TIMEOUT_DAYS))
+        .filter(playlistStore -> playlistStore.getLastUpdate() != null && SpotifyUtils.isWithinTimeoutWindow(playlistStore.getLastUpdate(), NEW_NOTIFICATION_TIMEOUT_DAYS))
         .collect(Collectors.toList());
 
       if (!requireDeepCheck.isEmpty()) {

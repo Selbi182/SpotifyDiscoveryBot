@@ -332,6 +332,10 @@ public class FilterService {
 				}
 			}
 		}
+
+		// If after the blacklist removal a potential release type is suddenly completely empty, remove it entirely
+		songsByPS.values().removeIf(List::isEmpty);
+
 		if (!allDroppedReleases.isEmpty()) {
 			log.printDroppedAlbumsCustomGroup(allDroppedReleases, "Dropped " + allDroppedReleases.size() + " blacklisted release[s]:");
 		}

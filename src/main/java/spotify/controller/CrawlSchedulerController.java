@@ -79,12 +79,12 @@ public class CrawlSchedulerController {
 	}
 
 	/**
-	 * Periodic task running every 5 seconds to remove the [NEW] indicator where
+	 * Periodic task running every 10 seconds to remove the [NEW] indicator where
 	 * applicable. Will only run while crawler is idle.
 	 * 
 	 * @throws SpotifyApiException on an external exception related to the Spotify Web API
 	 */
-	@Scheduled(fixedDelay = 5 * 1000)
+	@Scheduled(fixedDelay = 10 * 1000)
 	public void clearNewIndicatorScheduler() throws SpotifyApiException {
 		manuallyClearNotifiers();
 	}

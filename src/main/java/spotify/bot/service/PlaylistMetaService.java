@@ -33,8 +33,6 @@ import spotify.util.data.AlbumTrackPair;
 
 @Service
 public class PlaylistMetaService {
-  private final static int MAX_PLAYLIST_TRACK_FETCH_LIMIT = 50;
-
   /**
    * The amount of days after which an unread notification will automatically be set to read
    */
@@ -86,14 +84,16 @@ public class PlaylistMetaService {
       for (PlaylistStore ps : playlistStoreConfig.getEnabledPlaylistStores()) {
         callables.add(() -> {
           Playlist playlist = SpotifyCall.execute(spotifyApi.getPlaylist(ps.getPlaylistId()));
-          String description = playlist.getDescription();
-          if (description.startsWith(DESCRIPTION_PREFIX)) {
-            String rawDate = description.replace(DESCRIPTION_PREFIX, "").trim();
-            try {
-              LocalDateTime lastUpdateFromDescription = DESCRIPTION_TIMESTAMP_FORMAT.parse(rawDate, LocalDateTime::from);
-              ps.setLastUpdate(lastUpdateFromDescription);
-            } catch (DateTimeParseException e) {
-              e.printStackTrace();
+          if (containsNewIndicator(playlist.getName())) {
+            String description = playlist.getDescription();
+            if (description.startsWith(DESCRIPTION_PREFIX)) {
+              String rawDate = description.replace(DESCRIPTION_PREFIX, "").trim();
+              try {
+                LocalDateTime lastUpdateFromDescription = DESCRIPTION_TIMESTAMP_FORMAT.parse(rawDate, LocalDateTime::from);
+                ps.setLastUpdate(lastUpdateFromDescription);
+              } catch (DateTimeParseException e) {
+                e.printStackTrace();
+              }
             }
           }
           return null; // must return something for Void class
@@ -128,25 +128,26 @@ public class PlaylistMetaService {
     if (!DeveloperMode.isNotificationMarkersDisabled()) {
       Collection<PlaylistStore> enabledPlaylistStores = playlistStoreConfig.getEnabledPlaylistStores();
 
-      // Do a lite pre-check to see if ANY playlists even need a deep check.
-      // This is reduces the number of API calls as much as possible.
-      List<PlaylistStore> requireDeepCheck = enabledPlaylistStores.parallelStream()
-        .filter(playlistStore -> playlistStore.getLastUpdate() != null && SpotifyUtils.isWithinTimeoutWindow(playlistStore.getLastUpdate(), NEW_NOTIFICATION_TIMEOUT_DAYS))
+      // Do a lite pre-check to see if ANY playlists even need a deep check (to reduce API calls).
+      // This is accomplished by checking whether the "last update" field is set, because it being null
+      // implicitly means the playlist is already marked as read.
+      List<PlaylistStore> psRequireDeepCheck = enabledPlaylistStores.parallelStream()
+        .filter(playlistStore -> playlistStore.getLastUpdate() != null)
         .collect(Collectors.toList());
 
-      if (!requireDeepCheck.isEmpty()) {
+      if (!psRequireDeepCheck.isEmpty()) {
         // Once it's been established that at least one playlist needs a deep check for notifier clearance,
         // compare the currently playing song with the recently added songs of the playlists
         CurrentlyPlaying currentlyPlaying = SpotifyCall.execute(spotifyApi.getUsersCurrentlyPlayingTrack());
 
         if (currentlyPlaying != null) {
           List<Callable<Void>> callables = new ArrayList<>();
-          for (PlaylistStore ps : requireDeepCheck) {
+          for (PlaylistStore ps : psRequireDeepCheck) {
             callables.add(() -> {
               if (shouldIndicatorBeMarkedAsRead(ps, currentlyPlaying)) {
+                playlistStoreConfig.unsetPlaylistStoreUpdatedRecently(ps.getAlbumGroupExtended());
                 updatePlaylistTitleAndDescription(ps, INDICATOR_NEW, INDICATOR_OFF, false);
               }
-              playlistStoreConfig.unsetPlaylistStoreUpdatedRecently(ps.getAlbumGroupExtended());
               return null;
             });
           }
@@ -157,12 +158,16 @@ public class PlaylistMetaService {
   }
 
   /**
-   * Check if the [NEW] indicator for this playlist store should be removed
+   * Check if the [NEW] indicator for this playlist should be removed
    */
   private boolean shouldIndicatorBeMarkedAsRead(PlaylistStore playlistStore, CurrentlyPlaying currentlyPlaying) {
-    String playlistId = playlistStore.getPlaylistId();
+    if (!SpotifyUtils.isWithinTimeoutWindow(playlistStore.getLastUpdate(), NEW_NOTIFICATION_TIMEOUT_DAYS)) {
+      return true;
+    }
 
-    List<PlaylistTrack> recentlyAddedPlaylistTracks = Arrays.stream(SpotifyCall.execute(spotifyApi.getPlaylistsItems(playlistId).limit(MAX_PLAYLIST_TRACK_FETCH_LIMIT)).getItems())
+    Playlist playlist = playlistService.getPlaylist(playlistStore.getPlaylistId());
+
+    List<PlaylistTrack> recentlyAddedPlaylistTracks = Arrays.stream(playlist.getTracks().getItems())
       .filter(pt -> SpotifyUtils.isWithinTimeoutWindow(pt.getAddedAt(), NEW_NOTIFICATION_TIMEOUT_DAYS))
       .collect(Collectors.toList());
 
@@ -176,6 +181,13 @@ public class PlaylistMetaService {
     }
 
     return false;
+  }
+
+  /**
+   * Return true if the given playlist name contains the new indicator (white circle).
+   */
+  private boolean containsNewIndicator(String playlistName) {
+    return playlistName.contains(INDICATOR_NEW);
   }
 
   ////////////////////////////////

@@ -139,7 +139,7 @@ public class PlaylistMetaService {
       // compare the currently playing song with the recently added songs of the playlists
       CurrentlyPlaying currentlyPlaying = SpotifyCall.execute(spotifyApi.getUsersCurrentlyPlayingTrack());
 
-      if (currentlyPlaying != null) {
+      if (currentlyPlaying != null && currentlyPlaying.getItem() != null) {
         List<Callable<Void>> callables = new ArrayList<>();
         for (PlaylistStore ps : psRequireDeepCheck) {
           callables.add(() -> {

@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 
 import se.michaelthelin.spotify.enums.AlbumGroup;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
-import spotify.api.SpotifyApiAuthorization;
 import spotify.api.SpotifyApiException;
 import spotify.api.events.SpotifyApiLoggedInEvent;
 import spotify.bot.config.DeveloperMode;
@@ -19,11 +18,11 @@ import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.filter.FilterService;
 import spotify.bot.filter.RelayService;
 import spotify.bot.filter.RemappingService;
+import spotify.bot.service.CachedArtistService;
 import spotify.bot.service.DiscoveryAlbumService;
 import spotify.bot.service.DiscoveryTrackService;
 import spotify.bot.service.PlaylistMetaService;
 import spotify.bot.service.PlaylistSongsService;
-import spotify.bot.service.CachedArtistService;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -33,7 +32,6 @@ import spotify.util.data.AlbumTrackPair;
 
 @Component
 public class DiscoveryBotCrawler {
-	private final SpotifyApiAuthorization spotifyApiAuthorization;
 	private final DiscoveryBotLogger log;
 	private final CachedArtistService cachedArtistService;
 	private final DiscoveryAlbumService discoveryAlbumService;
@@ -48,7 +46,6 @@ public class DiscoveryBotCrawler {
 	private List<AlbumSimplified> albumsToCache;
 
 	DiscoveryBotCrawler(
-			SpotifyApiAuthorization spotifyApiAuthorization,
 			DiscoveryBotLogger discoveryBotLogger,
 			CachedArtistService cachedArtistService,
 			DiscoveryAlbumService discoveryAlbumService,
@@ -60,7 +57,6 @@ public class DiscoveryBotCrawler {
 			RemappingService remappingService,
 			RelayService relayService
 	) {
-		this.spotifyApiAuthorization = spotifyApiAuthorization;
 		this.log = discoveryBotLogger;
 		this.cachedArtistService = cachedArtistService;
 		this.discoveryAlbumService = discoveryAlbumService;
@@ -167,7 +163,6 @@ public class DiscoveryBotCrawler {
 	 * speed up the future search processes
 	 */
 	private Map<AlbumGroupExtended, Integer> crawl() throws SpotifyApiException, SQLException {
-		spotifyApiAuthorization.refresh();
 		try {
 			return crawlScript();
 		} finally {

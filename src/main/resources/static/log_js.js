@@ -49,10 +49,12 @@
     			currentLogContainer.appendChild(currentLogLine);
 			}
 			currentLogContainer.onclick = () => {
-				if (currentLogContainer.classList.contains("active")) {
-					currentLogContainer.classList.remove("active");		    					
-				} else {
-					currentLogContainer.classList.add("active");
+				if (!window.getSelection().toString()) {
+					if (currentLogContainer.classList.contains("active")) {
+						currentLogContainer.classList.remove("active");
+					} else {
+						currentLogContainer.classList.add("active");
+					}
 				}
 			};
 			

@@ -40,7 +40,7 @@ public class CrawlSchedulerController implements SchedulingConfigurer {
 	public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
 		if (!DeveloperMode.isScheduledCrawlDisabled()) {
 			taskRegistrar.addCronTask(new CronTask(this::scheduledCrawl, crawlCron));
-			log.info("Scheduled crawl are enabled with the following cronjob: " + crawlCron, false);
+			log.info("Scheduled crawls are enabled with the following cronjob: " + crawlCron, false);
 		}
 		if (!DeveloperMode.isNotificationMarkersDisabled()) {
 			taskRegistrar.addFixedDelayTask(this::clearNewIndicatorScheduler, 10 * 1000);

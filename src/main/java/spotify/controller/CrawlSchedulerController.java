@@ -3,10 +3,13 @@ package spotify.controller;
 import java.sql.SQLException;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.annotation.SchedulingConfigurer;
+import org.springframework.scheduling.config.CronTask;
+import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,26 +24,36 @@ import spotify.bot.util.data.AlbumGroupExtended;
 @RestController
 @Component
 @EnableScheduling
-public class CrawlSchedulerController {
-
+public class CrawlSchedulerController implements SchedulingConfigurer {
 	private final DiscoveryBotCrawler crawler;
 	private final DiscoveryBotLogger log;
+
+	@Value("${spotify.discovery.crawl.cron:5 */30 * * * *}")
+	private String crawlCron;
 
 	CrawlSchedulerController(DiscoveryBotCrawler discoveryBotCrawler, DiscoveryBotLogger botLogger) {
 		this.crawler = discoveryBotCrawler;
 		this.log = botLogger;
 	}
 
+	@Override
+	public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
+		if (!DeveloperMode.isScheduledCrawlDisabled()) {
+			taskRegistrar.addCronTask(new CronTask(this::scheduledCrawl, crawlCron));
+		}
+		if (!DeveloperMode.isNotificationMarkersDisabled()) {
+			taskRegistrar.addFixedDelayTask(this::clearNewIndicatorScheduler, 10 * 1000);
+		}
+	}
+
 	/**
 	 * Run the scheduler every half hour (with a few seconds extra to offset deviations).
-	 * 
-	 * @throws SpotifyApiException on an external exception related to the Spotify Web API
-	 * @throws SQLException on an internal exception related to the SQLite database
 	 */
-	@Scheduled(cron = "5 */30 * * * *")
-	private void scheduledCrawl() throws SpotifyApiException, SQLException {
-		if (!DeveloperMode.isScheduledCrawlDisabled()) {
+	private void scheduledCrawl() {
+		try {
 			runCrawler();
+		} catch (SQLException | SpotifyApiException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -84,7 +97,6 @@ public class CrawlSchedulerController {
 	 * 
 	 * @throws SpotifyApiException on an external exception related to the Spotify Web API
 	 */
-	@Scheduled(fixedDelay = 10 * 1000)
 	public void clearNewIndicatorScheduler() throws SpotifyApiException {
 		manuallyClearNotifiers();
 	}

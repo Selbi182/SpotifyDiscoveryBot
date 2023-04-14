@@ -125,34 +125,32 @@ public class PlaylistMetaService {
    * Convenience method to try and clear every obsolete New indicator
    */
   public void clearObsoleteNotifiers() throws SpotifyApiException {
-    if (!DeveloperMode.isNotificationMarkersDisabled()) {
-      Collection<PlaylistStore> enabledPlaylistStores = playlistStoreConfig.getEnabledPlaylistStores();
+    Collection<PlaylistStore> enabledPlaylistStores = playlistStoreConfig.getEnabledPlaylistStores();
 
-      // Do a lite pre-check to see if ANY playlists even need a deep check (to reduce API calls).
-      // This is accomplished by checking whether the "last update" field is set, because it being null
-      // implicitly means the playlist is already marked as read.
-      List<PlaylistStore> psRequireDeepCheck = enabledPlaylistStores.parallelStream()
-        .filter(playlistStore -> playlistStore.getLastUpdate() != null)
-        .collect(Collectors.toList());
+    // Do a lite pre-check to see if ANY playlists even need a deep check (to reduce API calls).
+    // This is accomplished by checking whether the "last update" field is set, because it being null
+    // implicitly means the playlist is already marked as read.
+    List<PlaylistStore> psRequireDeepCheck = enabledPlaylistStores.parallelStream()
+      .filter(playlistStore -> playlistStore.getLastUpdate() != null)
+      .collect(Collectors.toList());
 
-      if (!psRequireDeepCheck.isEmpty()) {
-        // Once it's been established that at least one playlist needs a deep check for notifier clearance,
-        // compare the currently playing song with the recently added songs of the playlists
-        CurrentlyPlaying currentlyPlaying = SpotifyCall.execute(spotifyApi.getUsersCurrentlyPlayingTrack());
+    if (!psRequireDeepCheck.isEmpty()) {
+      // Once it's been established that at least one playlist needs a deep check for notifier clearance,
+      // compare the currently playing song with the recently added songs of the playlists
+      CurrentlyPlaying currentlyPlaying = SpotifyCall.execute(spotifyApi.getUsersCurrentlyPlayingTrack());
 
-        if (currentlyPlaying != null) {
-          List<Callable<Void>> callables = new ArrayList<>();
-          for (PlaylistStore ps : psRequireDeepCheck) {
-            callables.add(() -> {
-              if (shouldIndicatorBeMarkedAsRead(ps, currentlyPlaying)) {
-                playlistStoreConfig.unsetPlaylistStoreUpdatedRecently(ps.getAlbumGroupExtended());
-                updatePlaylistTitleAndDescription(ps, INDICATOR_NEW, INDICATOR_OFF, false);
-              }
-              return null;
-            });
-          }
-          spotifyOptimizedExecutorService.executeAndWaitVoid(callables);
+      if (currentlyPlaying != null) {
+        List<Callable<Void>> callables = new ArrayList<>();
+        for (PlaylistStore ps : psRequireDeepCheck) {
+          callables.add(() -> {
+            if (shouldIndicatorBeMarkedAsRead(ps, currentlyPlaying)) {
+              playlistStoreConfig.unsetPlaylistStoreUpdatedRecently(ps.getAlbumGroupExtended());
+              updatePlaylistTitleAndDescription(ps, INDICATOR_NEW, INDICATOR_OFF, false);
+            }
+            return null;
+          });
         }
+        spotifyOptimizedExecutorService.executeAndWaitVoid(callables);
       }
     }
   }

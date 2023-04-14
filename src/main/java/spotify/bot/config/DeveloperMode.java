@@ -16,7 +16,7 @@ import spotify.bot.util.DiscoveryBotUtils;
 /**
  * This class controls the developer mode state of the application. Cache and
  * playlist additions can be individually or completely turned off depending on
- * the contents of a file called <code>DEV_MODE.txt</code> in the working
+ * the contents of a file called <code>DEV_MODE.ini</code> in the working
  * directory.
  */
 @Configuration
@@ -61,7 +61,7 @@ public class DeveloperMode {
 
 	private static Set<DevMode> devModes = Collections.emptySet();
 	static {
-		File devModeFile = new File("./DEV_MODE.txt");
+		File devModeFile = new File("./DEV_MODE.ini");
 		if (devModeFile.canRead()) {
 			try (Stream<String> lines = Files.lines(devModeFile.toPath())) {
 				devModes = lines
@@ -69,7 +69,7 @@ public class DeveloperMode {
 					.filter(Objects::nonNull)
 					.collect(Collectors.toSet());
 			} catch (IOException e) {
-				System.out.println("Found DEV_MODE.txt file but couldn't read it. Defaulting to NO developer settings!");
+				System.out.println("Found DEV_MODE.ini file but couldn't read it. Defaulting to NO developer settings!");
 				e.printStackTrace();
 			}
 		}

@@ -19,7 +19,7 @@ import org.springframework.web.client.RestTemplate;
 
 import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
 import spotify.api.SpotifyDependenciesSettings;
-import spotify.bot.config.DeveloperMode;
+import spotify.bot.config.FeatureControl;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -47,16 +47,18 @@ public class RelayService {
 	private String messageMask;
 
 	private final DiscoveryBotLogger log;
+	private final FeatureControl featureControl;
 
-	RelayService(DiscoveryBotLogger botLogger, SpotifyDependenciesSettings spotifyDependenciesSettings) {
+	RelayService(DiscoveryBotLogger botLogger, FeatureControl featureControl, SpotifyDependenciesSettings spotifyDependenciesSettings) {
 		this.log = botLogger;
+		this.featureControl = featureControl;
 		this.relayFile = new File(spotifyDependenciesSettings.configFilesBase(), RELAY_FILE_NAME);
 	}
 
 	@PostConstruct
 	private void init() {
 		this.active = false;
-		if (!DeveloperMode.isRelayingDisabled()) {
+		if (featureControl.isRelayEnabled()) {
 			if (relayFile.canRead()) {
 				Properties relayProperties = new Properties();
 				try {
@@ -75,13 +77,10 @@ public class RelayService {
 				}
 			}
 		}
-		if (!active) {
-			log.info("Relaying disabled", false);
-		}
 	}
 
 	public void relayResults(Map<PlaylistStore, List<AlbumTrackPair>> newTracksByTargetPlaylist) {
-		if (active && !DeveloperMode.isRelayingDisabled()) {
+		if (active && featureControl.isRelayEnabled()) {
 			newTracksByTargetPlaylist.values().stream()
 				.flatMap(Collection::stream)
 				.filter(this::isWhitelistedArtist)

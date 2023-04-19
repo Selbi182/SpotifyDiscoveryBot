@@ -14,7 +14,7 @@ import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.api.SpotifyApiException;
-import spotify.bot.config.DeveloperMode;
+import spotify.bot.config.FeatureControl;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.services.PlaylistService;
@@ -31,11 +31,16 @@ public class PlaylistSongsService {
   private final PlaylistService playlistService;
   private final SpotifyOptimizedExecutorService spotifyOptimizedExecutorService;
   private final DiscoveryBotLogger log;
+  private final FeatureControl featureControl;
 
-  PlaylistSongsService(PlaylistService playlistService, SpotifyOptimizedExecutorService spotifyOptimizedExecutorService, DiscoveryBotLogger discoveryBotLogger) {
+  PlaylistSongsService(PlaylistService playlistService,
+    SpotifyOptimizedExecutorService spotifyOptimizedExecutorService,
+    DiscoveryBotLogger discoveryBotLogger,
+    FeatureControl featureControl) {
     this.playlistService = playlistService;
     this.spotifyOptimizedExecutorService = spotifyOptimizedExecutorService;
     this.log = discoveryBotLogger;
+    this.featureControl = featureControl;
   }
 
   /**
@@ -58,7 +63,7 @@ public class PlaylistSongsService {
   }
 
   private void addSongsForPlaylistStore(PlaylistStore ps, List<AlbumTrackPair> albumTrackPairs) {
-    if (!albumTrackPairs.isEmpty() && !DeveloperMode.isPlaylistAdditionDisabled()) {
+    if (!albumTrackPairs.isEmpty() && featureControl.isPlaylistAdditionEnabled()) {
       addSongsToPlaylistId(ps.getPlaylistId(), albumTrackPairs);
     }
   }

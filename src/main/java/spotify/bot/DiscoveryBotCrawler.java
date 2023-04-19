@@ -12,7 +12,7 @@ import se.michaelthelin.spotify.enums.AlbumGroup;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import spotify.api.SpotifyApiException;
 import spotify.api.events.SpotifyApiLoggedInEvent;
-import spotify.bot.config.DeveloperMode;
+import spotify.bot.config.FeatureControl;
 import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.filter.FilterService;
@@ -42,20 +42,22 @@ public class DiscoveryBotCrawler {
 	private final FilterService filterService;
 	private final RemappingService remappingService;
 	private final RelayService relayService;
+	private final FeatureControl featureControl;
 
 	private List<AlbumSimplified> albumsToCache;
 
 	DiscoveryBotCrawler(
-			DiscoveryBotLogger discoveryBotLogger,
-			CachedArtistService cachedArtistService,
-			DiscoveryAlbumService discoveryAlbumService,
-			DiscoveryTrackService discoveryTrackService,
-			PlaylistStoreConfig playlistStoreConfig,
-			PlaylistSongsService playlistSongsService,
-			PlaylistMetaService playlistMetaService,
-			FilterService filterService,
-			RemappingService remappingService,
-			RelayService relayService
+		DiscoveryBotLogger discoveryBotLogger,
+		CachedArtistService cachedArtistService,
+		DiscoveryAlbumService discoveryAlbumService,
+		DiscoveryTrackService discoveryTrackService,
+		PlaylistStoreConfig playlistStoreConfig,
+		PlaylistSongsService playlistSongsService,
+		PlaylistMetaService playlistMetaService,
+		FilterService filterService,
+		RemappingService remappingService,
+		RelayService relayService,
+		FeatureControl featureControl
 	) {
 		this.log = discoveryBotLogger;
 		this.cachedArtistService = cachedArtistService;
@@ -67,6 +69,7 @@ public class DiscoveryBotCrawler {
 		this.filterService = filterService;
 		this.remappingService = remappingService;
 		this.relayService = relayService;
+		this.featureControl = featureControl;
 	}
 
 	/**
@@ -117,7 +120,7 @@ public class DiscoveryBotCrawler {
 		long time = System.currentTimeMillis();
 		playlistStoreConfig.setupPlaylistStores();
 		playlistMetaService.initLastUpdatedFromPlaylistDescriptions();
-		if (!DeveloperMode.isInitialCrawlDisabled()) {
+		if (featureControl.isInitialCrawlEnabled()) {
 			Map<AlbumGroupExtended, Integer> results = crawl();
 			String response = DiscoveryBotUtils.compileResultString(results);
 			if (!response.isBlank()) {

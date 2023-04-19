@@ -23,7 +23,7 @@ import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.requests.data.playlists.ChangePlaylistsDetailsRequest;
 import spotify.api.SpotifyApiException;
 import spotify.api.SpotifyCall;
-import spotify.bot.config.DeveloperMode;
+import spotify.bot.config.FeatureControl;
 import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.services.PlaylistService;
@@ -63,15 +63,18 @@ public class PlaylistMetaService {
   private final PlaylistService playlistService;
   private final PlaylistStoreConfig playlistStoreConfig;
   private final SpotifyOptimizedExecutorService spotifyOptimizedExecutorService;
+  private final FeatureControl featureControl;
 
   PlaylistMetaService(SpotifyApi spotifyApi,
     PlaylistService playlistService,
     PlaylistStoreConfig playlistStoreConfig,
-    SpotifyOptimizedExecutorService spotifyOptimizedExecutorService) {
+    SpotifyOptimizedExecutorService spotifyOptimizedExecutorService,
+    FeatureControl featureControl) {
     this.spotifyApi = spotifyApi;
     this.playlistService = playlistService;
     this.playlistStoreConfig = playlistStoreConfig;
     this.spotifyOptimizedExecutorService = spotifyOptimizedExecutorService;
+    this.featureControl = featureControl;
   }
 
   /**
@@ -79,7 +82,7 @@ public class PlaylistMetaService {
    * inside the PlaylistStores based on their value from the description.
    */
   public void initLastUpdatedFromPlaylistDescriptions() {
-    if (!DeveloperMode.isNotificationMarkersDisabled()) {
+    if (featureControl.isPlaylistMetaEnabled()) {
       List<Callable<Void>> callables = new ArrayList<>();
       for (PlaylistStore ps : playlistStoreConfig.getEnabledPlaylistStores()) {
         callables.add(() -> {
@@ -108,7 +111,7 @@ public class PlaylistMetaService {
    * any songs were added
    */
   public void showNotifiers(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws SpotifyApiException {
-    if (!DeveloperMode.isNotificationMarkersDisabled()) {
+    if (featureControl.isPlaylistMetaEnabled()) {
       List<Callable<Void>> callables = new ArrayList<>();
       for (PlaylistStore ps : songsByPlaylist.keySet()) {
         callables.add(() -> {

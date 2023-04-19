@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -23,7 +24,7 @@ import se.michaelthelin.spotify.enums.AlbumGroup;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
-import spotify.bot.config.DeveloperMode;
+import spotify.bot.config.FeatureControl;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.config.properties.BlacklistConfig;
 import spotify.bot.config.properties.PlaylistStoreConfig;
@@ -52,15 +53,18 @@ public class FilterService {
 	private final DatabaseService databaseService;
 	private final PlaylistStoreConfig playlistStoreConfig;
 	private final BlacklistConfig blacklistConfig;
+	private final FeatureControl featureControl;
 
 	FilterService(DiscoveryBotLogger discoveryBotLogger,
 			DatabaseService databaseService,
 			PlaylistStoreConfig playlistStoreConfig,
-			BlacklistConfig blacklistConfig) {
+			BlacklistConfig blacklistConfig,
+			FeatureControl featureControl) {
 		this.log = discoveryBotLogger;
 		this.databaseService = databaseService;
 		this.playlistStoreConfig = playlistStoreConfig;
 		this.blacklistConfig = blacklistConfig;
+		this.featureControl = featureControl;
 	}
 
 	private final static DateTimeFormatter RELEASE_DATE_PARSER = new DateTimeFormatterBuilder()
@@ -119,7 +123,7 @@ public class FilterService {
 	 * Cache the given artist IDs in the database
 	 */
 	public void cacheArtistIds(List<String> artistIds) {
-		if (!DeveloperMode.isCacheDisabled()) {
+		if (featureControl.isCacheEnabled()) {
 			if (!artistIds.isEmpty()) {
 				databaseService.cacheArtistIds(artistIds);
 			}
@@ -130,7 +134,7 @@ public class FilterService {
 	 * Cache the given album IDs in the database
 	 */
 	public void cacheAlbumIds(List<AlbumSimplified> albums) {
-		if (!DeveloperMode.isCacheDisabled()) {
+		if (featureControl.isCacheEnabled()) {
 			if (!albums.isEmpty()) {
 				databaseService.cacheAlbumIds(albums);
 			}
@@ -144,7 +148,7 @@ public class FilterService {
 	 * Cache the given album names in the database
 	 */
 	public void cacheAlbumNames(List<AlbumSimplified> albums) {
-		if (!DeveloperMode.isCacheDisabled()) {
+		if (featureControl.isCacheEnabled()) {
 			if (!albums.isEmpty()) {
 				databaseService.cacheAlbumNames(albums);
 			}
@@ -196,10 +200,10 @@ public class FilterService {
 	public Map<AlbumGroup, List<AlbumTrackPair>> categorizeAlbumsByAlbumGroup(List<AlbumTrackPair> albumTrackPairs) {
 		Map<AlbumGroup, List<AlbumTrackPair>> categorized = SpotifyUtils.createAlbumGroupToListOfTMap();
 		for (AlbumTrackPair atp : albumTrackPairs) {
-			AlbumGroup albumGroupOfAlbum = atp.getAlbum().getAlbumGroup();
-			if (albumGroupOfAlbum != null) {
-				categorized.get(albumGroupOfAlbum).add(atp);
-			}
+			Optional.ofNullable(atp)
+				.map(AlbumTrackPair::getAlbum)
+				.map(AlbumSimplified::getAlbumGroup)
+				.ifPresent(albumGroup -> categorized.get(albumGroup).add(atp));
 		}
 		return categorized;
 	}

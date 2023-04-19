@@ -8,7 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
-import org.springframework.scheduling.config.CronTask;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import spotify.api.SpotifyApiException;
 import spotify.bot.DiscoveryBotCrawler;
-import spotify.bot.config.DeveloperMode;
+import spotify.bot.config.FeatureControl;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -27,22 +26,24 @@ import spotify.bot.util.data.AlbumGroupExtended;
 public class CrawlSchedulerController implements SchedulingConfigurer {
 	private final DiscoveryBotCrawler crawler;
 	private final DiscoveryBotLogger log;
+	private final FeatureControl featureControl;
 
 	@Value("${spotify.discovery.crawl.cron:5 */30 * * * *}")
 	private String crawlCron;
 
-	CrawlSchedulerController(DiscoveryBotCrawler discoveryBotCrawler, DiscoveryBotLogger botLogger) {
+	CrawlSchedulerController(DiscoveryBotCrawler discoveryBotCrawler, DiscoveryBotLogger botLogger, FeatureControl featureControl) {
 		this.crawler = discoveryBotCrawler;
 		this.log = botLogger;
+		this.featureControl = featureControl;
 	}
 
 	@Override
 	public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
-		if (!DeveloperMode.isScheduledCrawlDisabled()) {
-			taskRegistrar.addCronTask(new CronTask(this::scheduledCrawl, crawlCron));
+		if (featureControl.isScheduledCrawlsEnabled()) {
+			taskRegistrar.addCronTask(this::scheduledCrawl, crawlCron);
 			log.info("Scheduled crawls are enabled with the following cronjob: " + crawlCron, false);
 		}
-		if (!DeveloperMode.isNotificationMarkersDisabled()) {
+		if (featureControl.isPlaylistMetaEnabled()) {
 			taskRegistrar.addFixedDelayTask(this::clearNewIndicatorScheduler, 10 * 1000);
 		}
 	}

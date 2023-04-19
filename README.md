@@ -34,7 +34,7 @@ Then click on the green "Edit Settings" button and enter the following URL as lo
 ```
 http://localhost:8182/login-callback
 ```
-Finally open the file `config/spotifybot.properties` and enter the *Client ID* and *Client Secret* that was given to you when you created the Spotify Developer App:
+Finally, open the file `config/spotifybot.properties` and enter the *Client ID* and *Client Secret* that was given to you when you created the Spotify Developer App:
 ```
 client_id = jwi7hg...
 client_secret = hdow93...
@@ -82,22 +82,25 @@ Once you're logged in, you're set to go! For the first launch, the bot will inde
 Relax, lean back, and watch as the bot crawls for new releases!
 
 ## Options
-In the `config` folder, you will be able to further customize a few special settings by creating files with a specific format. If you don't need any of these, simply ignore this part.
+### Cron
+By default, the bot runs every half hour (plus an extra 5 seconds, just in case). You can customize the timing by modifying the `application.properties` file in the root folder. For example, the following setting will restrict the bot to only run once every Friday, five seconds past midnight (which is when the majority of music is released anyway):
 
-### `blacklist.properties`
-Use this file to ban certain artists from certain release types. For example, you like a specific artist, but dislike how often they appear as a featured artist.
+```
+spotify.discovery.crawl.cron = 5 0 0 ? * 6
+```
 
-**Usage:**
-* `Spotify Artist ID = Release Group (separated by commas without spaces)`
-* Allowed Release Groups: `ALBUM`, `APPEARS_ON`, `COMPILATION`, `SINGLE`, `EP`, `REMIX`, `LIVE`, `RE_RELEASE`
+### config folder
+In the `/config` folder, you will be able to further customize a few special settings by creating files with a specific format. If you don't need any of these, simply ignore this part.
 
-**Example:**
+#### `blacklist.properties`:
+Use this file to ban certain artists from certain release types. For example, you like a specific artist, but dislike how often they appear as a featured artist. You do this by mapping the artist ID to a list of release types, separated by comma. For example:
+
 ```
 7dGJo4pcD2V6oG8kP0tJRR = APPEARS_ON,RE_RELEASE
 7rSMEcqv4Ez0OLgJKDjrvq = RE_RELEASE
 ```
 
-### `relay.properties`
+#### `relay.properties`:
 Use this file to automatically forward new releases of specific artist to a given URL. You can use this to, for example, post new releases to a webhook that is connected to a Discord bot. You must additionally have the artists followed on Spotify for this to work.
 
 **Usage:**

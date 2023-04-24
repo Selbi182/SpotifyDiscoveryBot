@@ -12,10 +12,9 @@ import org.springframework.stereotype.Service;
 
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
-import spotify.api.SpotifyApiException;
+import spotify.api.events.SpotifyApiException;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.filter.FilterService;
-import spotify.bot.service.DiscoveryAlbumService;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.data.CachedArtistsContainer;
 import spotify.services.ArtistService;

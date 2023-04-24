@@ -1,7 +1,9 @@
 package spotify.bot.service;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -13,7 +15,7 @@ import se.michaelthelin.spotify.model_objects.IPlaylistItem;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
-import spotify.api.SpotifyApiException;
+import spotify.api.events.SpotifyApiException;
 import spotify.bot.config.FeatureControl;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.util.DiscoveryBotLogger;
@@ -62,40 +64,32 @@ public class PlaylistSongsService {
     spotifyOptimizedExecutorService.executeAndWaitVoid(callables);
   }
 
-  private void addSongsForPlaylistStore(PlaylistStore ps, List<AlbumTrackPair> albumTrackPairs) {
-    if (!albumTrackPairs.isEmpty() && featureControl.isPlaylistAdditionEnabled()) {
-      addSongsToPlaylistId(ps.getPlaylistId(), albumTrackPairs);
-    }
-  }
-
   /**
-   * Add the given list of song IDs to the playlist (a delay of a second per
-   * release is used to retain order). May remove older songs to make room.
+   * Add the given list of tracks to the playlist (a delay of a second per
+   * release is used to retain order if a lot of songs get added at once).
+   * May remove older songs to make room.
    */
-  private void addSongsToPlaylistId(String playlistId, List<AlbumTrackPair> albumTrackPairs) throws SpotifyApiException {
-    if (!albumTrackPairs.isEmpty()) {
-      Playlist playlist = playlistService.getPlaylist(playlistId);
+  private void addSongsForPlaylistStore(PlaylistStore ps, List<AlbumTrackPair> albumTrackPairs) throws SpotifyApiException {
+    if (!albumTrackPairs.isEmpty() && featureControl.isPlaylistAdditionEnabled()) {
+      Playlist playlist = playlistService.getPlaylist(ps.getPlaylistId());
       circularPlaylistFitting(playlist, albumTrackPairs);
-      List<List<TrackSimplified>> bundledReleases = extractTrackLists(albumTrackPairs);
-      for (List<TrackSimplified> t : bundledReleases) {
-        for (List<TrackSimplified> partition : SpotifyUtils.partitionList(t, PLAYLIST_ADD_LIMIT)) {
-          List<String> ids = partition.stream().map(TrackSimplified::getId).collect(Collectors.toList());
-          playlistService.addSongsToPlaylistByIdTop(playlist, ids);
+
+      List<TrackSimplified> allTracksForPlaylist = albumTrackPairs.stream()
+        .map(AlbumTrackPair::getTracks)
+        .flatMap(Collection::stream)
+        .collect(Collectors.toList());
+
+      Iterator<List<TrackSimplified>> partitionsIterator = SpotifyUtils.partitionList(allTracksForPlaylist, PLAYLIST_ADD_LIMIT).iterator();
+      while (partitionsIterator.hasNext()) {
+        List<TrackSimplified> partition = partitionsIterator.next();
+        List<String> ids = partition.stream().map(TrackSimplified::getId).collect(Collectors.toList());
+        playlistService.addSongsToPlaylistByIdTop(playlist, ids);
+
+        if (partitionsIterator.hasNext()) {
           SpotifyUtils.sneakySleep(PLAYLIST_ADDITION_COOLDOWN);
         }
       }
     }
-  }
-
-  /**
-   * Extract all the ATP tracks into a new list
-   */
-  private List<List<TrackSimplified>> extractTrackLists(List<AlbumTrackPair> allReleases) {
-    List<List<TrackSimplified>> bundled = new ArrayList<>();
-    for (AlbumTrackPair atp : allReleases) {
-      bundled.add(atp.getTracks());
-    }
-    return bundled;
   }
 
   /**

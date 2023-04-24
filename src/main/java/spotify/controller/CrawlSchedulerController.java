@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import spotify.api.SpotifyApiException;
+import spotify.api.events.SpotifyApiException;
 import spotify.bot.DiscoveryBotCrawler;
 import spotify.bot.config.FeatureControl;
 import spotify.bot.util.DiscoveryBotLogger;
@@ -73,7 +73,6 @@ public class CrawlSchedulerController implements SchedulingConfigurer {
 	 * 
 	 * @return a ResponseEntity defining the result of the crawling process
 	 * @throws SpotifyApiException on an external exception related to the Spotify Web API
-	 * @throws SQLException on an internal exception related to the SQLite database
 	 */
 	@RequestMapping("/crawl")
 	public ResponseEntity<String> runCrawler() throws SpotifyApiException, SQLException {

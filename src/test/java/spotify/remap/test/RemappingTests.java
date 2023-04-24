@@ -20,10 +20,9 @@ import se.michaelthelin.spotify.model_objects.specification.Album;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.SpotifyDiscoveryBot;
-import spotify.api.SpotifyApiAuthorization;
-import spotify.api.SpotifyApiException;
-import spotify.api.SpotifyApiWrapper;
+import spotify.api.SpotifyApiManager;
 import spotify.api.SpotifyCall;
+import spotify.api.events.SpotifyApiException;
 import spotify.bot.config.database.DatabaseCreationService;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.config.database.DiscoveryDatabase;
@@ -52,8 +51,7 @@ import spotify.util.data.AlbumTrackPair;
 	DatabaseService.class,
 	FilterService.class,
 	SpotifyApiConfig.class,
-	SpotifyApiWrapper.class,
-	SpotifyApiAuthorization.class,
+	SpotifyApiManager.class,
 	TrackService.class,
 	UserService.class,
 	DatabaseCreationService.class,
@@ -71,7 +69,7 @@ public class RemappingTests {
 	private SpotifyApi spotifyApi;
 
 	@Autowired
-	private SpotifyApiAuthorization spotifyApiAuthorization;
+	private SpotifyApiManager spotifyApiManager;
 
 	@Autowired
 	private TrackService trackService;
@@ -109,7 +107,7 @@ public class RemappingTests {
 
 	private void login() {
 		try {
-			spotifyApiAuthorization.initialLogin();
+			spotifyApiManager.initialLogin();
 		} catch (SpotifyApiException e) {
 			e.printStackTrace();
 			fail("Couldn't log in to Spotify Web API!");

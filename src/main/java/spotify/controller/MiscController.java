@@ -6,7 +6,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.SchedulingConfigurer;
+import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,23 +18,68 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
+import spotify.api.events.SpotifyApiException;
 import spotify.bot.DiscoveryBotCrawler;
+import spotify.bot.config.FeatureControl;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.util.SpotifyUtils;
 
 @RestController
 @Component
-public class MiscController {
+@EnableScheduling
+public class MiscController implements SchedulingConfigurer {
 
+  private final static int CLEAR_NOTIFIERS_INTERVAL = 10 * 1000;
   private final static int SHUTDOWN_RETRY_SLEEP = 10 * 1000;
 
   private final DiscoveryBotCrawler crawler;
   private final DiscoveryBotLogger log;
+  private final FeatureControl featureControl;
 
-  MiscController(DiscoveryBotCrawler discoveryBotCrawler, DiscoveryBotLogger botLogger) {
+  MiscController(DiscoveryBotCrawler discoveryBotCrawler, DiscoveryBotLogger botLogger, FeatureControl featureControl) {
     this.crawler = discoveryBotCrawler;
     this.log = botLogger;
+    this.featureControl = featureControl;
   }
+
+  /////////////////
+  // Notifiers
+
+  @Override
+  public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
+    if (featureControl.isPlaylistMetaEnabled()) {
+      taskRegistrar.addFixedDelayTask(this::clearNewIndicatorScheduler, CLEAR_NOTIFIERS_INTERVAL);
+    }
+  }
+
+  /**
+   * Periodic task running every 10 seconds to remove the [NEW] indicator where
+   * applicable. Will only run while crawler is idle.
+   *
+   * @throws SpotifyApiException on an external exception related to the Spotify Web API
+   */
+  public void clearNewIndicatorScheduler() throws SpotifyApiException {
+    manuallyClearNotifiers(false);
+  }
+
+  /**
+   * Manually clear all notifiers
+   *
+   * @param force if true, force-clear all notifiers no matter what
+   * @return a ResponseEntity with a summary of the result
+   * @throws SpotifyApiException on an external exception related to the Spotify Web API
+   */
+  @RequestMapping("/clear")
+  public ResponseEntity<String> manuallyClearNotifiers(@RequestParam(defaultValue = "true") boolean force) throws SpotifyApiException {
+    if (!crawler.isReady()) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).body("Can't clear notifiers now, as crawler is currently in progress...");
+    }
+    crawler.clearObsoleteNotifiers(force);
+    return ResponseEntity.ok("All notifiers were cleared!");
+  }
+
+  /////////////////
+  // Log
 
   @GetMapping("/")
   public ModelAndView showLogView() {
@@ -86,6 +135,9 @@ public class MiscController {
     }
     return ResponseEntity.notFound().build();
   }
+
+  /////////////////
+  // Shutdown
 
   /**
    * Shut down the bot. If a crawl is still in progress, the shutdown process will

@@ -43,13 +43,10 @@ public class CrawlSchedulerController implements SchedulingConfigurer {
 			taskRegistrar.addCronTask(this::scheduledCrawl, crawlCron);
 			log.info("Scheduled crawls are enabled with the following cronjob: " + crawlCron, false);
 		}
-		if (featureControl.isPlaylistMetaEnabled()) {
-			taskRegistrar.addFixedDelayTask(this::clearNewIndicatorScheduler, 10 * 1000);
-		}
 	}
 
 	/**
-	 * Run the scheduler every half hour (with a few seconds extra to offset deviations).
+	 * Run the crawler via the scheduled manner.
 	 */
 	private void scheduledCrawl() {
 		try {
@@ -90,30 +87,5 @@ public class CrawlSchedulerController implements SchedulingConfigurer {
 			return ResponseEntity.ok("No new releases found.");
 		}
 		return ResponseEntity.status(HttpStatus.CONFLICT).body("Crawler isn't ready!");
-	}
-
-	/**
-	 * Periodic task running every 10 seconds to remove the [NEW] indicator where
-	 * applicable. Will only run while crawler is idle.
-	 * 
-	 * @throws SpotifyApiException on an external exception related to the Spotify Web API
-	 */
-	public void clearNewIndicatorScheduler() throws SpotifyApiException {
-		manuallyClearNotifiers();
-	}
-
-	/**
-	 * Manually clear the notifiers
-	 *
-	 * @return a ResponseEntity with a summary of the result
-	 * @throws SpotifyApiException on an external exception related to the Spotify Web API
-	 */
-	@RequestMapping("/clearnotifiers")
-	public ResponseEntity<String> manuallyClearNotifiers() throws SpotifyApiException {
-		if (!crawler.isReady()) {
-			return ResponseEntity.status(HttpStatus.CONFLICT).body("Can't clear [NEW] indicators now, as crawler is currently in progress...");
-		}
-		crawler.clearObsoleteNotifiers();
-		return ResponseEntity.ok("All notifiers were cleared!");
 	}
 }

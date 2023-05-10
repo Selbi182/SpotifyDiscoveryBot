@@ -138,10 +138,12 @@ public class DiscoveryBotCrawler {
 	 * Clears obsolete [NEW] notifiers from playlists where applicable. This method
 	 * cannot require the lock.
 	 *
+	 * @param force if true, force-clear all notifiers no matter what
+	 *
 	 * @throws SpotifyApiException on an external exception related to the Spotify Web API
 	 */
-	public void clearObsoleteNotifiers() throws SpotifyApiException {
-		playlistMetaService.clearObsoleteNotifiers();
+	public void clearObsoleteNotifiers(boolean force) throws SpotifyApiException {
+		playlistMetaService.clearObsoleteNotifiers(force);
 	}
 
 	///////////////////

@@ -126,8 +126,10 @@ public class PlaylistMetaService {
 
   /**
    * Convenience method to try and clear every obsolete New indicator
+   *
+   * @param force if true, force-clear all notifiers no matter what
    */
-  public void clearObsoleteNotifiers() throws SpotifyApiException {
+  public void clearObsoleteNotifiers(boolean force) throws SpotifyApiException {
     Collection<PlaylistStore> enabledPlaylistStores = playlistStoreConfig.getEnabledPlaylistStores();
 
     // Do a lite pre-check to see if ANY playlists even need a deep check (to reduce API calls).
@@ -146,7 +148,7 @@ public class PlaylistMetaService {
         List<Callable<Void>> callables = new ArrayList<>();
         for (PlaylistStore ps : psRequireDeepCheck) {
           callables.add(() -> {
-            if (shouldIndicatorBeMarkedAsRead(ps, currentlyPlaying)) {
+            if (force || shouldIndicatorBeMarkedAsRead(ps, currentlyPlaying)) {
               playlistStoreConfig.unsetPlaylistStoreUpdatedRecently(ps.getAlbumGroupExtended());
               updatePlaylistTitleAndDescription(ps, INDICATOR_NEW, INDICATOR_OFF, false);
             }

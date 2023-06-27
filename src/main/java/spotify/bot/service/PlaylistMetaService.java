@@ -170,17 +170,19 @@ public class PlaylistMetaService {
 
     Playlist playlist = playlistService.getPlaylist(playlistStore.getPlaylistId());
 
-    List<PlaylistTrack> recentlyAddedPlaylistTracks = Arrays.stream(playlist.getTracks().getItems())
-      .filter(pt -> SpotifyUtils.isWithinTimeoutWindow(pt.getAddedAt(), NEW_NOTIFICATION_TIMEOUT_DAYS))
-      .collect(Collectors.toList());
+    if (playlist != null && playlist.getTracks() != null && playlist.getTracks().getItems() != null) {
+      List<PlaylistTrack> recentlyAddedPlaylistTracks = Arrays.stream(playlist.getTracks().getItems())
+        .filter(pt -> SpotifyUtils.isWithinTimeoutWindow(pt.getAddedAt(), NEW_NOTIFICATION_TIMEOUT_DAYS))
+        .collect(Collectors.toList());
 
-    if (!recentlyAddedPlaylistTracks.isEmpty()) {
-      String currentlyPlayingItemId = currentlyPlaying.getItem().getId();
-      return recentlyAddedPlaylistTracks.stream()
-        .map(PlaylistTrack::getTrack)
-        .map(IPlaylistItem::getId)
-        .filter(Objects::nonNull)
-        .anyMatch(id -> Objects.equals(id, currentlyPlayingItemId));
+      if (!recentlyAddedPlaylistTracks.isEmpty()) {
+        String currentlyPlayingItemId = currentlyPlaying.getItem().getId();
+        return recentlyAddedPlaylistTracks.stream()
+          .map(PlaylistTrack::getTrack)
+          .map(IPlaylistItem::getId)
+          .filter(Objects::nonNull)
+          .anyMatch(id -> Objects.equals(id, currentlyPlayingItemId));
+      }
     }
 
     return false;

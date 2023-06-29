@@ -149,8 +149,7 @@ public class PlaylistMetaService {
         for (PlaylistStore ps : psRequireDeepCheck) {
           callables.add(() -> {
             if (force || shouldIndicatorBeMarkedAsRead(ps, currentlyPlaying)) {
-              playlistStoreConfig.unsetPlaylistStoreUpdatedRecently(ps.getAlbumGroupExtended());
-              updatePlaylistTitleAndDescription(ps, INDICATOR_NEW, INDICATOR_OFF, false);
+              markPlaylistAsRead(ps);
             }
             return null;
           });
@@ -158,6 +157,16 @@ public class PlaylistMetaService {
         spotifyOptimizedExecutorService.executeAndWaitVoid(callables);
       }
     }
+  }
+
+  /**
+   * Marks the given playlist as read.
+   *
+   * @param ps the PlaylistStore to clear
+   */
+  public void markPlaylistAsRead(PlaylistStore ps) {
+    playlistStoreConfig.unsetPlaylistStoreUpdatedRecently(ps.getAlbumGroupExtended());
+    updatePlaylistTitleAndDescription(ps, INDICATOR_NEW, INDICATOR_OFF, false);
   }
 
   /**

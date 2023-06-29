@@ -82,12 +82,30 @@ Once you're logged in, you're set to go! For the first launch, the bot will inde
 Relax, lean back, and watch as the bot crawls for new releases!
 
 ## Options
-### Cron
-By default, the bot runs every half hour (plus an extra 5 seconds, just in case). You can customize the timing by modifying the `application.properties` file in the root folder. For example, the following setting will restrict the bot to only run once every Friday, five seconds past midnight (which is when the majority of music is released anyway):
+There are a few advanced options to further customize the bot. Most of these features won't be necessary for the general purpose of this bot, but depending on your preferences you might want to tinker with them anyway.
+
+### application.properties
+The `application.properties` file is to be put in the same working directory as the JAR file. If you don't have one yet, create that file. You can find a commented-out template [here](https://github.com/Selbi182/SpotifyDiscoveryBot/blob/master/templates/application.properties).
+
+#### AutoPurge
+Normally, new releases will be added to playlists until they reach the ultimate limit of 10,000 tracks. This is when Circular Playlist-Fitting kicks into effect ([see below](#circular-playlist-fitting)).
+
+However, if you wish to have a cleaner approach, you can set the following parameter:
+
+```
+spotify.discovery.crawl.auto_purge_days = 7
+```
+
+This will enable the AutoPurger, which automatically removes any tracks from the target playlists that have been in there for the given amount of days. With the above line, tracks would stay in the playlists for a maximum of 7 days before getting purged, but you can customize it to any value.
+
+#### Cron
+By default, the bot runs every half hour (plus an extra 5 seconds, just in case). You can customize the responsible cronjob using this parameter:
 
 ```
 spotify.discovery.crawl.cron = 5 0 0 ? * 6
 ```
+
+In this example, the cronjob will restrict the bot to only run once every Friday, five seconds past midnight (which is when the majority of music is released anyway).
 
 ### config folder
 In the `/config` folder, you will be able to further customize a few special settings by creating files with a specific format. If you don't need any of these, simply ignore this part.
@@ -125,9 +143,11 @@ Spotify's playlists are limited to 10,000 songs. While plenty for most people to
 
 The bot will automatically rotate the playlists in a circular fashion when the limit is reached, e.g. new goes in, old goes out to make room. If you never want to lose any additions, make sure to create a copy of your playlist once you're about to reach 10,000 songs.
 
+Alternatively, if you don't care about hoarding, you might want to consider enabling [AutoPurge](#autopurge).
+
 ## Final Notes
 This project started as a simple script to replace the – in my opinion – feature-lacking [Spotishine](https://www.spotishine.com). It has since evolved into a passion project with lots of tiny features to make discovering new music on Spotify more convenient.
 
 If you got any problems or feature suggestions, [write an issue ticket on GitHub](https://github.com/Selbi182/SpotifyDiscoveryBot/issues) and I will gladly take a look at it! :)
 
-Alternatively, message me on Discord: **Selbi#7270**
+Alternatively, message me on Discord. My username is: **selbi**

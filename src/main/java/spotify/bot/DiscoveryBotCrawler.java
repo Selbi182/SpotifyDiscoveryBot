@@ -18,6 +18,7 @@ import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.filter.FilterService;
 import spotify.bot.filter.RelayService;
 import spotify.bot.filter.RemappingService;
+import spotify.bot.misc.AutoPurger;
 import spotify.bot.service.CachedArtistService;
 import spotify.bot.service.DiscoveryAlbumService;
 import spotify.bot.service.DiscoveryTrackService;
@@ -43,6 +44,7 @@ public class DiscoveryBotCrawler {
 	private final RemappingService remappingService;
 	private final RelayService relayService;
 	private final FeatureControl featureControl;
+	private final AutoPurger autoPurger;
 
 	private List<AlbumSimplified> albumsToCache;
 
@@ -57,7 +59,8 @@ public class DiscoveryBotCrawler {
 		FilterService filterService,
 		RemappingService remappingService,
 		RelayService relayService,
-		FeatureControl featureControl
+		FeatureControl featureControl,
+		AutoPurger autoPurger
 	) {
 		this.log = discoveryBotLogger;
 		this.cachedArtistService = cachedArtistService;
@@ -70,6 +73,7 @@ public class DiscoveryBotCrawler {
 		this.remappingService = remappingService;
 		this.relayService = relayService;
 		this.featureControl = featureControl;
+		this.autoPurger = autoPurger;
 	}
 
 	/**
@@ -181,6 +185,8 @@ public class DiscoveryBotCrawler {
 	 * Main crawl script with fail-fast mechanisms to save bandwidth
 	 */
 	private Map<AlbumGroupExtended, Integer> crawlScript() throws SpotifyApiException, SQLException {
+		autoPurger.runPurger();
+
 		List<String> followedArtists = getFollowedArtists();
 		if (!followedArtists.isEmpty()) {
 			List<AlbumSimplified> filteredAlbums = getNewAlbumsFromArtists(followedArtists);

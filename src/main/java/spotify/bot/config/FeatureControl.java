@@ -58,7 +58,12 @@ public class FeatureControl {
     /**
      * Relaying releases will be skipped even when a config file exists.
      */
-    DISABLE_RELAY
+    DISABLE_RELAY,
+
+    /**
+     * Auto-purging playlists will be skipped even when it's enabled in the configuration files.
+     */
+    DISABLE_AUTO_PURGER
   }
 
   private final Set<DevMode> devModes;
@@ -123,5 +128,9 @@ public class FeatureControl {
 
   public boolean isRelayEnabled() {
     return !devModes.contains(DevMode.DISABLE_RELAY);
+  }
+
+  public boolean isAutoPurgeEnabled() {
+    return !devModes.contains(DevMode.DISABLE_AUTO_PURGER);
   }
 }

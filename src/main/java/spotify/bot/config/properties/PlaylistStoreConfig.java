@@ -175,12 +175,21 @@ public class PlaylistStoreConfig {
 	 */
 	public Collection<PlaylistStore> getEnabledPlaylistStores() {
 		return getAllPlaylistStores().stream()
-				.filter(ps -> getEnabledAlbumGroups().contains(ps.getAlbumGroupExtended()))
-				.collect(Collectors.toList());
+			.filter(ps -> getEnabledAlbumGroups().contains(ps.getAlbumGroupExtended()))
+			.collect(Collectors.toList());
 	}
 
 	/**
-	 *
+	 * Returns the stored playlist store by the given playlist ID.
+	 */
+	public PlaylistStore getPlaylistStore(String playlistId) {
+		return getPlaylistStoreMap().values().stream()
+			.filter(ps -> ps.getPlaylistId().equals(playlistId))
+			.findFirst()
+			.orElse(null);
+	}
+
+	/**
 	 * Returns the stored playlist store by the given album group.
 	 */
 	public PlaylistStore getPlaylistStore(AlbumGroup albumGroup) {

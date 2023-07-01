@@ -56,9 +56,9 @@ public class FeatureControl {
     DISABLE_INITIAL_CRAWL,
 
     /**
-     * Relaying releases will be skipped even when a config file exists.
+     * Forwarding releases will be skipped even when it's enabled.
      */
-    DISABLE_RELAY,
+    DISABLE_FORWARDER,
 
     /**
      * Auto-purging playlists will be skipped even when it's enabled in the configuration files.
@@ -126,8 +126,8 @@ public class FeatureControl {
     return !devModes.contains(DevMode.DISABLE_INITIAL_CRAWL);
   }
 
-  public boolean isRelayEnabled() {
-    return !devModes.contains(DevMode.DISABLE_RELAY);
+  public boolean isForwarderEnabled() {
+    return !devModes.contains(DevMode.DISABLE_FORWARDER);
   }
 
   public boolean isAutoPurgeEnabled() {

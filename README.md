@@ -81,13 +81,12 @@ Once you're logged in, you're set to go! For the first launch, the bot will inde
 
 Relax, lean back, and watch as the bot crawls for new releases!
 
-## Options
-There are a few advanced options to further customize the bot. Most of these features won't be necessary for the general purpose of this bot, but depending on your preferences you might want to tinker with them anyway.
+## Options in `application.properties`
+There are a few advanced options to further customize the bot. Most of these features won't be necessary for the general purpose of this bot, but depending on your preferences you might want to tinker with them anyway. All these options must be set in the `application.properties` file, to be put in the same working directory as the JAR file. If you don't have one yet, create that file.
 
-### application.properties
-The `application.properties` file is to be put in the same working directory as the JAR file. If you don't have one yet, create that file. You can find a commented-out template [here](https://github.com/Selbi182/SpotifyDiscoveryBot/blob/master/templates/application.properties).
+You can find a commented-out template [here](https://github.com/Selbi182/SpotifyDiscoveryBot/blob/master/templates/application.properties).
 
-#### AutoPurge
+### AutoPurge
 Normally, new releases will be added to playlists until they reach the ultimate limit of 10,000 tracks. This is when Circular Playlist-Fitting kicks into effect ([see below](#circular-playlist-fitting)).
 
 However, if you wish to have a cleaner approach, you can set the following parameter:
@@ -98,7 +97,7 @@ spotify.discovery.crawl.auto_purge_days = 7
 
 This will enable the AutoPurger, which automatically removes any tracks from the target playlists that have been in there for the given amount of days. With the above line, tracks would stay in the playlists for a maximum of 7 days before getting purged, but you can customize it to any value.
 
-#### Cron
+### Cron
 By default, the bot runs every half hour (plus an extra 5 seconds, just in case). You can customize the responsible cronjob using this parameter:
 
 ```
@@ -107,31 +106,28 @@ spotify.discovery.crawl.cron = 5 0 0 ? * 6
 
 In this example, the cronjob will restrict the bot to only run once every Friday, five seconds past midnight (which is when the majority of music is released anyway).
 
-### config folder
-In the `/config` folder, you will be able to further customize a few special settings by creating files with a specific format. If you don't need any of these, simply ignore this part.
-
-#### `blacklist.properties`:
-Use this file to ban certain artists from certain release types. For example, you like a specific artist, but dislike how often they appear as a featured artist. You do this by mapping the artist ID to a list of release types, separated by comma. For example:
+### Blacklisting
+Use this to ban certain artists from certain release types. For example, you like a specific artist, but dislike how often they appear as a featured artist. You do this by mapping the artist ID to a list of release types, separated by comma. For example:
 
 ```
 7dGJo4pcD2V6oG8kP0tJRR = APPEARS_ON,RE_RELEASE
 7rSMEcqv4Ez0OLgJKDjrvq = RE_RELEASE
 ```
 
-#### `relay.properties`:
-Use this file to automatically forward new releases of specific artist to a given URL. You can use this to, for example, post new releases to a webhook that is connected to a Discord bot. You must additionally have the artists followed on Spotify for this to work.
+### Forwarder
+Use this to automatically forward new releases of specific artist to a given URL. You can use this to, for example, post new releases to a webhook that is connected to a Discord bot. You must additionally have the artists followed on Spotify for this to work.
 
-**Usage:**
-* `relay_url`: The target URL
-* `whitelisted_artist_ids`: The artist IDs you are allowing to be forwarded to the target URL, separated by commas without spaces
-* `message_mask`: The message that is sent to the target URL, where the first %s is the artist name and the second %s is a placeholder for the respective album IDs
+```
+spotify.discovery.crawl.forwarder.url = https://someprivatebot.com/forwarddiscovery
+spotify.discovery.crawl.forwarder.message_mask = {"message":"New release from <b>%s</b>: %s"}
+spotify.discovery.crawl.forwarder.whitelisted_artist_ids = 09Z51O0q4AwHl7FjUUlFKw,0cbL6CYnRqpAxf1evwUVQD,1Gh3UMZ0WVesXifHfziSx9
+spotify.discovery.crawl.forwarder.whitelisted_types = album,single,ep
+```
 
-**Example:**
-```
-relay_url = https://someprivatebot.com/forwarddiscovery
-whitelisted_artist_ids = 09Z51O0q4AwHl7FjUUlFKw,0cbL6CYnRqpAxf1evwUVQD,1Gh3UMZ0WVesXifHfziSx9
-message_mask = {"message":"New release from <b>%s</b>: https://open.spotify.com/album/%s"}
-```
+Only the `url` parameter is required for the feature to be enabled. The other three are optional:
+* `message_mask`: The message that is sent to the target URL, where the first %s is the artist name and the second %s is a placeholder for the respective album link. If left out, only the link will be posted.
+* `whitelisted_artist_ids`: The artist IDs you are allowing to be forwarded to the target URL, separated by commas without spaces. If left out, all artists will be forwarded.
+* `whitelisted_types`: The types of releases to be forwarded, separated by commas without spaces. If left out, all types will be forwarded.
 
 ## Log
 You can get detailed information about what the bot did at any time by directly accessing the log in your preferred browser (by default `http://localhost:8182/`):

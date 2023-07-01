@@ -16,7 +16,7 @@ import spotify.bot.config.FeatureControl;
 import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.filter.FilterService;
-import spotify.bot.filter.RelayService;
+import spotify.bot.filter.ForwarderService;
 import spotify.bot.filter.RemappingService;
 import spotify.bot.misc.AutoPurger;
 import spotify.bot.service.CachedArtistService;
@@ -42,7 +42,7 @@ public class DiscoveryBotCrawler {
 	private final PlaylistMetaService playlistMetaService;
 	private final FilterService filterService;
 	private final RemappingService remappingService;
-	private final RelayService relayService;
+	private final ForwarderService forwarderService;
 	private final FeatureControl featureControl;
 	private final AutoPurger autoPurger;
 
@@ -58,7 +58,7 @@ public class DiscoveryBotCrawler {
 		PlaylistMetaService playlistMetaService,
 		FilterService filterService,
 		RemappingService remappingService,
-		RelayService relayService,
+		ForwarderService forwarderService,
 		FeatureControl featureControl,
 		AutoPurger autoPurger
 	) {
@@ -71,7 +71,7 @@ public class DiscoveryBotCrawler {
 		this.playlistMetaService = playlistMetaService;
 		this.filterService = filterService;
 		this.remappingService = remappingService;
-		this.relayService = relayService;
+		this.forwarderService = forwarderService;
 		this.featureControl = featureControl;
 		this.autoPurger = autoPurger;
 	}
@@ -244,7 +244,7 @@ public class DiscoveryBotCrawler {
 	private Map<AlbumGroupExtended, Integer> addReleasesToPlaylistsAndCollectResults(Map<PlaylistStore, List<AlbumTrackPair>> newTracksByTargetPlaylist) throws SpotifyApiException {
 		playlistSongsService.addAllReleasesToSetPlaylists(newTracksByTargetPlaylist);
 		playlistMetaService.showNotifiers(newTracksByTargetPlaylist);
-		relayService.relayResults(newTracksByTargetPlaylist);
+		forwarderService.forwardResults(newTracksByTargetPlaylist);
 		return DiscoveryBotUtils.collectSongAdditionResults(newTracksByTargetPlaylist);
 	}
 

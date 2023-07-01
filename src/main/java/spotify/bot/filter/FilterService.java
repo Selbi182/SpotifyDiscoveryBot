@@ -26,7 +26,7 @@ import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.bot.config.FeatureControl;
 import spotify.bot.config.database.DatabaseService;
-import spotify.bot.config.properties.BlacklistConfig;
+import spotify.bot.properties.BlacklistService;
 import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.util.DiscoveryBotLogger;
@@ -52,18 +52,18 @@ public class FilterService {
 	private final DiscoveryBotLogger log;
 	private final DatabaseService databaseService;
 	private final PlaylistStoreConfig playlistStoreConfig;
-	private final BlacklistConfig blacklistConfig;
+	private final BlacklistService blacklistService;
 	private final FeatureControl featureControl;
 
 	FilterService(DiscoveryBotLogger discoveryBotLogger,
 			DatabaseService databaseService,
 			PlaylistStoreConfig playlistStoreConfig,
-			BlacklistConfig blacklistConfig,
+			BlacklistService blacklistService,
 			FeatureControl featureControl) {
 		this.log = discoveryBotLogger;
 		this.databaseService = databaseService;
 		this.playlistStoreConfig = playlistStoreConfig;
-		this.blacklistConfig = blacklistConfig;
+		this.blacklistService = blacklistService;
 		this.featureControl = featureControl;
 	}
 
@@ -319,7 +319,7 @@ public class FilterService {
 
 	public Map<PlaylistStore, List<AlbumTrackPair>> filterBlacklistedReleaseTypesForArtists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPS) {
 		List<Entry<AlbumSimplified, AlbumGroupExtended>> allDroppedReleases = new ArrayList<>();
-		Map<String, List<AlbumGroupExtended>> blacklistMap = blacklistConfig.getBlacklistMap();
+		Map<String, List<AlbumGroupExtended>> blacklistMap = blacklistService.getBlacklistMap();
 		for (Entry<String, List<AlbumGroupExtended>> blacklistedPair : blacklistMap.entrySet()) {
 			for (AlbumGroupExtended albumGroupExtended : blacklistedPair.getValue()) {
 				PlaylistStore playlistStore = playlistStoreConfig.getPlaylistStore(albumGroupExtended);

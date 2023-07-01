@@ -1,4 +1,4 @@
-package spotify.bot.misc;
+package spotify.bot.properties;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -23,7 +23,7 @@ import spotify.util.SpotifyOptimizedExecutorService;
 import spotify.util.SpotifyUtils;
 
 @Service
-public class AutoPurger {
+public class AutoPurgerService {
 
   @Value("${spotify.discovery.crawl.auto_purge_days:#{null}}")
   private String autoPurgerSpringVar;
@@ -38,7 +38,7 @@ public class AutoPurger {
   private final FeatureControl featureControl;
   private final DiscoveryBotLogger log;
 
-  AutoPurger(PlaylistService playlistService, PlaylistStoreConfig playlistStoreConfig, PlaylistMetaService playlistMetaService, SpotifyOptimizedExecutorService executorService, FeatureControl featureControl, DiscoveryBotLogger log) {
+  AutoPurgerService(PlaylistService playlistService, PlaylistStoreConfig playlistStoreConfig, PlaylistMetaService playlistMetaService, SpotifyOptimizedExecutorService executorService, FeatureControl featureControl, DiscoveryBotLogger log) {
     this.playlistService = playlistService;
     this.playlistStoreConfig = playlistStoreConfig;
     this.playlistMetaService = playlistMetaService;
@@ -91,7 +91,7 @@ public class AutoPurger {
 
       int purgedTracksCountFinal = purgedTracksCount.get();
       if (purgedTracksCountFinal > 0) {
-        log.info(String.format("AutoPurger: %d expired tracks have been removed from the playlists", purgedTracksCountFinal));
+        log.info(String.format("AutoPurgerService: %d expired tracks have been removed from the playlists", purgedTracksCountFinal));
       }
     }
   }

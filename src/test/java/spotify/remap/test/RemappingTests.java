@@ -26,7 +26,7 @@ import spotify.api.events.SpotifyApiException;
 import spotify.bot.config.database.DatabaseCreationService;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.config.database.DiscoveryDatabase;
-import spotify.bot.config.properties.BlacklistConfig;
+import spotify.bot.properties.BlacklistService;
 import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.bot.filter.FilterService;
 import spotify.bot.filter.remapper.EpRemapper;
@@ -56,7 +56,7 @@ import spotify.util.data.AlbumTrackPair;
 	UserService.class,
 	DatabaseCreationService.class,
 	PlaylistStoreConfig.class,
-	BlacklistConfig.class,
+	BlacklistService.class,
 	DatabaseService.class,
 	SpringPortConfig.class,
 	SpotifyDiscoveryBot.SpotifyDiscoveryBotSettings.class

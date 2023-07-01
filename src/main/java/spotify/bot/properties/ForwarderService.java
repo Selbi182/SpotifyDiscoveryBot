@@ -1,4 +1,4 @@
-package spotify.bot.filter;
+package spotify.bot.properties;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -89,8 +89,8 @@ public class ForwarderService {
       return true;
     }
 
-    String groupName = AlbumGroupExtended.fromAlbumGroup(atp.getAlbum().getAlbumGroup()).getGroupName();
-    return Arrays.asList(forwarderWhitelistedTypes).contains(groupName);
+    AlbumGroupExtended albumGroupExtended = AlbumGroupExtended.fromAlbumGroup(atp.getAlbum().getAlbumGroup());
+    return Arrays.asList(forwarderWhitelistedTypes).contains(albumGroupExtended.toString());
   }
 
   private void forwardAlbum(AlbumTrackPair atp) {

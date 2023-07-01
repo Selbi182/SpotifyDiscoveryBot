@@ -35,7 +35,7 @@ Then click on the green "Edit Settings" button and enter the following URL as lo
 http://localhost:8182/login-callback
 ```
 Finally, open the file `config/spotifybot.properties` and enter the *Client ID* and *Client Secret* that was given to you when you created the Spotify Developer App:
-```
+```properties
 client_id = jwi7hg...
 client_secret = hdow93...
 ```
@@ -48,17 +48,17 @@ Otherwise, if you wish to set custom targets for the discovery results, open `co
 You can also disable certain groups altogether. To do this, simply keep the part after the `=` blank for the respective group you want to disable.
 
 #### Example
-```
+```properties
 album = https://open.spotify.com/playlist/0DOQiI2FP82IXy9Z0nHdTz?si=848836e7b4754227
 single = https://open.spotify.com/playlist/19FdF4ZUwv8JdYx2YB5YBZ?si=007269cdc7714564
 ep = https://open.spotify.com/playlist/19FdF4ZUwv8JdYx2YB5YBZ?si=007269cdc7714564
 remix = https://open.spotify.com/playlist/5LA0xQetL5h7RXKjwBol03?si=bd1a2c67ab2e4937
 live = https://open.spotify.com/playlist/5LA0xQetL5h7RXKjwBol03?si=bd1a2c67ab2e4937
-compilation = 
-re_release = 
+compilation =
+re_release =
 appears_on = https://open.spotify.com/playlist/5LA0xQetL5h7RXKjwBol03?si=bd1a2c67ab2e4937
 ```
-Explanation:
+Explanation of this example:
 * Albums are put into their own playlist
 * Singles and EPs are grouped together in a combined playlist
 * Remixes, live releases, and appears-on tracks are grouped together in another combined playlist
@@ -68,7 +68,7 @@ Explanation:
 
 ### Step 3: Starting the bot for the first time
 To start the bot, make sure you have at least Java 11 installed and run the JAR:
-```
+```shell
 java -jar SpotifyDiscoveryBot.jar
 ```
 Once booted up, the bot will try (and fail) to log into the Spotify Web App, as there is no access token yet. You will be presented with a URL that looks something like this:
@@ -91,7 +91,7 @@ Normally, new releases will be added to playlists until they reach the ultimate 
 
 However, if you wish to have a cleaner approach, you can set the following parameter:
 
-```
+```properties
 spotify.discovery.crawl.auto_purge_days = 7
 ```
 
@@ -100,28 +100,31 @@ This will enable the AutoPurger, which automatically removes any tracks from the
 ### Cron
 By default, the bot runs every half hour (plus an extra 5 seconds, just in case). You can customize the responsible cronjob using this parameter:
 
-```
+```properties
 spotify.discovery.crawl.cron = 5 0 0 ? * 6
 ```
 
 In this example, the cronjob will restrict the bot to only run once every Friday, five seconds past midnight (which is when the majority of music is released anyway).
 
 ### Blacklisting
-Use this to ban certain artists from certain release types. For example, you like a specific artist, but dislike how often they appear as a featured artist. You do this by mapping the artist ID to a list of release types, separated by comma. For example:
+Use this to ban certain followed artists from certain release types. For example, you like a specific artist but dislike how often they appear as a featured artist or how often they release remixes. You can add as many entries as you want (numeric array format, starting at 0). The format is the artist ID, a colon, and a list of release types to ban, separated by comma. For example:
 
-```
-7dGJo4pcD2V6oG8kP0tJRR = APPEARS_ON,RE_RELEASE
-7rSMEcqv4Ez0OLgJKDjrvq = RE_RELEASE
+```properties
+spotify.discovery.crawl.blacklist[0] = 7dGJo4pcD2V6oG8kP0tJRR:APPEARS_ON,RE_RELEASE,REMIX
+spotify.discovery.crawl.blacklist[1] = 7rSMEcqv4Ez0OLgJKDjrvq:RE_RELEASE
+spotify.discovery.crawl.blacklist[2] = 30F64wQIHvLiFTGaNZ73nU:APPEARS_ON
+spotify.discovery.crawl.blacklist[3] = 3Gs10XJ4S4OEFrMRqZJcic:APPEARS_ON
+spotify.discovery.crawl.blacklist[4] = 4hljLrM4LIIh85DLjURyS6:APPEARS_ON
 ```
 
 ### Forwarder
 Use this to automatically forward new releases of specific artist to a given URL. You can use this to, for example, post new releases to a webhook that is connected to a Discord bot. You must additionally have the artists followed on Spotify for this to work.
 
-```
+```properties
 spotify.discovery.crawl.forwarder.url = https://someprivatebot.com/forwarddiscovery
 spotify.discovery.crawl.forwarder.message_mask = {"message":"New release from <b>%s</b>: %s"}
 spotify.discovery.crawl.forwarder.whitelisted_artist_ids = 09Z51O0q4AwHl7FjUUlFKw,0cbL6CYnRqpAxf1evwUVQD,1Gh3UMZ0WVesXifHfziSx9
-spotify.discovery.crawl.forwarder.whitelisted_types = album,single,ep
+spotify.discovery.crawl.forwarder.whitelisted_types = ALBUM,SINGLE,EP
 ```
 
 Only the `url` parameter is required for the feature to be enabled. The other three are optional:

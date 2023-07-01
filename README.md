@@ -86,18 +86,27 @@ There are a few advanced options to further customize the bot. Most of these fea
 
 You can find a commented-out template [here](https://github.com/Selbi182/SpotifyDiscoveryBot/blob/master/templates/application.properties).
 
-### AutoPurge
+### AutoPurge (remove old tracks)
 Normally, new releases will be added to playlists until they reach the ultimate limit of 10,000 tracks. This is when Circular Playlist-Fitting kicks into effect ([see below](#circular-playlist-fitting)).
 
-However, if you wish to have a cleaner approach, you can set the following parameter:
+However, if you wish to have a cleaner approach, you can do so by specifying which playlists you want to automatically clean up and how old a track in a given playlist must be before it counts as "expired". The format is in numeric array format (starting at 0), being mapped is the uppercase release type, a colon, and an integer for the individual expiration days. For example:
 
 ```properties
-spotify.discovery.crawl.auto_purge_days = 7
+spotify.discovery.crawl.auto.purge[0] = ALBUM:30
+spotify.discovery.crawl.auto.purge[1] = SINGLE:30
+spotify.discovery.crawl.auto.purge[2] = EP:30
+spotify.discovery.crawl.auto.purge[3] = REMIX:30
+spotify.discovery.crawl.auto.purge[4] = LIVE:30
+spotify.discovery.crawl.auto.purge[5] = COMPILATION:30
+spotify.discovery.crawl.auto.purge[6] = RE_RELEASE:7
+spotify.discovery.crawl.auto.purge[7] = APPEARS_ON:7
 ```
 
-This will enable the AutoPurger, which automatically removes any tracks from the target playlists that have been in there for the given amount of days. With the above line, tracks would stay in the playlists for a maximum of 7 days before getting purged, but you can customize it to any value.
+This example would remove all old tracks older than 30 days, except for re-releases and appears-on releases, which would already get purged after 7 days.
 
-### Cron
+You can simply leave out a playlist if you never want to purge it. Just make sure the numeric array doesn't have any gaps.
+
+### Cron (crawling interval)
 By default, the bot runs every half hour (plus an extra 5 seconds, just in case). You can customize the responsible cronjob using this parameter:
 
 ```properties
@@ -106,7 +115,7 @@ spotify.discovery.crawl.cron = 5 0 0 ? * 6
 
 In this example, the cronjob will restrict the bot to only run once every Friday, five seconds past midnight (which is when the majority of music is released anyway).
 
-### Blacklisting
+### Blacklist (prohobit certain types for certain artists)
 Use this to ban certain followed artists from certain release types. For example, you like a specific artist but dislike how often they appear as a featured artist or how often they release remixes. You can add as many entries as you want (numeric array format, starting at 0). The format is the artist ID, a colon, and a list of release types to ban, separated by comma. For example:
 
 ```properties
@@ -117,7 +126,7 @@ spotify.discovery.crawl.blacklist[3] = 3Gs10XJ4S4OEFrMRqZJcic:APPEARS_ON
 spotify.discovery.crawl.blacklist[4] = 4hljLrM4LIIh85DLjURyS6:APPEARS_ON
 ```
 
-### Forwarder
+### Forwarder (relay to webhook)
 Use this to automatically forward new releases of specific artist to a given URL. You can use this to, for example, post new releases to a webhook that is connected to a Discord bot. You must additionally have the artists followed on Spotify for this to work.
 
 ```properties

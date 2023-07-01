@@ -10,6 +10,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
 
+import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.data.AlbumGroupExtended;
 
 @Service
@@ -18,9 +19,18 @@ import spotify.bot.util.data.AlbumGroupExtended;
 public class BlacklistService {
   private Map<String, List<AlbumGroupExtended>> blacklistMap = Map.of();
 
+  private final DiscoveryBotLogger log;
+
+  BlacklistService(DiscoveryBotLogger log) {
+    this.log = log;
+  }
+
   @SuppressWarnings("unused") // will be called by Spring on boot
   void setBlacklist(List<String> blacklistRaw) {
     this.blacklistMap = parseBlacklist(blacklistRaw);
+    if (!this.blacklistMap.isEmpty()) {
+      log.warning("Blacklisting has been enabled! " + this.blacklistMap);
+    }
   }
 
   private Map<String, List<AlbumGroupExtended>> parseBlacklist(List<String> blacklistRaw) {

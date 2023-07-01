@@ -2,14 +2,15 @@ package spotify.bot.properties;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import javax.annotation.PostConstruct;
-
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
 
 import se.michaelthelin.spotify.model_objects.IPlaylistItem;
@@ -18,25 +19,23 @@ import spotify.bot.config.FeatureControl;
 import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.bot.service.PlaylistMetaService;
 import spotify.bot.util.DiscoveryBotLogger;
+import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.services.PlaylistService;
 import spotify.util.SpotifyOptimizedExecutorService;
 import spotify.util.SpotifyUtils;
 
 @Service
+@EnableConfigurationProperties
+@ConfigurationProperties(prefix = "spotify.discovery.crawl.auto")
 public class AutoPurgerService {
-
-  @Value("${spotify.discovery.crawl.auto_purge_days:#{null}}")
-  private String autoPurgerSpringVar;
-  private Integer autoPurgerDays;
-
-  private List<String> enabledPlaylistIds;
-
   private final PlaylistService playlistService;
   private final PlaylistStoreConfig playlistStoreConfig;
   private final PlaylistMetaService playlistMetaService;
   private final SpotifyOptimizedExecutorService executorService;
   private final FeatureControl featureControl;
   private final DiscoveryBotLogger log;
+
+  private Map<AlbumGroupExtended, Integer> autoPurgeConfigMap = Map.of();
 
   AutoPurgerService(PlaylistService playlistService, PlaylistStoreConfig playlistStoreConfig, PlaylistMetaService playlistMetaService, SpotifyOptimizedExecutorService executorService, FeatureControl featureControl, DiscoveryBotLogger log) {
     this.playlistService = playlistService;
@@ -47,19 +46,28 @@ public class AutoPurgerService {
     this.log = log;
   }
 
-  @PostConstruct
-  void validateSpringVar() {
-    if (autoPurgerSpringVar != null && featureControl.isAutoPurgeEnabled()) {
-      try {
-        autoPurgerDays = Integer.parseInt(autoPurgerSpringVar);
-        if (autoPurgerDays <= 0) {
-          throw new IllegalArgumentException();
-        }
-        log.warning(String.format("Automatic purging of playlist additions is enabled! Set expiration time: %d day(s)", autoPurgerDays));
-      } catch (RuntimeException e) {
-        log.error("auto_purge_days was set but couldn't be initialized due to an invalid value (must be positive integer). Feature will remain disabled!");
-      }
+  @SuppressWarnings("unused") // will be called by Spring on boot
+  void setPurge(List<String> autoPurgeRaw) {
+    this.autoPurgeConfigMap = parseAutoPurgeConfig(autoPurgeRaw);
+    if (!this.autoPurgeConfigMap.isEmpty()) {
+      log.warning("Automatic purging of playlist additions has been enabled! " + this.autoPurgeConfigMap);
     }
+  }
+
+  private Map<AlbumGroupExtended, Integer> parseAutoPurgeConfig(List<String> autoPurgeRaw) {
+    Map<AlbumGroupExtended, Integer> autoPurgeConfigMap = new HashMap<>();
+    try {
+      for (String autoPurgeEntry : autoPurgeRaw) {
+        String[] split = autoPurgeEntry.split(":");
+        AlbumGroupExtended albumGroupExtended = AlbumGroupExtended.valueOf(split[0]);
+        int expirationDateForType = Integer.parseInt(split[1]);
+        autoPurgeConfigMap.put(albumGroupExtended, expirationDateForType);
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+      return Map.of();
+    }
+    return autoPurgeConfigMap;
   }
 
   public void runPurger() {
@@ -67,21 +75,24 @@ public class AutoPurgerService {
       AtomicInteger purgedTracksCount = new AtomicInteger();
 
       List<Callable<Void>> callables = new ArrayList<>();
-      for (String playlistId : getEnabledPlaylistIds()) {
+      for (Map.Entry<AlbumGroupExtended, Integer> entry : autoPurgeConfigMap.entrySet()) {
+        AlbumGroupExtended albumGroupExtended = entry.getKey();
+        PlaylistStoreConfig.PlaylistStore playlistStore = playlistStoreConfig.getPlaylistStore(albumGroupExtended);
+        String playlistId = playlistStore.getPlaylistId();
+
+        int expirationDays = entry.getValue();
+
         callables.add(() -> {
           List<PlaylistTrack> playlistTracks = playlistService.getPlaylistTracks(playlistId);
           List<IPlaylistItem> expiredTracks = playlistTracks.stream()
-            .filter(this::isExpiredTrack)
+            .filter(pt -> isExpiredTrack(pt, expirationDays))
             .map(PlaylistTrack::getTrack)
             .collect(Collectors.toList());
           if (!expiredTracks.isEmpty()) {
             playlistService.removeItemsFromPlaylist(playlistId, expiredTracks);
             purgedTracksCount.addAndGet(expiredTracks.size());
             if (playlistTracks.size() == expiredTracks.size()) {
-              PlaylistStoreConfig.PlaylistStore playlistStore = playlistStoreConfig.getPlaylistStore(playlistId);
-              if (playlistStore != null) {
-                playlistMetaService.markPlaylistAsRead(playlistStore);
-              }
+              playlistMetaService.markPlaylistAsRead(playlistStore);
             }
           }
           return null; // must return something for Void class
@@ -96,22 +107,13 @@ public class AutoPurgerService {
     }
   }
 
-  private boolean isExpiredTrack(PlaylistTrack playlistTrack) {
+  private boolean isExpiredTrack(PlaylistTrack playlistTrack, int expirationDays) {
     Date addedAt = playlistTrack.getAddedAt();
-    return !SpotifyUtils.isWithinTimeoutWindow(addedAt, autoPurgerDays * 24);
+    int expirationHours = expirationDays * 24;
+    return !SpotifyUtils.isWithinTimeoutWindow(addedAt, expirationHours);
   }
 
   private boolean isEnabled() {
-    return autoPurgerDays != null;
-  }
-
-  private List<String> getEnabledPlaylistIds() {
-    if (this.enabledPlaylistIds == null) {
-      this.enabledPlaylistIds = playlistStoreConfig.getEnabledPlaylistStores().stream()
-        .map(PlaylistStoreConfig.PlaylistStore::getPlaylistId)
-        .distinct()
-        .collect(Collectors.toList());
-    }
-    return this.enabledPlaylistIds;
+    return featureControl.isAutoPurgeEnabled() && !this.autoPurgeConfigMap.isEmpty();
   }
 }

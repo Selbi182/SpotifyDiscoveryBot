@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import spotify.api.events.SpotifyApiException;
 import spotify.bot.DiscoveryBotCrawler;
-import spotify.bot.config.FeatureControl;
+import spotify.bot.properties.FeatureControl;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;

@@ -12,7 +12,7 @@ import se.michaelthelin.spotify.enums.AlbumGroup;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import spotify.api.events.SpotifyApiException;
 import spotify.api.events.SpotifyApiLoggedInEvent;
-import spotify.bot.config.FeatureControl;
+import spotify.bot.properties.FeatureControl;
 import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.filter.FilterService;

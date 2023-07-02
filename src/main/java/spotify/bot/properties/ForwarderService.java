@@ -18,7 +18,6 @@ import org.springframework.web.client.RestTemplate;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
 import se.michaelthelin.spotify.model_objects.specification.ExternalUrl;
-import spotify.bot.config.FeatureControl;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -27,16 +26,16 @@ import spotify.util.data.AlbumTrackPair;
 
 @Service
 public class ForwarderService {
-  @Value("${spotify.discovery.crawl.forward.url:#{null}}")
+  @Value("${spotify.discovery.crawl.forwarder.url:#{null}}")
   private String forwarderUrl;
 
-  @Value("${spotify.discovery.crawl.forward.message_mask:#{null}}")
+  @Value("${spotify.discovery.crawl.forwarder.message_mask:#{null}}")
   private String forwarderMessageMask;
 
-  @Value("${spotify.discovery.crawl.forward.whitelisted_artist_ids:#{null}}")
+  @Value("${spotify.discovery.crawl.forwarder.whitelisted_artist_ids:#{null}}")
   private String[] forwarderWhitelistedArtists;
 
-  @Value("${spotify.discovery.crawl.forward.whitelisted_types:#{null}}")
+  @Value("${spotify.discovery.crawl.forwarder.whitelisted_types:#{null}}")
   private String[] forwarderWhitelistedTypes;
 
   private boolean active;

@@ -24,7 +24,7 @@ import se.michaelthelin.spotify.enums.AlbumGroup;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
-import spotify.bot.config.FeatureControl;
+import spotify.bot.properties.FeatureControl;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.properties.BlacklistService;
 import spotify.bot.config.properties.PlaylistStoreConfig;

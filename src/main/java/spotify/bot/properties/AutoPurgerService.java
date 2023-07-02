@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 
 import se.michaelthelin.spotify.model_objects.IPlaylistItem;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
-import spotify.bot.config.FeatureControl;
 import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.bot.service.PlaylistMetaService;
 import spotify.bot.util.DiscoveryBotLogger;

@@ -16,7 +16,7 @@ import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.api.events.SpotifyApiException;
-import spotify.bot.config.FeatureControl;
+import spotify.bot.properties.FeatureControl;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.services.PlaylistService;

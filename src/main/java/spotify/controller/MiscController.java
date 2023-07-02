@@ -20,7 +20,7 @@ import org.springframework.web.servlet.ModelAndView;
 
 import spotify.api.events.SpotifyApiException;
 import spotify.bot.DiscoveryBotCrawler;
-import spotify.bot.config.FeatureControl;
+import spotify.bot.properties.FeatureControl;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.util.SpotifyUtils;
 

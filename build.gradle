@@ -44,7 +44,7 @@ repositories {
 dependencies {
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 
-    implementation 'spotify:spotify-dependencies:1.9.9'
+    implementation 'spotify:spotify-dependencies:1.10.0'
     implementation 'se.michaelthelin.spotify:spotify-web-api-java:8.0.0'
 
     implementation "org.springframework.boot:spring-boot-starter-web:$springVersion"

@@ -82,7 +82,7 @@ public class DiscoveryAlbumService {
       .market(market)
       .limit(MAX_ALBUM_FETCH_LIMIT)
       .album_type(albumGroupString));
-    if (albumFetchCounter.decrementAndGet() % 50 == 0) {
+    if (albumFetchCounter.decrementAndGet() % 100 == 0) {
       log.debug("Remaining: " + albumFetchCounter.get());
     }
     return attachOriginArtistIdForAppearsOnReleases(artistId, allAlbums);

@@ -41,11 +41,11 @@ public class DiscoveryBotLogger extends SpotifyLogger {
   /////////////////////
 
   /**
-   * Log a debug message
+   * Log a debug message (NOT written to external log)
    */
   @Override
   public void debug(String message) {
-    debug(message, true);
+    debug(message, false);
   }
 
   /**

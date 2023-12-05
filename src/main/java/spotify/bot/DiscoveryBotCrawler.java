@@ -120,10 +120,11 @@ public class DiscoveryBotCrawler {
 	@EventListener(SpotifyApiLoggedInEvent.class)
 	public void firstCrawlAndEnableReadyState() throws SpotifyApiException, SQLException {
 		log.printLine();
-		log.info("Executing initial crawl...", false);
 		long time = System.currentTimeMillis();
+		log.debug("Initializing playlist stores...");
 		playlistStoreConfig.setupPlaylistStores();
 		playlistMetaService.initLastUpdatedFromPlaylistDescriptions();
+		log.info("Executing initial crawl...", false);
 		if (featureControl.isInitialCrawlEnabled()) {
 			Map<AlbumGroupExtended, Integer> results = crawl();
 			String response = DiscoveryBotUtils.compileResultString(results);
@@ -204,6 +205,7 @@ public class DiscoveryBotCrawler {
 	 * Phase 0: Get all followed artists and initialize cache for any new ones
 	 */
 	private List<String> getFollowedArtists() throws SQLException, SpotifyApiException {
+		log.debug("Fetching followed artists...");
 		CachedArtistsContainer cachedArtistsContainer = cachedArtistService.getFollowedArtistsIds();
 		cachedArtistService.initializeAlbumCacheForNewArtists(cachedArtistsContainer);
 		return cachedArtistsContainer.getAllArtists();
@@ -213,11 +215,15 @@ public class DiscoveryBotCrawler {
 	 * Phase 1: Get all new releases from the list of followed artists
 	 */
 	private List<AlbumSimplified> getNewAlbumsFromArtists(List<String> followedArtists) throws SpotifyApiException, SQLException {
+		log.debug("Fetching releases of followed artists...");
 		List<AlbumSimplified> allAlbums = discoveryAlbumService.getAllAlbumsOfArtists(followedArtists);
+		log.debug("Filtering for new releases...");
 		List<AlbumSimplified> nonCachedAlbums = filterService.getNonCachedAlbums(allAlbums);
 		List<AlbumSimplified> noFutureAlbums = filterService.filterFutureAlbums(nonCachedAlbums);
 		albumsToCache = List.copyOf(noFutureAlbums);
+		log.debug("Resolving appears-on artists...");
 		List<AlbumSimplified> insertedAppearOnArtistsAlbums = discoveryAlbumService.resolveViaAppearsOnArtistNames(noFutureAlbums);
+		log.debug("Filtering for new albums only...");
 		List<AlbumSimplified> filteredNoDuplicatesAlbums = filterService.filterDuplicatedAlbumsReleasedSimultaneously(insertedAppearOnArtistsAlbums);
 		return filterService.filterNewAlbumsOnly(filteredNoDuplicatesAlbums);
 	}
@@ -226,13 +232,17 @@ public class DiscoveryBotCrawler {
 	 * Phase 2: Get the tracks of the new releases and map them to their respective target playlist store
 	 */
 	private Map<PlaylistStore, List<AlbumTrackPair>> getNewTracksByTargetPlaylist(List<AlbumSimplified> filteredAlbums, List<String> followedArtists) throws SpotifyApiException {
+		log.debug("Getting tracks of new albums...");
 		List<AlbumTrackPair> tracksByAlbums = discoveryTrackService.getTracksOfAlbums(filteredAlbums);
 		Map<AlbumGroup, List<AlbumTrackPair>> categorizedFilteredAlbums = filterService.categorizeAlbumsByAlbumGroup(tracksByAlbums);
+		log.debug("Applying intelligent appears-on search...");
 		Map<AlbumGroup, List<AlbumTrackPair>> intelligentAppearsOnFilteredAlbums = filterService.intelligentAppearsOnSearch(categorizedFilteredAlbums, followedArtists);
 		if (!SpotifyUtils.isAllEmptyLists(intelligentAppearsOnFilteredAlbums)) {
+			log.debug("Remapping to extended playlist types...");
 			Map<PlaylistStore, List<AlbumTrackPair>> songsByMainPlaylist = remappingService.mapToTargetPlaylist(intelligentAppearsOnFilteredAlbums);
 			Map<PlaylistStore, List<AlbumTrackPair>> songsByExtendedPlaylist = remappingService.remapIntoExtendedPlaylists(songsByMainPlaylist);
 			Map<PlaylistStore, List<AlbumTrackPair>> songsByExtendedPlaylistFiltered = remappingService.removeDisabledPlaylistStores(songsByExtendedPlaylist);
+			log.debug("Removing blacklisted release types...");
 			return filterService.filterBlacklistedReleaseTypesForArtists(songsByExtendedPlaylistFiltered);
 		}
 		return Map.of();
@@ -242,6 +252,7 @@ public class DiscoveryBotCrawler {
 	 * Phase 3: Add all releases to their target playlists and collect the results
 	 */
 	private Map<AlbumGroupExtended, Integer> addReleasesToPlaylistsAndCollectResults(Map<PlaylistStore, List<AlbumTrackPair>> newTracksByTargetPlaylist) throws SpotifyApiException {
+		log.debug("Adding new releases to target playlists...");
 		playlistSongsService.addAllReleasesToSetPlaylists(newTracksByTargetPlaylist);
 		playlistMetaService.showNotifiers(newTracksByTargetPlaylist);
 		forwarderService.forwardResults(newTracksByTargetPlaylist);
@@ -253,6 +264,7 @@ public class DiscoveryBotCrawler {
 	 */
 	private void updateAlbumCache() {
 		if (albumsToCache != null && !albumsToCache.isEmpty()) {
+			log.debug("Updating album cache...");
 			filterService.cacheAlbumIds(albumsToCache);
 			filterService.cacheAlbumNames(albumsToCache);
 			albumsToCache = null;

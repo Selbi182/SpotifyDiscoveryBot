@@ -130,6 +130,18 @@ public class FilterService {
 		}
 	}
 
+	public void uncacheUnfollowedArtists(List<String> cachedArtists, List<String> followedArtistIds) {
+		if (featureControl.isCacheEnabled()) {
+			List<String> unfollowedArtists = cachedArtists.stream()
+				.filter(artistId -> !followedArtistIds.contains(artistId))
+				.collect(Collectors.toList());
+			if (!unfollowedArtists.isEmpty()) {
+				log.info("Uncaching " + unfollowedArtists.size() + " unfollowed artists...");
+				databaseService.uncacheArtistIds(unfollowedArtists);
+			}
+		}
+	}
+
 	/**
 	 * Cache the given album IDs in the database
 	 */

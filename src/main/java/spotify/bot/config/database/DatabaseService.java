@@ -117,4 +117,21 @@ public class DatabaseService {
 			log.stackTrace(e);
 		}
 	}
+
+	/**
+	 * Uncache the artist IDs in a separate thread
+	 */
+	public synchronized void uncacheArtistIds(List<String> unfollowedArtists) {
+		try {
+			List<String> cachedArtists = getArtistCache();
+			if (cachedArtists != null) {
+				database.removeAll(
+					unfollowedArtists,
+					DBConstants.TABLE_CACHE_ARTISTS,
+					DBConstants.COL_ARTIST_ID);
+			}
+		} catch (SQLException e) {
+			log.stackTrace(e);
+		}
+	}
 }

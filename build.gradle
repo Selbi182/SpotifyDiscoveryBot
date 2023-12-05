@@ -1,7 +1,7 @@
 buildscript {
     ext {
         // Spring has to stay at 2.x.x for now, as 3.x.x requires Java 17
-        springVersion = '2.7.7'
+        springVersion = '2.7.17'
     }
 
     repositories {
@@ -21,8 +21,7 @@ apply plugin: 'io.spring.dependency-management'
 
 jar {
     archiveBaseName.set('SpotifyDiscoveryBot')
-    archiveVersion.set('1.0')
-    archiveFileName = "${archiveBaseName}-${archiveVersion}"
+    archiveFileName = "${archiveBaseName}"
 }
 
 springBoot {
@@ -44,12 +43,14 @@ repositories {
 dependencies {
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 
-    implementation 'spotify:spotify-dependencies:1.10.0'
-    implementation 'se.michaelthelin.spotify:spotify-web-api-java:8.0.0'
+    implementation 'spotify:spotify-dependencies:1.11.0'
+
+    implementation 'se.michaelthelin.spotify:spotify-web-api-java:8.3.4'
+    implementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1' // fixes a version conflict with spotify-web-api-java v8.3.+
 
     implementation "org.springframework.boot:spring-boot-starter-web:$springVersion"
 
-    implementation 'org.xerial:sqlite-jdbc:3.40.1.0'
+    implementation 'org.xerial:sqlite-jdbc:3.44.1.0'
 
     testImplementation 'junit:junit:4.13.2'
     testImplementation "org.springframework.boot:spring-boot-starter-test:$springVersion"

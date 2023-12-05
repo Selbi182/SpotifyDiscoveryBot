@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ import se.michaelthelin.spotify.requests.data.IPagingRequestBuilder;
 import se.michaelthelin.spotify.requests.data.artists.GetArtistsAlbumsRequest;
 import spotify.api.SpotifyCall;
 import spotify.api.events.SpotifyApiException;
+import spotify.bot.util.DiscoveryBotLogger;
 import spotify.services.AlbumService;
 import spotify.services.UserService;
 import spotify.util.SpotifyOptimizedExecutorService;
@@ -36,12 +38,17 @@ public class DiscoveryAlbumService {
   private final SpotifyApi spotifyApi;
   private final UserService userService;
   private final SpotifyOptimizedExecutorService spotifyOptimizedExecutorService;
+  private final DiscoveryBotLogger log;
 
-  DiscoveryAlbumService(SpotifyApi spotifyApi, AlbumService albumService, UserService userService, SpotifyOptimizedExecutorService spotifyOptimizedExecutorService) {
+  private final AtomicInteger albumFetchCounter;
+
+  DiscoveryAlbumService(SpotifyApi spotifyApi, AlbumService albumService, UserService userService, SpotifyOptimizedExecutorService spotifyOptimizedExecutorService, DiscoveryBotLogger discoveryBotLogger) {
     this.spotifyApi = spotifyApi;
     this.userService = userService;
     this.spotifyOptimizedExecutorService = spotifyOptimizedExecutorService;
+    this.log = discoveryBotLogger;
     this.albumGroupString = albumService.createAlbumGroupString(Set.of(AlbumGroup.ALBUM, AlbumGroup.SINGLE, AlbumGroup.COMPILATION, AlbumGroup.APPEARS_ON));
+    this.albumFetchCounter = new AtomicInteger();
   }
 
   /**
@@ -51,6 +58,8 @@ public class DiscoveryAlbumService {
    */
   public List<AlbumSimplified> getAllAlbumsOfArtists(List<String> followedArtists) throws SpotifyApiException {
     CountryCode marketOfCurrentUser = userService.getMarketOfCurrentUser();
+
+    albumFetchCounter.set(followedArtists.size());
 
     List<Callable<List<AlbumSimplified>>> callables = new ArrayList<>();
     for (String artist : followedArtists) {
@@ -69,10 +78,13 @@ public class DiscoveryAlbumService {
    */
   private List<AlbumSimplified> getAlbumIdsOfSingleArtist(String artistId, String albumGroupString, CountryCode market) throws SpotifyApiException {
     List<AlbumSimplified> allAlbums = executePagingStopAtFirstAppearsOn(spotifyApi
-        .getArtistsAlbums(artistId)
-        .market(market)
-        .limit(MAX_ALBUM_FETCH_LIMIT)
-        .album_type(albumGroupString));
+      .getArtistsAlbums(artistId)
+      .market(market)
+      .limit(MAX_ALBUM_FETCH_LIMIT)
+      .album_type(albumGroupString));
+    if (albumFetchCounter.decrementAndGet() % 50 == 0) {
+      log.debug("Remaining: " + albumFetchCounter.get());
+    }
     return attachOriginArtistIdForAppearsOnReleases(artistId, allAlbums);
   }
 
@@ -99,7 +111,6 @@ public class DiscoveryAlbumService {
     return resultList;
   }
 
-
   /**
    * Attach the artist IDs for any appears_on releases, so they won't get lost down
    * the way. For performance reasons, the proper conversion to an Artist object
@@ -114,8 +125,8 @@ public class DiscoveryAlbumService {
     List<AlbumSimplified> albumsExtended = new ArrayList<>();
     for (AlbumSimplified as : albumsOfArtist) {
       as = as.getAlbumGroup().equals(AlbumGroup.APPEARS_ON)
-          ? appendStringToArtist(artistId, as)
-          : as;
+        ? appendStringToArtist(artistId, as)
+        : as;
       albumsExtended.add(as);
     }
     return albumsExtended;
@@ -133,8 +144,8 @@ public class DiscoveryAlbumService {
     ArtistSimplified[] appendedArtists = new ArtistSimplified[album.getArtists().length + 1];
 
     ArtistSimplified wrappedArtistId = new ArtistSimplified.Builder()
-        .setName(artistId)
-        .build();
+      .setName(artistId)
+      .build();
     appendedArtists[appendedArtists.length - 1] = wrappedArtistId;
     for (int i = 0; i < appendedArtists.length - 1; i++) {
       appendedArtists[i] = album.getArtists()[i];
@@ -143,14 +154,14 @@ public class DiscoveryAlbumService {
     // Builders can't copy-construct for some reason, so I got to copy everything
     // else over as well... Only keeping it to the important attributes though
     return album.builder()
-        .setArtists(appendedArtists)
-        .setAlbumGroup(album.getAlbumGroup())
-        .setAlbumType(album.getAlbumType())
-        .setId(album.getId())
-        .setName(album.getName())
-        .setReleaseDate(album.getReleaseDate())
-        .setReleaseDatePrecision(album.getReleaseDatePrecision())
-        .build();
+      .setArtists(appendedArtists)
+      .setAlbumGroup(album.getAlbumGroup())
+      .setAlbumType(album.getAlbumType())
+      .setId(album.getId())
+      .setName(album.getName())
+      .setReleaseDate(album.getReleaseDate())
+      .setReleaseDatePrecision(album.getReleaseDatePrecision())
+      .build();
   }
 
   /**
@@ -163,9 +174,9 @@ public class DiscoveryAlbumService {
    */
   public List<AlbumSimplified> resolveViaAppearsOnArtistNames(List<AlbumSimplified> albums) throws SpotifyApiException {
     List<String> relevantAppearsOnArtistsIds = albums.stream()
-        .filter(album -> AlbumGroup.APPEARS_ON.equals(album.getAlbumGroup()))
-        .map(SpotifyUtils::getLastArtistName)
-        .collect(Collectors.toList());
+      .filter(album -> AlbumGroup.APPEARS_ON.equals(album.getAlbumGroup()))
+      .map(SpotifyUtils::getLastArtistName)
+      .collect(Collectors.toList());
 
     Map<String, String> artistIdToName = new HashMap<>();
     for (List<String> sublistArtistIds : SpotifyUtils.partitionList(relevantAppearsOnArtistsIds, 50)) {
@@ -181,9 +192,9 @@ public class DiscoveryAlbumService {
         String viaArtistName = artistIdToName.get(viaArtistId);
         if (viaArtistName != null) {
           ArtistSimplified viaArtistWithName = new ArtistSimplified.Builder()
-              .setId(viaArtistId)
-              .setName(String.format("(%s)", viaArtistName))
-              .build();
+            .setId(viaArtistId)
+            .setName(String.format("(%s)", viaArtistName))
+            .build();
           ArtistSimplified[] artists = as.getArtists();
           artists[artists.length - 1] = viaArtistWithName;
         }

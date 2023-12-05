@@ -54,6 +54,7 @@ public class CachedArtistService {
         throw new IllegalArgumentException("No followed artists found!");
       }
       filterService.cacheArtistIds(followedArtistIds);
+      filterService.uncacheUnfollowedArtists(cachedArtists, followedArtistIds);
       this.artistCacheLastUpdated = ZonedDateTime.now().toLocalDate();
       return repackageIntoContainer(followedArtistIds, cachedArtists);
     } else {

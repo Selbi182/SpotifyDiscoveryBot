@@ -27,6 +27,7 @@ public class DiscoveryDatabase {
 
 	private final static String FULL_SELECT_QUERY_MASK = "SELECT * FROM %s";
 	private final static String INSERT_QUERY_MASK = "INSERT INTO %s (%s) VALUES %s";
+	private final static String DELETE_QUERY_MASK = "DELETE FROM %s WHERE %s = \"%s\"";
 
 	private final DiscoveryBotLogger log;
 	private final DatabaseCreationService databaseCreationService;
@@ -116,6 +117,19 @@ public class DiscoveryDatabase {
 
 			String values = strings.stream().map(s -> String.format("('%s')", s)).collect(Collectors.joining(", "));
 			statement.executeUpdate(String.format(INSERT_QUERY_MASK, table, column, values));
+			statement.closeOnCompletion();
+		}
+	}
+
+	/**
+	 * Removes all given strings from the specified table's specified column
+	 */
+	synchronized void removeAll(Collection<String> strings, String table, String column) throws SQLException {
+		if (strings != null && !strings.isEmpty()) {
+			Statement statement = createStatement();
+			for (String string : strings) {
+				statement.executeUpdate(String.format(DELETE_QUERY_MASK, table, column, string));
+			}
 			statement.closeOnCompletion();
 		}
 	}

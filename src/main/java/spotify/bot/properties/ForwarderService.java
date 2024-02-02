@@ -65,31 +65,17 @@ public class ForwarderService {
 
   public void forwardResults(Map<PlaylistStore, List<AlbumTrackPair>> newTracksByTargetPlaylist) {
     if (active) {
-      newTracksByTargetPlaylist.values().stream()
-        .flatMap(Collection::stream)
-        .filter(this::isWhitelistedArtist)
-        .filter(this::isWhitelistedAlbumGroup)
-        .forEach(this::forwardAlbum);
+      List<String> whitelistedTypes = Arrays.asList(forwarderWhitelistedTypes);
+      for (PlaylistStore ps : newTracksByTargetPlaylist.keySet()) {
+        AlbumGroupExtended albumGroupExtended = ps.getAlbumGroupExtended();
+        if (!hasRestrictedTypes() || whitelistedTypes.contains(albumGroupExtended.toString())) {
+          newTracksByTargetPlaylist.values().stream()
+            .flatMap(Collection::stream)
+            .filter(this::isWhitelistedArtist)
+            .forEach(this::forwardAlbum);
+        }
+      }
     }
-  }
-
-  private boolean isWhitelistedArtist(AlbumTrackPair atp) {
-    if (!hasRestrictedArtists()) {
-      return true;
-    }
-
-    return Arrays.stream(atp.getAlbum().getArtists())
-      .map(ArtistSimplified::getId)
-      .anyMatch(id -> Arrays.asList(forwarderWhitelistedArtists).contains(id));
-  }
-
-  private boolean isWhitelistedAlbumGroup(AlbumTrackPair atp) {
-    if (!hasRestrictedTypes()) {
-      return true;
-    }
-
-    AlbumGroupExtended albumGroupExtended = AlbumGroupExtended.fromAlbumGroup(atp.getAlbum().getAlbumGroup());
-    return Arrays.asList(forwarderWhitelistedTypes).contains(albumGroupExtended.toString());
   }
 
   private void forwardAlbum(AlbumTrackPair atp) {
@@ -110,6 +96,16 @@ public class ForwarderService {
 
     RestTemplate restTemplate = new RestTemplate();
     restTemplate.exchange(forwarderUrl, HttpMethod.POST, entity, String.class);
+  }
+
+  private boolean isWhitelistedArtist(AlbumTrackPair atp) {
+    if (!hasRestrictedArtists()) {
+      return true;
+    }
+
+    return Arrays.stream(atp.getAlbum().getArtists())
+      .map(ArtistSimplified::getId)
+      .anyMatch(id -> Arrays.asList(forwarderWhitelistedArtists).contains(id));
   }
 
   private boolean hasRestrictedTypes() {

@@ -134,7 +134,7 @@ public class RereleaseRemapper implements Remapper {
 		CountryCode userMarket = userService.getMarketOfCurrentUser();
 		CountryCode[] availableMarkets = ts.getAvailableMarkets();
 		if (availableMarkets == null) {
-			// idk if this is the true implication
+			// Hotfix because for some reason this endpoint only returns null anymore
 			return true;
 		}
 		return Arrays.asList(availableMarkets).contains(userMarket);

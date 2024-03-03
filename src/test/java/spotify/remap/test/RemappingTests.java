@@ -35,6 +35,7 @@ import spotify.bot.filter.remapper.Remapper;
 import spotify.bot.filter.remapper.Remapper.Action;
 import spotify.bot.filter.remapper.RemixRemapper;
 import spotify.bot.filter.remapper.RereleaseRemapper;
+import spotify.bot.properties.FeatureControl;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.config.SpotifyApiConfig;
@@ -58,6 +59,7 @@ import spotify.util.data.AlbumTrackPair;
 	PlaylistStoreConfig.class,
 	BlacklistService.class,
 	DatabaseService.class,
+	FeatureControl.class,
 	SpringPortConfig.class,
 	SpotifyDiscoveryBot.SpotifyDiscoveryBotSettings.class
 

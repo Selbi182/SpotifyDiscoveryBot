@@ -23,7 +23,6 @@ import se.michaelthelin.spotify.requests.data.IPagingRequestBuilder;
 import se.michaelthelin.spotify.requests.data.artists.GetArtistsAlbumsRequest;
 import spotify.api.SpotifyCall;
 import spotify.api.events.SpotifyApiException;
-import spotify.bot.util.DiscoveryBotLogger;
 import spotify.services.AlbumService;
 import spotify.services.UserService;
 import spotify.util.SpotifyOptimizedExecutorService;
@@ -38,15 +37,13 @@ public class DiscoveryAlbumService {
   private final SpotifyApi spotifyApi;
   private final UserService userService;
   private final SpotifyOptimizedExecutorService spotifyOptimizedExecutorService;
-  private final DiscoveryBotLogger log;
 
   private final AtomicInteger albumFetchCounter;
 
-  DiscoveryAlbumService(SpotifyApi spotifyApi, AlbumService albumService, UserService userService, SpotifyOptimizedExecutorService spotifyOptimizedExecutorService, DiscoveryBotLogger discoveryBotLogger) {
+  DiscoveryAlbumService(SpotifyApi spotifyApi, AlbumService albumService, UserService userService, SpotifyOptimizedExecutorService spotifyOptimizedExecutorService) {
     this.spotifyApi = spotifyApi;
     this.userService = userService;
     this.spotifyOptimizedExecutorService = spotifyOptimizedExecutorService;
-    this.log = discoveryBotLogger;
     this.albumGroupString = albumService.createAlbumGroupString(Set.of(AlbumGroup.ALBUM, AlbumGroup.SINGLE, AlbumGroup.COMPILATION, AlbumGroup.APPEARS_ON));
     this.albumFetchCounter = new AtomicInteger();
   }
@@ -82,9 +79,6 @@ public class DiscoveryAlbumService {
       .market(market)
       .limit(MAX_ALBUM_FETCH_LIMIT)
       .album_type(albumGroupString));
-    if (albumFetchCounter.decrementAndGet() % 100 == 0) {
-      log.debug("Remaining: " + albumFetchCounter.get());
-    }
     return attachOriginArtistIdForAppearsOnReleases(artistId, allAlbums);
   }
 

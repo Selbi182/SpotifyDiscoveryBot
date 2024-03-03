@@ -132,7 +132,12 @@ public class RereleaseRemapper implements Remapper {
 
 	private boolean isTrackAvailable(TrackSimplified ts) {
 		CountryCode userMarket = userService.getMarketOfCurrentUser();
-		return Arrays.asList(ts.getAvailableMarkets()).contains(userMarket);
+		CountryCode[] availableMarkets = ts.getAvailableMarkets();
+		if (availableMarkets == null) {
+			// idk if this is the true implication
+			return true;
+		}
+		return Arrays.asList(availableMarkets).contains(userMarket);
 	}
 
 	private boolean hasReleaseNameBeenCachedAlready(AlbumSimplified album) {

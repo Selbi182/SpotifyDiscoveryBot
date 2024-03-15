@@ -136,7 +136,7 @@ public class PlaylistMetaService {
     // This is accomplished by checking whether the "last update" field is set, because it being null
     // implicitly means the playlist is already marked as read.
     List<PlaylistStore> psRequireDeepCheck = enabledPlaylistStores.parallelStream()
-      .filter(playlistStore -> playlistStore.getLastUpdate() != null)
+      .filter(playlistStore -> force || playlistStore.getLastUpdate() != null)
       .collect(Collectors.toList());
 
     if (!psRequireDeepCheck.isEmpty()) {

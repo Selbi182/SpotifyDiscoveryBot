@@ -42,7 +42,7 @@ header > div {
     opacity: 0.5;
 }
 
-#more-logs {
+#clear-notifications, #more-logs {
     font-size: 2vh;
     opacity: 0.5;
     cursor: pointer;
@@ -52,11 +52,11 @@ header > div {
     width: fit-content;
 }
 
-#more-logs:hover {
+:is(#clear-notifications, #more-logs):hover {
     opacity: 1;
 }
 
-#more-logs.no-more {
+:is(#clear-notifications, #more-logs).no-more {
     pointer-events: none;
     opacity: 0.25 !important;
 }
@@ -113,7 +113,7 @@ header > div {
 }
 
 #log > div > div:first-child > span:first-child {
-	display: block;
+    display: block;
 }
 
 footer {

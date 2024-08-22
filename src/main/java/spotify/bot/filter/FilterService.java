@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 
 import se.michaelthelin.spotify.enums.AlbumGroup;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
+import se.michaelthelin.spotify.model_objects.specification.Artist;
 import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.bot.properties.FeatureControl;
@@ -122,18 +123,24 @@ public class FilterService {
 	/**
 	 * Cache the given artist IDs in the database
 	 */
-	public void cacheArtistIds(List<String> artistIds) {
+	public void cacheArtistIds(List<Artist> artists) {
 		if (featureControl.isCacheEnabled()) {
-			if (!artistIds.isEmpty()) {
+			if (!artists.isEmpty()) {
+				List<String> artistIds = artists.stream()
+					.map(Artist::getId)
+					.collect(Collectors.toList());
 				databaseService.cacheArtistIds(artistIds);
 			}
 		}
 	}
 
-	public void uncacheUnfollowedArtists(List<String> cachedArtists, List<String> followedArtistIds) {
+	public void uncacheUnfollowedArtists(List<String> cachedArtists, List<Artist> followedArtists) {
 		if (featureControl.isCacheEnabled()) {
+			List<String> artistsIds = followedArtists.stream()
+				.map(Artist::getId)
+				.collect(Collectors.toList());
 			List<String> unfollowedArtists = cachedArtists.stream()
-				.filter(artistId -> !followedArtistIds.contains(artistId))
+				.filter(artistId -> !artistsIds.contains(artistId))
 				.collect(Collectors.toList());
 			if (!unfollowedArtists.isEmpty()) {
 				log.info("Uncaching " + unfollowedArtists.size() + " unfollowed artists...");

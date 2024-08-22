@@ -49,14 +49,36 @@ public class CachedArtistService {
   public CachedArtistsContainer getFollowedArtistsIds() throws SQLException, IllegalStateException {
     List<String> cachedArtists = getCachedArtistIds();
     if (isArtistCacheExpired()) {
-      List<String> followedArtistIds = getRealArtistIds();
-      if (followedArtistIds.isEmpty()) {
+      List<Artist> followedArtist = getRealArtists();
+      if (followedArtist.isEmpty()) {
         throw new IllegalArgumentException("No followed artists found!");
       }
-      filterService.cacheArtistIds(followedArtistIds);
-      filterService.uncacheUnfollowedArtists(cachedArtists, followedArtistIds);
+      filterService.cacheArtistIds(followedArtist);
+      filterService.uncacheUnfollowedArtists(cachedArtists, followedArtist);
+
+      List<Artist> newFollowedArtists = followedArtist.stream()
+        .filter(a -> !cachedArtists.contains(a.getId()))
+        .collect(Collectors.toList());
+      List<String> newFollowedArtistsIds = followedArtist.stream()
+        .map(Artist::getId)
+        .collect(Collectors.toList());
+
+      if (!newFollowedArtists.isEmpty()) {
+        log.info("Initializing album cache for " + newFollowedArtists.size() + " newly followed artist[s]:");
+        log.info(newFollowedArtists.stream()
+          .map(Artist::getName)
+          .sorted()
+          .limit(50)
+          .collect(Collectors.joining(", ")));
+
+        List<AlbumSimplified> allAlbumsOfNewFollowees = discoveryAlbumService.getAllAlbumsOfArtists(newFollowedArtistsIds, true);
+        List<AlbumSimplified> albumsToInitialize = filterService.getNonCachedAlbums(allAlbumsOfNewFollowees);
+        filterService.cacheAlbumIds(albumsToInitialize);
+        filterService.cacheAlbumNames(albumsToInitialize);
+      }
+
       this.artistCacheLastUpdated = ZonedDateTime.now().toLocalDate();
-      return repackageIntoContainer(followedArtistIds, cachedArtists);
+      return repackageIntoContainer(newFollowedArtistsIds, cachedArtists);
     } else {
       return new CachedArtistsContainer(cachedArtists, List.of());
     }
@@ -75,11 +97,10 @@ public class CachedArtistService {
   /**
    * Get the real artist IDs directly from the Spotify API
    */
-  private List<String> getRealArtistIds() throws SpotifyApiException {
+  private List<Artist> getRealArtists() throws SpotifyApiException {
     List<Artist> followedArtists = artistService.getFollowedArtists();
     return followedArtists.stream()
-        .map(Artist::getId)
-        .filter(id -> !SpotifyUtils.isNullString(id))
+        .filter(artist -> artist != null && !SpotifyUtils.isNullString(artist.getId()))
         .collect(Collectors.toList());
   }
 
@@ -94,20 +115,4 @@ public class CachedArtistService {
     return artistCacheLastUpdated == null || ZonedDateTime.now().toLocalDate().isAfter(artistCacheLastUpdated);
   }
 
-  /////////////
-
-  public void initializeAlbumCacheForNewArtists(CachedArtistsContainer cachedArtistsContainer) throws SQLException {
-    List<String> newArtists = cachedArtistsContainer.getNewArtists();
-    if (!newArtists.isEmpty()) {
-      log.info("Initializing album cache for " + newArtists.size() + " newly followed artist[s]:");
-      log.info(artistService.getArtists(newArtists).stream()
-          .map(Artist::getName)
-          .sorted()
-          .collect(Collectors.joining(", ")));
-      List<AlbumSimplified> allAlbumsOfNewFollowees = discoveryAlbumService.getAllAlbumsOfArtists(newArtists);
-      List<AlbumSimplified> albumsToInitialize = filterService.getNonCachedAlbums(allAlbumsOfNewFollowees);
-      filterService.cacheAlbumIds(albumsToInitialize);
-      filterService.cacheAlbumNames(albumsToInitialize);
-    }
-  }
 }

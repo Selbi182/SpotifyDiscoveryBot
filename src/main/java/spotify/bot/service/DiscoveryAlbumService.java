@@ -15,6 +15,8 @@ import com.neovisionaries.i18n.CountryCode;
 
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.enums.AlbumGroup;
+import se.michaelthelin.spotify.exceptions.detailed.TooManyRequestsException;
+import se.michaelthelin.spotify.model_objects.specification.Album;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
 import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
@@ -23,6 +25,7 @@ import se.michaelthelin.spotify.requests.data.IPagingRequestBuilder;
 import se.michaelthelin.spotify.requests.data.artists.GetArtistsAlbumsRequest;
 import spotify.api.SpotifyCall;
 import spotify.api.events.SpotifyApiException;
+import spotify.bot.util.DiscoveryBotLogger;
 import spotify.services.AlbumService;
 import spotify.services.UserService;
 import spotify.util.SpotifyOptimizedExecutorService;
@@ -37,15 +40,14 @@ public class DiscoveryAlbumService {
   private final SpotifyApi spotifyApi;
   private final UserService userService;
   private final SpotifyOptimizedExecutorService spotifyOptimizedExecutorService;
+  private final DiscoveryBotLogger log;
 
-  private final AtomicInteger albumFetchCounter;
-
-  DiscoveryAlbumService(SpotifyApi spotifyApi, AlbumService albumService, UserService userService, SpotifyOptimizedExecutorService spotifyOptimizedExecutorService) {
+  DiscoveryAlbumService(SpotifyApi spotifyApi, AlbumService albumService, UserService userService, SpotifyOptimizedExecutorService spotifyOptimizedExecutorService, DiscoveryBotLogger log) {
     this.spotifyApi = spotifyApi;
     this.userService = userService;
     this.spotifyOptimizedExecutorService = spotifyOptimizedExecutorService;
     this.albumGroupString = albumService.createAlbumGroupString(Set.of(AlbumGroup.ALBUM, AlbumGroup.SINGLE, AlbumGroup.COMPILATION, AlbumGroup.APPEARS_ON));
-    this.albumFetchCounter = new AtomicInteger();
+    this.log = log;
   }
 
   /**
@@ -53,16 +55,20 @@ public class DiscoveryAlbumService {
    * the majority of the crawling process, as it requires firing at least one
    * Spotify Web API request for EVERY SINGLE ARTIST!)
    */
-  public List<AlbumSimplified> getAllAlbumsOfArtists(List<String> followedArtists) throws SpotifyApiException {
+  public List<AlbumSimplified> getAllAlbumsOfArtists(List<String> followedArtists, boolean showProgress) throws SpotifyApiException {
     CountryCode marketOfCurrentUser = userService.getMarketOfCurrentUser();
 
-    albumFetchCounter.set(followedArtists.size());
-
-    List<Callable<List<AlbumSimplified>>> callables = new ArrayList<>();
+    int done = 0;
+    List<AlbumSimplified> results = new ArrayList<>();
     for (String artist : followedArtists) {
-      callables.add(() -> getAlbumIdsOfSingleArtist(artist, albumGroupString, marketOfCurrentUser));
+      List<AlbumSimplified> albumIdsOfSingleArtist = getAlbumIdsOfSingleArtist(artist, albumGroupString, marketOfCurrentUser);
+      results.addAll(albumIdsOfSingleArtist);
+      if (showProgress) {
+        done++;
+        log.info(done + " / " + followedArtists.size());
+      }
     }
-    return spotifyOptimizedExecutorService.executeAndWaitList(callables);
+    return results;
   }
 
   /**
@@ -92,7 +98,15 @@ public class DiscoveryAlbumService {
       if (paging != null && paging.getNext() != null) {
         pagingRequestBuilder.offset(paging.getOffset() + paging.getLimit());
       }
-      paging = SpotifyCall.execute(pagingRequestBuilder);
+      try {
+        paging = SpotifyCall.execute(pagingRequestBuilder);
+      } catch (SpotifyApiException e) {
+        if (TooManyRequestsException.class.equals(e.getNestedException().getClass())) {
+          TooManyRequestsException tooManyRequestsException = (TooManyRequestsException) e.getNestedException();
+          log.error("You have unfortunately been super-rate-limited by Spotify. Please restart the app after the cooldown has expired. Estimated time: " + tooManyRequestsException.getRetryAfter() + " seconds");
+          System.exit(182);
+        }
+      }
       AlbumSimplified[] newItems = paging.getItems();
       SpotifyUtils.addToListIfNotBlank(newItems, resultList);
 

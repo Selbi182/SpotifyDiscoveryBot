@@ -14,6 +14,8 @@ import spotify.util.SpotifyUtils;
 
 @Service
 public class DatabaseService {
+	private static final int INSERTION_CHUNK_SIZE = 1000;
+
 	private final DiscoveryDatabase database;
 	private final DiscoveryBotLogger log;
 
@@ -74,13 +76,17 @@ public class DatabaseService {
 		List<String> albumIds = albumsSimplified.stream()
 			.map(AlbumSimplified::getId)
 			.collect(Collectors.toList());
-		try {
-			database.insertAll(
-				albumIds,
-				DBConstants.TABLE_CACHE_RELEASES,
-				DBConstants.COL_RELEASE_ID);
-		} catch (SQLException e) {
-			log.stackTrace(e);
+
+		List<List<String>> albumChunks = SpotifyUtils.partitionList(albumIds, INSERTION_CHUNK_SIZE);
+		for (List<String> chunk : albumChunks) {
+			try {
+				database.insertAll(
+					chunk,
+					DBConstants.TABLE_CACHE_RELEASES,
+					DBConstants.COL_RELEASE_ID);
+			} catch (SQLException e) {
+				log.stackTrace(e);
+			}
 		}
 	}
 
@@ -91,13 +97,17 @@ public class DatabaseService {
 		List<String> albumIds = albumsSimplified.stream()
 			.map(SpotifyUtils::albumIdentifierString)
 			.collect(Collectors.toList());
-		try {
-			database.insertAll(
-				albumIds,
-				DBConstants.TABLE_CACHE_RELEASES_NAMES,
-				DBConstants.COL_RELEASE_NAME);
-		} catch (SQLException e) {
-			log.stackTrace(e);
+
+		List<List<String>> albumChunks = SpotifyUtils.partitionList(albumIds, INSERTION_CHUNK_SIZE);
+		for (List<String> chunk : albumChunks) {
+			try {
+				database.insertAll(
+					chunk,
+					DBConstants.TABLE_CACHE_RELEASES_NAMES,
+					DBConstants.COL_RELEASE_NAME);
+			} catch (SQLException e) {
+				log.stackTrace(e);
+			}
 		}
 	}
 

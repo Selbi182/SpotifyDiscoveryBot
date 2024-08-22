@@ -207,7 +207,6 @@ public class DiscoveryBotCrawler {
 	private List<String> getFollowedArtists() throws SQLException, SpotifyApiException {
 		log.debug("Fetching followed artists...");
 		CachedArtistsContainer cachedArtistsContainer = cachedArtistService.getFollowedArtistsIds();
-		cachedArtistService.initializeAlbumCacheForNewArtists(cachedArtistsContainer);
 		return cachedArtistsContainer.getAllArtists();
 	}
 
@@ -216,7 +215,7 @@ public class DiscoveryBotCrawler {
 	 */
 	private List<AlbumSimplified> getNewAlbumsFromArtists(List<String> followedArtists) throws SpotifyApiException, SQLException {
 		log.debug("Fetching releases of followed artists...");
-		List<AlbumSimplified> allAlbums = discoveryAlbumService.getAllAlbumsOfArtists(followedArtists);
+		List<AlbumSimplified> allAlbums = discoveryAlbumService.getAllAlbumsOfArtists(followedArtists, false);
 		log.debug("Filtering for new releases...");
 		List<AlbumSimplified> nonCachedAlbums = filterService.getNonCachedAlbums(allAlbums);
 		List<AlbumSimplified> noFutureAlbums = filterService.filterFutureAlbums(nonCachedAlbums);

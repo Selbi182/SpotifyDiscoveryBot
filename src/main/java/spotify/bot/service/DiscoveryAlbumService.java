@@ -65,7 +65,7 @@ public class DiscoveryAlbumService {
       results.addAll(albumIdsOfSingleArtist);
       if (showProgress) {
         done++;
-        log.info(done + " / " + followedArtists.size());
+        log.debug(done + " / " + followedArtists.size());
       }
     }
     return results;

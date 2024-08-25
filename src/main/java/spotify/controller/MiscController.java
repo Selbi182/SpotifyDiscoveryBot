@@ -47,7 +47,7 @@ public class MiscController implements SchedulingConfigurer {
 
   @Override
   public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
-    if (featureControl.isPlaylistMetaEnabled()) {
+    if (featureControl.isAutoClearNotifications() && featureControl.isPlaylistMetaEnabled()) {
       taskRegistrar.addFixedDelayTask(this::clearNewIndicatorScheduler, CLEAR_NOTIFIERS_INTERVAL);
     }
   }

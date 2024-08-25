@@ -59,7 +59,7 @@ public class CachedArtistService {
       List<Artist> newFollowedArtists = followedArtist.stream()
         .filter(a -> !cachedArtists.contains(a.getId()))
         .collect(Collectors.toList());
-      List<String> newFollowedArtistsIds = followedArtist.stream()
+      List<String> newFollowedArtistsIds = newFollowedArtists.stream()
         .map(Artist::getId)
         .collect(Collectors.toList());
 

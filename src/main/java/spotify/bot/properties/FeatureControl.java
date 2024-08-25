@@ -40,6 +40,9 @@ public class FeatureControl {
   @Value("${spotify.discovery.crawl.feature.auto_purger:#{true}}")
   private boolean enableAutoPurger;
 
+  @Value("${spotify.discovery.crawl.feature.auto_clear_notifications:#{true}}")
+  private boolean autoClearNotifications;
+
   private final DiscoveryBotLogger logger;
 
   FeatureControl(DiscoveryBotLogger logger) {
@@ -92,5 +95,9 @@ public class FeatureControl {
 
   public boolean isAutoPurgeEnabled() {
     return enableAutoPurger;
+  }
+
+  public boolean isAutoClearNotifications() {
+    return autoClearNotifications;
   }
 }

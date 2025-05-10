@@ -58,7 +58,7 @@ public class CrawlSchedulerController implements SchedulingConfigurer {
 
 	/**
 	 * Entry point for the bot crawler. May be called by the scheduler, but may also
-	 * be manually called from: http://localhost:8080/refresh<br/>
+	 * be manually called from: http://127.0.0.1:8182/refresh<br/>
 	 * <br/>
 	 * Possible ResponseEntities:
 	 * <ul>

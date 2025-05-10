@@ -32,7 +32,7 @@ First, go to "Users and Access" and add your account there (name and email addre
 
 Then click on the green "Edit Settings" button and enter the following URL as login callback:
 ```
-http://localhost:8182/login-callback
+http://127.0.0.1:8182/callback
 ```
 Finally, open the file `config/spotifybot.properties` and enter the *Client ID* and *Client Secret* that was given to you when you created the Spotify Developer App:
 ```properties
@@ -142,7 +142,7 @@ Only the `url` parameter is required for the feature to be enabled. The other th
 * `whitelisted_types`: The types of releases to be forwarded, separated by commas without spaces. If left out, all types will be forwarded.
 
 ## Log
-You can get detailed information about what the bot did at any time by directly accessing the log in your preferred browser (by default `http://localhost:8182/`):
+You can get detailed information about what the bot did at any time by directly accessing the log in your preferred browser (by default `http://127.0.0.1:8182/`):
 ![Log](https://i.imgur.com/yH4cvdf.png)
 By default, the last 10 log entries are displayed. You can set the optional query parameter `?limit=n` where *n* is the number of entries you want to have displayed. Set it to *-1* to display every log entry ever made.
 

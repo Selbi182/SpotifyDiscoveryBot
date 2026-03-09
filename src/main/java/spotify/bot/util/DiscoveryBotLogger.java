@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
@@ -17,6 +18,7 @@ import spotify.util.SpotifyLogger;
 import spotify.util.SpotifyUtils;
 import spotify.util.data.AlbumTrackPair;
 
+@Primary
 @Component
 public class DiscoveryBotLogger extends SpotifyLogger {
   /**
@@ -24,7 +26,7 @@ public class DiscoveryBotLogger extends SpotifyLogger {
    * (first) Artist > Release Date > Release Name
    */
   private final static Comparator<AlbumSimplified> ALBUM_SIMPLIFIED_COMPARATOR = Comparator
-      .comparing(AlbumSimplified::getAlbumGroup)
+      .comparing(AlbumSimplified::getAlbumType)
       .thenComparing(SpotifyUtils::getFirstArtistName)
       .thenComparing(AlbumSimplified::getReleaseDate)
       .thenComparing(AlbumSimplified::getName);
@@ -184,15 +186,6 @@ public class DiscoveryBotLogger extends SpotifyLogger {
       List<AlbumSimplified> sortedDroppedAlbums = droppedAlbums.stream().sorted(ALBUM_SIMPLIFIED_COMPARATOR).collect(Collectors.toList());
       printDroppedAlbumSimplified(sortedDroppedAlbums);
     }
-  }
-
-  /**
-   * Same as printDroppedAlbumDifference but for AlbumTrackPairs
-   */
-  public void printDroppedAlbumTrackPairDifference(Collection<AlbumTrackPair> unfilteredReleases, Collection<AlbumTrackPair> filteredReleases, String logDescription) {
-    printDroppedAlbumDifference(unfilteredReleases.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList()),
-        filteredReleases.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList()),
-        logDescription);
   }
 
   public void printDroppedAlbumsCustomGroup(List<Map.Entry<AlbumSimplified, AlbumGroupExtended>> droppedAlbums, String logDescription){

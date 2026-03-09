@@ -10,7 +10,7 @@ import java.sql.Statement;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PreDestroy;
 
 import org.springframework.stereotype.Repository;
 

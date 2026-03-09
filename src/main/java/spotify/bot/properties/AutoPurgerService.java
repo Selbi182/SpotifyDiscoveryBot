@@ -85,7 +85,7 @@ public class AutoPurgerService {
           List<PlaylistTrack> playlistTracks = playlistService.getPlaylistTracks(playlistId);
           List<IPlaylistItem> expiredTracks = playlistTracks.stream()
             .filter(pt -> isExpiredTrack(pt, expirationDays))
-            .map(PlaylistTrack::getTrack)
+            .map(PlaylistTrack::getItem)
             .collect(Collectors.toList());
           if (!expiredTracks.isEmpty()) {
             playlistService.removeItemsFromPlaylist(playlistId, expiredTracks);

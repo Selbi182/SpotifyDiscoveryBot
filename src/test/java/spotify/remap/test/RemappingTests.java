@@ -26,7 +26,6 @@ import spotify.api.events.SpotifyApiException;
 import spotify.bot.config.database.DatabaseCreationService;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.config.database.DiscoveryDatabase;
-import spotify.bot.properties.BlacklistService;
 import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.bot.filter.FilterService;
 import spotify.bot.filter.remapper.EpRemapper;
@@ -35,6 +34,7 @@ import spotify.bot.filter.remapper.Remapper;
 import spotify.bot.filter.remapper.Remapper.Action;
 import spotify.bot.filter.remapper.RemixRemapper;
 import spotify.bot.filter.remapper.RereleaseRemapper;
+import spotify.bot.properties.BlacklistService;
 import spotify.bot.properties.FeatureControl;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -99,7 +99,7 @@ public class RemappingTests {
 			liveRemapper = new LiveRemapper(trackService);
 			remixRemapper = new RemixRemapper();
 
-			rereleaseRemapper = new RereleaseRemapper(filterService, userService, databaseService);
+			rereleaseRemapper = new RereleaseRemapper(filterService, databaseService);
 
 			login();
 			
@@ -131,7 +131,7 @@ public class RemappingTests {
 	private Action getRemapAction(Remapper remapper, String albumId) {
 		try {
 			AlbumSimplified album = getAlbumSimplified(albumId);
-			if (!remapper.isAllowedAlbumGroup(AlbumGroupExtended.fromAlbumGroup(album.getAlbumGroup()))) {
+			if (!remapper.isAllowedAlbumGroup(AlbumGroupExtended.fromAlbumType(album.getAlbumType()))) {
 				fail("Didn't fulfill isAllowedAlbumGroup requirement");
 			}
 			List<TrackSimplified> tracks = getTracksOfSingleAlbum(album);
@@ -152,7 +152,7 @@ public class RemappingTests {
 	private List<TrackSimplified> getTracksOfSingleAlbum(AlbumSimplified album) throws SpotifyApiException {
 		return SpotifyCall.executePaging(spotifyApi
 			.getAlbumsTracks(album.getId())
-			.limit(50));
+			.limit(10));
 	}
 
 	///////////////////////////////

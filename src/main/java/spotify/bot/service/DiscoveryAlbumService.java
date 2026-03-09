@@ -1,52 +1,29 @@
 package spotify.bot.service;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
 import com.neovisionaries.i18n.CountryCode;
 
 import se.michaelthelin.spotify.SpotifyApi;
-import se.michaelthelin.spotify.enums.AlbumGroup;
-import se.michaelthelin.spotify.exceptions.detailed.TooManyRequestsException;
-import se.michaelthelin.spotify.model_objects.specification.Album;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
-import se.michaelthelin.spotify.model_objects.specification.Artist;
-import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
-import se.michaelthelin.spotify.model_objects.specification.Paging;
-import se.michaelthelin.spotify.requests.data.IPagingRequestBuilder;
 import se.michaelthelin.spotify.requests.data.artists.GetArtistsAlbumsRequest;
 import spotify.api.SpotifyCall;
 import spotify.api.events.SpotifyApiException;
 import spotify.bot.util.DiscoveryBotLogger;
-import spotify.services.AlbumService;
-import spotify.services.UserService;
-import spotify.util.SpotifyOptimizedExecutorService;
-import spotify.util.SpotifyUtils;
 
 @Service
 public class DiscoveryAlbumService {
-  private static final int MAX_ALBUM_FETCH_LIMIT = 50;
-
-  private final String albumGroupString;
+  private static final int MAX_ALBUM_FETCH_LIMIT = 10;
 
   private final SpotifyApi spotifyApi;
-  private final UserService userService;
-  private final SpotifyOptimizedExecutorService spotifyOptimizedExecutorService;
   private final DiscoveryBotLogger log;
 
-  DiscoveryAlbumService(SpotifyApi spotifyApi, AlbumService albumService, UserService userService, SpotifyOptimizedExecutorService spotifyOptimizedExecutorService, DiscoveryBotLogger log) {
+  DiscoveryAlbumService(SpotifyApi spotifyApi, DiscoveryBotLogger log) {
     this.spotifyApi = spotifyApi;
-    this.userService = userService;
-    this.spotifyOptimizedExecutorService = spotifyOptimizedExecutorService;
-    this.albumGroupString = albumService.createAlbumGroupString(Set.of(AlbumGroup.ALBUM, AlbumGroup.SINGLE, AlbumGroup.COMPILATION, AlbumGroup.APPEARS_ON));
     this.log = log;
   }
 
@@ -56,12 +33,13 @@ public class DiscoveryAlbumService {
    * Spotify Web API request for EVERY SINGLE ARTIST!)
    */
   public List<AlbumSimplified> getAllAlbumsOfArtists(List<String> followedArtists, boolean showProgress) throws SpotifyApiException {
-    CountryCode marketOfCurrentUser = userService.getMarketOfCurrentUser();
+    //CountryCode marketOfCurrentUser = userService.getMarketOfCurrentUser();
+    CountryCode marketOfCurrentUser = CountryCode.DE; // TODO placeholder? maybe permanent
 
     int done = 0;
     List<AlbumSimplified> results = new ArrayList<>();
     for (String artist : followedArtists) {
-      List<AlbumSimplified> albumIdsOfSingleArtist = getAlbumIdsOfSingleArtist(artist, albumGroupString, marketOfCurrentUser);
+      List<AlbumSimplified> albumIdsOfSingleArtist = getAlbumIdsOfSingleArtist(artist, marketOfCurrentUser);
       results.addAll(albumIdsOfSingleArtist);
       if (showProgress) {
         done++;
@@ -72,142 +50,32 @@ public class DiscoveryAlbumService {
   }
 
   /**
-   * Return the albums of a single given artist with the original ID intact (so they won't get lost in appears-on releases)
+   * Return the albums of a single given artist with the original ID intact
    *
    * @param artistId the artist ID to check up
-   * @param albumGroupString the AlbumGroups to look for
    * @param market the market to check for
    * @return the albums
    */
-  private List<AlbumSimplified> getAlbumIdsOfSingleArtist(String artistId, String albumGroupString, CountryCode market) throws SpotifyApiException {
-    List<AlbumSimplified> allAlbums = executePagingStopAtFirstAppearsOn(spotifyApi
-      .getArtistsAlbums(artistId)
-      .market(market)
-      .limit(MAX_ALBUM_FETCH_LIMIT)
-      .album_type(albumGroupString));
-    return attachOriginArtistIdForAppearsOnReleases(artistId, allAlbums);
-  }
-
-  /**
-   * A custom version of SpotifyCall.executePaging that stops as soon as it finds an appears_on release
-   */
-  private List<AlbumSimplified> executePagingStopAtFirstAppearsOn(IPagingRequestBuilder<AlbumSimplified, GetArtistsAlbumsRequest.Builder> pagingRequestBuilder) throws SpotifyApiException {
+  private List<AlbumSimplified> getAlbumIdsOfSingleArtist(String artistId, CountryCode market) throws SpotifyApiException {
     List<AlbumSimplified> resultList = new ArrayList<>();
-    Paging<AlbumSimplified> paging = null;
-    do {
-      if (paging != null && paging.getNext() != null) {
-        pagingRequestBuilder.offset(paging.getOffset() + paging.getLimit());
-      }
-      try {
-        paging = SpotifyCall.execute(pagingRequestBuilder);
-      } catch (SpotifyApiException e) {
-        if (TooManyRequestsException.class.equals(e.getNestedException().getClass())) {
-          TooManyRequestsException tooManyRequestsException = (TooManyRequestsException) e.getNestedException();
-          log.error("You have unfortunately been super-rate-limited by Spotify. Please restart the app after the cooldown has expired. Estimated time: " + tooManyRequestsException.getRetryAfter() + " seconds");
-          System.exit(182);
-        }
-      }
-      AlbumSimplified[] newItems = paging.getItems();
-      SpotifyUtils.addToListIfNotBlank(newItems, resultList);
 
-      // Fetches are sorted by AlbumGroup, so if the first entry of this paged result is an Appears-On release, we can stop
-      if (newItems == null || newItems.length == 0 || newItems[0].getAlbumGroup().equals(AlbumGroup.APPEARS_ON)) {
-        break;
-      }
+    // It's generally very unlikely an artist will ever release more than 10 new things at once (and if they do, it's usually crap anyway).
+    // Therefore, since Spotify's releases are sorted from newest, we can simply search the 10 most recent releases for albums and singles,
+    // and we're guaranteed to get relevant results without having to spam the API. Results may vary until further field tesing though.
 
-    } while (paging.getNext() != null);
+    GetArtistsAlbumsRequest.Builder builder =
+      spotifyApi.getArtistsAlbums(artistId)
+        .market(market)
+        .limit(MAX_ALBUM_FETCH_LIMIT);
+
+    for (String group : List.of("album", "single")) {
+      AlbumSimplified[] items = SpotifyCall.execute(
+        builder.include_groups(group)
+      ).getItems();
+
+      Collections.addAll(resultList, items);
+    }
     return resultList;
   }
 
-  /**
-   * Attach the artist IDs for any appears_on releases, so they won't get lost down
-   * the way. For performance reasons, the proper conversion to an Artist object
-   * is done after the majority of filtering is completed (more specifically,
-   * after the previously cached releases have been removed).
-   *
-   * @param artistId the artist ID
-   * @param albumsOfArtist the list of albums for this artist
-   * @return the extended album
-   */
-  private List<AlbumSimplified> attachOriginArtistIdForAppearsOnReleases(String artistId, List<AlbumSimplified> albumsOfArtist) {
-    List<AlbumSimplified> albumsExtended = new ArrayList<>();
-    for (AlbumSimplified as : albumsOfArtist) {
-      as = as.getAlbumGroup().equals(AlbumGroup.APPEARS_ON)
-        ? appendStringToArtist(artistId, as)
-        : as;
-      albumsExtended.add(as);
-    }
-    return albumsExtended;
-  }
-
-  /**
-   * Quick (and dirty) way to wrap the artist ID inside an ArtistSimplified and
-   * append it to the list of actual artists of this AlbumSimplified.
-   *
-   * @param artistId the artist ID
-   * @param album the album
-   * @return the album with the artist string appended
-   */
-  private AlbumSimplified appendStringToArtist(String artistId, AlbumSimplified album) {
-    ArtistSimplified[] appendedArtists = new ArtistSimplified[album.getArtists().length + 1];
-
-    ArtistSimplified wrappedArtistId = new ArtistSimplified.Builder()
-      .setName(artistId)
-      .build();
-    appendedArtists[appendedArtists.length - 1] = wrappedArtistId;
-    for (int i = 0; i < appendedArtists.length - 1; i++) {
-      appendedArtists[i] = album.getArtists()[i];
-    }
-
-    // Builders can't copy-construct for some reason, so I got to copy everything
-    // else over as well... Only keeping it to the important attributes though
-    return album.builder()
-      .setArtists(appendedArtists)
-      .setAlbumGroup(album.getAlbumGroup())
-      .setAlbumType(album.getAlbumType())
-      .setId(album.getId())
-      .setName(album.getName())
-      .setReleaseDate(album.getReleaseDate())
-      .setReleaseDatePrecision(album.getReleaseDatePrecision())
-      .build();
-  }
-
-  /**
-   * Replace any appears_on releases' artists that were preserved in
-   * attachOriginArtistIdForAppearsOnReleases.
-   *
-   * @param albums the albums to work with
-   * @return the new albums
-   * @throws SpotifyApiException if anything goes wrong
-   */
-  public List<AlbumSimplified> resolveViaAppearsOnArtistNames(List<AlbumSimplified> albums) throws SpotifyApiException {
-    List<String> relevantAppearsOnArtistsIds = albums.stream()
-      .filter(album -> AlbumGroup.APPEARS_ON.equals(album.getAlbumGroup()))
-      .map(SpotifyUtils::getLastArtistName)
-      .collect(Collectors.toList());
-
-    Map<String, String> artistIdToName = new HashMap<>();
-    for (List<String> sublistArtistIds : SpotifyUtils.partitionList(relevantAppearsOnArtistsIds, 50)) {
-      Artist[] execute = SpotifyCall.execute(spotifyApi.getSeveralArtists(sublistArtistIds.toArray(String[]::new)));
-      for (Artist a : execute) {
-        artistIdToName.put(a.getId(), a.getName());
-      }
-    }
-
-    for (AlbumSimplified as : albums) {
-      if (AlbumGroup.APPEARS_ON.equals(as.getAlbumGroup())) {
-        String viaArtistId = SpotifyUtils.getLastArtistName(as);
-        String viaArtistName = artistIdToName.get(viaArtistId);
-        if (viaArtistName != null) {
-          ArtistSimplified viaArtistWithName = new ArtistSimplified.Builder()
-            .setId(viaArtistId)
-            .setName(String.format("(%s)", viaArtistName))
-            .build();
-          ArtistSimplified[] artists = as.getArtists();
-          artists[artists.length - 1] = viaArtistWithName;
-        }
-      }
-    }
-    return albums;
-  }
 }

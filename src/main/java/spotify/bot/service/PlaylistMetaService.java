@@ -23,9 +23,9 @@ import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.requests.data.playlists.ChangePlaylistsDetailsRequest;
 import spotify.api.SpotifyCall;
 import spotify.api.events.SpotifyApiException;
-import spotify.bot.properties.FeatureControl;
 import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
+import spotify.bot.properties.FeatureControl;
 import spotify.services.PlaylistService;
 import spotify.util.SpotifyOptimizedExecutorService;
 import spotify.util.SpotifyUtils;
@@ -179,15 +179,15 @@ public class PlaylistMetaService {
 
     Playlist playlist = playlistService.getPlaylist(playlistStore.getPlaylistId());
 
-    if (playlist != null && playlist.getTracks() != null && playlist.getTracks().getItems() != null) {
-      List<PlaylistTrack> recentlyAddedPlaylistTracks = Arrays.stream(playlist.getTracks().getItems())
+    if (playlist != null && playlist.getItems() != null && playlist.getItems().getItems() != null) {
+      List<PlaylistTrack> recentlyAddedPlaylistTracks = Arrays.stream(playlist.getItems().getItems())
         .filter(pt -> SpotifyUtils.isWithinTimeoutWindow(pt.getAddedAt(), NEW_NOTIFICATION_TIMEOUT_DAYS))
         .collect(Collectors.toList());
 
       if (!recentlyAddedPlaylistTracks.isEmpty()) {
         String currentlyPlayingItemId = currentlyPlaying.getItem().getId();
         return recentlyAddedPlaylistTracks.stream()
-          .map(PlaylistTrack::getTrack)
+          .map(PlaylistTrack::getItem)
           .map(IPlaylistItem::getId)
           .filter(Objects::nonNull)
           .anyMatch(id -> Objects.equals(id, currentlyPlayingItemId));

@@ -22,12 +22,11 @@ public class LiveRemapper implements Remapper {
 	}
 
 	/**
-	 * Any non-extended album group except appears_on qualifies as relevant for Live
-	 * remapping
+	 * Any non-extended album group qualifies as relevant for Live remapping
 	 */
 	@Override
 	public boolean isAllowedAlbumGroup(AlbumGroupExtended albumGroupExtended) {
-		return !albumGroupExtended.isExtendedType() && !AlbumGroupExtended.APPEARS_ON.equals(albumGroupExtended);
+		return albumGroupExtended.isNotExtendedType();
 	}
 
 	@Override

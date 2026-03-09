@@ -57,20 +57,20 @@ public class CrawlSchedulerController implements SchedulingConfigurer {
 	}
 
 	/**
-	 * Entry point for the bot crawler. May be called by the scheduler, but may also
-	 * be manually called from: http://127.0.0.1:8182/refresh<br/>
-	 * <br/>
-	 * Possible ResponseEntities:
-	 * <ul>
-	 * <li>200 (OK): New songs were added to the playlist or no new songs found</li>
-	 * <li>409 (CONFLICT): The crawler is not currently ready, either because it's
-	 * still booting or because a previous crawling instance is still in progress;
-	 * request will be ignored</li>
-	 * </ul>
-	 * 
-	 * @return a ResponseEntity defining the result of the crawling process
-	 * @throws SpotifyApiException on an external exception related to the Spotify Web API
-	 */
+   * Entry point for the bot crawler. May be called by the scheduler, but may also
+   * be manually called from: <a href="http://127.0.0.1:8182/refresh">...</a><br/>
+   * <br/>
+   * Possible ResponseEntities:
+   * <ul>
+   * <li>200 (OK): New songs were added to the playlist or no new songs found</li>
+   * <li>409 (CONFLICT): The crawler is not currently ready, either because it's
+   * still booting or because a previous crawling instance is still in progress;
+   * request will be ignored</li>
+   * </ul>
+   *
+   * @return a ResponseEntity defining the result of the crawling process
+   * @throws SpotifyApiException on an external exception related to the Spotify Web API
+   */
 	@RequestMapping("/crawl")
 	public ResponseEntity<String> runCrawler() throws SpotifyApiException, SQLException {
 		if (crawler.isReady()) {

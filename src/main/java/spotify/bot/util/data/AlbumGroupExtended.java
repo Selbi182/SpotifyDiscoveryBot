@@ -3,11 +3,10 @@ package spotify.bot.util.data;
 import java.util.HashMap;
 import java.util.Map;
 
-import se.michaelthelin.spotify.enums.AlbumGroup;
+import se.michaelthelin.spotify.enums.AlbumType;
 
 public enum AlbumGroupExtended {
 	ALBUM("album", "Albums"),
-	APPEARS_ON("appears_on", "Appears On"),
 	COMPILATION("compilation", "Compilations"),
 	SINGLE("single", "Singles"),
 
@@ -41,22 +40,8 @@ public enum AlbumGroupExtended {
 	/**
 	 * Return the extended album group representation of the default album group.
 	 */
-	public static AlbumGroupExtended fromAlbumGroup(AlbumGroup albumGroup) {
-		return map.get(albumGroup.getGroup());
-	}
-
-	/**
-	 * Return the base album group representation of the given extended album group.
-	 * 
-	 * @return the base album group
-	 * @throws IllegalArgumentException if this is an extended album group
-	 */
-	public AlbumGroup asAlbumGroup() throws IllegalArgumentException {
-		AlbumGroup ag = AlbumGroup.keyOf(this.group);
-		if (ag == null || isExtendedType()) {
-			throw new IllegalArgumentException("This is a special album group and cannot be converted back into a regular one!");
-		}
-		return ag;
+	public static AlbumGroupExtended fromAlbumType(AlbumType albumType) {
+		return map.get(albumType.getType());
 	}
 
 	/**
@@ -69,8 +54,8 @@ public enum AlbumGroupExtended {
 	/**
 	 * Indicates whether this album group is a special extended type (EP, Remix, Live)
 	 */
-	public boolean isExtendedType() {
-		return extendedType;
+	public boolean isNotExtendedType() {
+		return !extendedType;
 	}
 
 	/**

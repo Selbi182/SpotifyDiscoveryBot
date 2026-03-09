@@ -16,8 +16,8 @@ import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.api.events.SpotifyApiException;
-import spotify.bot.properties.FeatureControl;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
+import spotify.bot.properties.FeatureControl;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.services.PlaylistService;
 import spotify.util.SpotifyOptimizedExecutorService;
@@ -97,7 +97,7 @@ public class PlaylistSongsService {
    */
   private void circularPlaylistFitting(Playlist playlist, List<AlbumTrackPair> albumTrackPairs) throws SpotifyApiException {
     int songsToAddCount = albumTrackPairs.stream().mapToInt(AlbumTrackPair::trackCount).sum();
-    int currentTracksInPlaylistCount = playlist.getTracks().getTotal();
+    int currentTracksInPlaylistCount = playlist.getItems().getTotal();
     if (currentTracksInPlaylistCount + songsToAddCount > PLAYLIST_SIZE_LIMIT) {
       deleteSongsFromBottomOnLimit(playlist, currentTracksInPlaylistCount, songsToAddCount);
     }
@@ -114,7 +114,7 @@ public class PlaylistSongsService {
     int offset = currentTracksInPlaylistCount - totalSongsToDeleteCount;
 
     List<IPlaylistItem> tracksToDelete = playlistService.getPlaylistTracks(playlistId, offset).stream()
-      .map(PlaylistTrack::getTrack)
+      .map(PlaylistTrack::getItem)
       .collect(Collectors.toList());
     playlistService.removeItemsFromPlaylist(playlistId, tracksToDelete);
   }

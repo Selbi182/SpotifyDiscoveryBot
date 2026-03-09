@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 import org.springframework.context.annotation.Configuration;
 
 import se.michaelthelin.spotify.SpotifyApi;
-import se.michaelthelin.spotify.enums.AlbumGroup;
+import se.michaelthelin.spotify.enums.AlbumType;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.User;
 import spotify.api.SpotifyCall;
@@ -28,6 +28,7 @@ import spotify.bot.service.PlaylistMetaService;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
+import spotify.services.PlaylistService;
 import spotify.services.UserService;
 
 @Configuration
@@ -44,13 +45,15 @@ public class PlaylistStoreConfig {
 
 	private final SpotifyApi spotifyApi;
 	private final UserService userService;
+	private final PlaylistService playlistService;
 	private final DiscoveryBotLogger log;
 
 	private final File playlistPropertiesFile;
 
-	PlaylistStoreConfig(SpotifyApi spotifyApi, UserService userService, DiscoveryBotLogger discoveryBotLogger, SpotifyDependenciesSettings spotifyDependenciesSettings) {
+	PlaylistStoreConfig(SpotifyApi spotifyApi, UserService userService, PlaylistService playlistService, DiscoveryBotLogger discoveryBotLogger, SpotifyDependenciesSettings spotifyDependenciesSettings) {
 		this.spotifyApi = spotifyApi;
 		this.userService = userService;
+		this.playlistService = playlistService;
 		this.log = discoveryBotLogger;
 		this.enabledAlbumGroups = new ArrayList<>();
 		this.disabledAlbumGroups = new ArrayList<>();
@@ -128,7 +131,7 @@ public class PlaylistStoreConfig {
 					disabledAlbumGroups.add(albumGroupExtended);
 				} else {
 					String playlistName = PlaylistMetaService.INDICATOR_OFF + " New " + albumGroupExtended.getHumanName();
-					Playlist newPlaylist = SpotifyCall.execute(spotifyApi.createPlaylist(userService.getCurrentUser().getId(), playlistName).public_(false));
+					Playlist newPlaylist = playlistService.createPlaylist(playlistName, null, false);
 					properties.putIfAbsent(albumGroupExtended.getGroupName(), newPlaylist.getId());
 					changes = true;
 				}
@@ -180,20 +183,10 @@ public class PlaylistStoreConfig {
 	}
 
 	/**
-	 * Returns the stored playlist store by the given playlist ID.
-	 */
-	public PlaylistStore getPlaylistStore(String playlistId) {
-		return getPlaylistStoreMap().values().stream()
-			.filter(ps -> ps.getPlaylistId().equals(playlistId))
-			.findFirst()
-			.orElse(null);
-	}
-
-	/**
 	 * Returns the stored playlist store by the given album group.
 	 */
-	public PlaylistStore getPlaylistStore(AlbumGroup albumGroup) {
-		return getPlaylistStore(AlbumGroupExtended.fromAlbumGroup(albumGroup));
+	public PlaylistStore getPlaylistStore(AlbumType albumType) {
+		return getPlaylistStore(AlbumGroupExtended.fromAlbumType(albumType));
 	}
 
 	/**

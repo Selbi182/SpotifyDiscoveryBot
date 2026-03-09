@@ -1,7 +1,6 @@
 package spotify.bot.filter.remapper;
 
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -9,14 +8,11 @@ import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
 
-import com.neovisionaries.i18n.CountryCode;
-
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.bot.config.database.DatabaseService;
 import spotify.bot.filter.FilterService;
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.services.UserService;
 import spotify.util.SpotifyUtils;
 import spotify.util.data.AlbumTrackPair;
 
@@ -28,15 +24,13 @@ public class RereleaseRemapper implements Remapper {
 			Pattern.CASE_INSENSITIVE);
 
 	private final FilterService filterService;
-	private final UserService userService;
-	private final DatabaseService databaseService;
+  private final DatabaseService databaseService;
 
 	private Set<String> releaseNamesCache;
 
-	public RereleaseRemapper(FilterService filterService, UserService userService, DatabaseService databaseService) {
+	public RereleaseRemapper(FilterService filterService, DatabaseService databaseService) {
 		this.filterService = filterService;
-		this.userService = userService;
-		this.databaseService = databaseService;
+    this.databaseService = databaseService;
 		this.releaseNamesCache = Set.of();
 	}
 
@@ -50,7 +44,7 @@ public class RereleaseRemapper implements Remapper {
 	 */
 	@Override
 	public boolean isAllowedAlbumGroup(AlbumGroupExtended albumGroupExtended) {
-		return !albumGroupExtended.isExtendedType();
+		return albumGroupExtended.isNotExtendedType();
 	}
 
 	/**
@@ -96,7 +90,17 @@ public class RereleaseRemapper implements Remapper {
 		List<TrackSimplified> tracks = atp.getTracks();
 
 		boolean normal = !containsRereleaseWord(album.getName());
-		boolean complete = tracks.stream().allMatch(this::isTrackAvailable);
+
+		boolean complete = true;
+		for (TrackSimplified track : tracks) {
+      if (track != null && track.getIsPlayable() != null && !track.getIsPlayable()) {
+        // TODO remove this workaround once the source of that NPE gets found
+        complete = false;
+        break;
+      }
+		}
+		//tracks.stream().filter(Objects::nonNull).allMatch(TrackSimplified::getIsPlayable);
+
 		boolean recent = filterService.isValidDate(album);
 		boolean cached = hasReleaseNameBeenCachedAlready(album);
 
@@ -128,16 +132,6 @@ public class RereleaseRemapper implements Remapper {
 			return matcher.start() > 0;
 		}
 		return false;
-	}
-
-	private boolean isTrackAvailable(TrackSimplified ts) {
-		CountryCode userMarket = userService.getMarketOfCurrentUser();
-		CountryCode[] availableMarkets = ts.getAvailableMarkets();
-		if (availableMarkets == null) {
-			// Hotfix because for some reason this endpoint only returns null anymore
-			return true;
-		}
-		return Arrays.asList(availableMarkets).contains(userMarket);
 	}
 
 	private boolean hasReleaseNameBeenCachedAlready(AlbumSimplified album) {

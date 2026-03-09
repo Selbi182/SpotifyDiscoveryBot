@@ -7,7 +7,6 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -20,16 +19,14 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
-import se.michaelthelin.spotify.enums.AlbumGroup;
+import se.michaelthelin.spotify.enums.AlbumType;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
-import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
-import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
-import spotify.bot.properties.FeatureControl;
 import spotify.bot.config.database.DatabaseService;
-import spotify.bot.properties.BlacklistService;
 import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
+import spotify.bot.properties.BlacklistService;
+import spotify.bot.properties.FeatureControl;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
@@ -45,12 +42,7 @@ public class FilterService {
 	 */
 	private final static int LOOKBACK_DAYS = 60;
 
-	/**
-	 * Any sampler is categorized under the artist "Various Artists".
-	 */
-	private final static String VARIOUS_ARTISTS = "Various Artists";
-
-	private final DiscoveryBotLogger log;
+  private final DiscoveryBotLogger log;
 	private final DatabaseService databaseService;
 	private final PlaylistStoreConfig playlistStoreConfig;
 	private final BlacklistService blacklistService;
@@ -110,13 +102,12 @@ public class FilterService {
 
 	/**
 	 * Check if the given album is sporting a "superior" album group. This is needed
-	 * when two followed artists are on the same new release (e.g. one as main
-	 * artist and the other as appears_on artist) to make sure the album gets added,
+	 * when two followed artists are on the same new release to make sure the album gets added,
 	 * not the lesser album group type.
 	 */
 	private boolean superiorAlbumGroup(AlbumSimplified newAlbum, AlbumSimplified alreadySetAlbum) {
-		int newAlbumIndex = DiscoveryBotUtils.DEFAULT_PLAYLIST_GROUP_ORDER.indexOf(AlbumGroupExtended.fromAlbumGroup(newAlbum.getAlbumGroup()));
-		int alreadySetAlbumIndex = DiscoveryBotUtils.DEFAULT_PLAYLIST_GROUP_ORDER.indexOf(AlbumGroupExtended.fromAlbumGroup(alreadySetAlbum.getAlbumGroup()));
+		int newAlbumIndex = DiscoveryBotUtils.DEFAULT_PLAYLIST_GROUP_ORDER.indexOf(AlbumGroupExtended.fromAlbumType(newAlbum.getAlbumType()));
+		int alreadySetAlbumIndex = DiscoveryBotUtils.DEFAULT_PLAYLIST_GROUP_ORDER.indexOf(AlbumGroupExtended.fromAlbumType(alreadySetAlbum.getAlbumType()));
 		return newAlbumIndex < alreadySetAlbumIndex;
 	}
 
@@ -216,15 +207,30 @@ public class FilterService {
 	 * Categorizes the given list of albums into a map of their respective album
 	 * GROUPS (aka the return context of the simplified album object)
 	 */
-	public Map<AlbumGroup, List<AlbumTrackPair>> categorizeAlbumsByAlbumGroup(List<AlbumTrackPair> albumTrackPairs) {
-		Map<AlbumGroup, List<AlbumTrackPair>> categorized = SpotifyUtils.createAlbumGroupToListOfTMap();
+	public Map<AlbumType, List<AlbumTrackPair>> categorizeAlbumsByAlbumGroup(List<AlbumTrackPair> albumTrackPairs) {
+		Map<AlbumType, List<AlbumTrackPair>> categorized = createAlbumTypeToListOfTMap();
 		for (AlbumTrackPair atp : albumTrackPairs) {
 			Optional.ofNullable(atp)
 				.map(AlbumTrackPair::getAlbum)
-				.map(AlbumSimplified::getAlbumGroup)
+				.map(AlbumSimplified::getAlbumType)
 				.ifPresent(albumGroup -> categorized.get(albumGroup).add(atp));
 		}
 		return categorized;
+	}
+
+	/**
+	 * Creates a map with a full AlbumGroup to List relationship (the lists are
+	 * empty)
+	 *
+	 * @param <T> anything
+	 * @return the album group
+	 */
+	public static <T> Map<AlbumType, List<T>> createAlbumTypeToListOfTMap() {
+		Map<AlbumType, List<T>> albumGroupToList = new HashMap<>();
+		for (AlbumType ag : AlbumType.values()) {
+			albumGroupToList.put(ag, new ArrayList<>());
+		}
+		return albumGroupToList;
 	}
 
 	/**
@@ -250,7 +256,7 @@ public class FilterService {
 	 */
 	public List<AlbumSimplified> filterNewAlbumsOnly(List<AlbumSimplified> unfilteredReleases) {
 		List<AlbumSimplified> filteredReleases = unfilteredReleases.stream()
-			.filter(release -> (AlbumGroup.ALBUM.equals(release.getAlbumGroup()))
+			.filter(release -> (AlbumType.ALBUM.equals(release.getAlbumType()))
 				|| isValidDate(release))
 			.collect(Collectors.toList());
 		log.printDroppedAlbumDifference(unfilteredReleases, filteredReleases,
@@ -270,67 +276,6 @@ public class FilterService {
 		} catch (DateTimeParseException e) {
 			return false;
 		}
-	}
-
-	////////////////////////////////
-	// INTELLIGENT APPEARS_ON_SEARCH
-
-	/**
-	 * Find all releases marked as "appears_on" by the given list of artists, but
-	 * filter the result such that only songs of artists you follow are preserved.
-	 * Also filter out any compilation appearances.
-	 */
-	public Map<AlbumGroup, List<AlbumTrackPair>> intelligentAppearsOnSearch(Map<AlbumGroup, List<AlbumTrackPair>> categorizedFilteredAlbums, List<String> followedArtists) {
-		List<AlbumTrackPair> unfilteredAppearsOnAlbums = categorizedFilteredAlbums.get(AlbumGroup.APPEARS_ON);
-		if (!unfilteredAppearsOnAlbums.isEmpty()) {
-			// Preprocess into HashSet to speed up contains() operations
-			Set<String> followedArtistsSet = new HashSet<>(followedArtists);
-
-			// Filter out any collection, samplers, or albums whose primary artist is
-			// already a followee
-			List<AlbumTrackPair> albumsWithoutCollectionsOrSamplers = unfilteredAppearsOnAlbums.stream()
-				.filter(atp -> !isCollectionOrSampler(atp.getAlbum()))
-				.collect(Collectors.toList());
-
-			// Of those, filter out the actual songs where a featured artist is a followee
-			List<AlbumTrackPair> filteredAppearsOnAlbums = new ArrayList<>();
-			for (AlbumTrackPair atp : albumsWithoutCollectionsOrSamplers) {
-				List<TrackSimplified> selectedSongsOfAlbum = atp.getTracks().stream()
-					.filter(song -> containsFeaturedArtist(followedArtistsSet, song.getArtists()))
-					.collect(Collectors.toList());
-				filteredAppearsOnAlbums.add(AlbumTrackPair.of(atp.getAlbum(), selectedSongsOfAlbum));
-			}
-
-			// Show log message
-			int droppedAppearsOnCount = unfilteredAppearsOnAlbums.size() - filteredAppearsOnAlbums.size();
-			log.printDroppedAlbumTrackPairDifference(unfilteredAppearsOnAlbums, filteredAppearsOnAlbums, String.format("Dropped %d APPEARS_ON release[s]:", droppedAppearsOnCount));
-
-			// Finalize
-			Map<AlbumGroup, List<AlbumTrackPair>> intelligentAppearsOnFilteredMap = new HashMap<>(categorizedFilteredAlbums);
-			intelligentAppearsOnFilteredMap.put(AlbumGroup.APPEARS_ON, filteredAppearsOnAlbums);
-			return intelligentAppearsOnFilteredMap;
-		}
-		return categorizedFilteredAlbums;
-	}
-
-	/**
-	 * Returns true if the album group is set to Compilation or the artist is
-	 * "Various Artists"
-	 */
-	private boolean isCollectionOrSampler(AlbumSimplified a) {
-		if (!a.getAlbumGroup().equals(AlbumGroupExtended.COMPILATION.asAlbumGroup())) {
-			return Arrays.stream(a.getArtists()).anyMatch(as -> as.getName().equals(VARIOUS_ARTISTS));
-		}
-		return true;
-	}
-
-	/**
-	 * Checks if at least a single artist of the subset is part of the given artist
-	 * superset
-	 */
-	private static boolean containsFeaturedArtist(Collection<String> artistSuperset, ArtistSimplified[] artistSubset) {
-		Set<String> artistSubsetIds = Arrays.stream(artistSubset).map(ArtistSimplified::getId).collect(Collectors.toSet());
-		return artistSuperset.stream().anyMatch(artistSubsetIds::contains);
 	}
 
 	////////////////////////////////

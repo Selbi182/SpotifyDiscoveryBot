@@ -18,7 +18,7 @@ import spotify.util.data.AlbumTrackPair;
 public class DiscoveryBotUtils {
   /**
    * A common order of the different playlist groups:
-   * Album > Single > EP > Remix > Live > Compilation > Re-Release > Appears On
+   * Album > Single > EP > Remix > Live > Compilation > Re-Release
    */
   public final static List<AlbumGroupExtended> DEFAULT_PLAYLIST_GROUP_ORDER = Arrays.asList(
       AlbumGroupExtended.ALBUM,
@@ -27,8 +27,7 @@ public class DiscoveryBotUtils {
       AlbumGroupExtended.REMIX,
       AlbumGroupExtended.LIVE,
       AlbumGroupExtended.COMPILATION,
-      AlbumGroupExtended.RE_RELEASE,
-      AlbumGroupExtended.APPEARS_ON);
+      AlbumGroupExtended.RE_RELEASE);
 
   /**
    * Utility class

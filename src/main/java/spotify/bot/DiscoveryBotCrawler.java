@@ -8,17 +8,17 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import se.michaelthelin.spotify.enums.AlbumGroup;
+import se.michaelthelin.spotify.enums.AlbumType;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import spotify.api.events.SpotifyApiException;
 import spotify.api.events.SpotifyApiLoggedInEvent;
-import spotify.bot.properties.FeatureControl;
 import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
 import spotify.bot.filter.FilterService;
-import spotify.bot.properties.AutoPurgerService;
-import spotify.bot.properties.ForwarderService;
 import spotify.bot.filter.RemappingService;
+import spotify.bot.properties.AutoPurgerService;
+import spotify.bot.properties.FeatureControl;
+import spotify.bot.properties.ForwarderService;
 import spotify.bot.service.CachedArtistService;
 import spotify.bot.service.DiscoveryAlbumService;
 import spotify.bot.service.DiscoveryTrackService;
@@ -192,7 +192,7 @@ public class DiscoveryBotCrawler {
 		if (!followedArtists.isEmpty()) {
 			List<AlbumSimplified> filteredAlbums = getNewAlbumsFromArtists(followedArtists);
 			if (!filteredAlbums.isEmpty()) {
-				Map<PlaylistStore, List<AlbumTrackPair>> newTracksByTargetPlaylist = getNewTracksByTargetPlaylist(filteredAlbums, followedArtists);
+				Map<PlaylistStore, List<AlbumTrackPair>> newTracksByTargetPlaylist = getNewTracksByTargetPlaylist(filteredAlbums);
 				if (!SpotifyUtils.isAllEmptyLists(newTracksByTargetPlaylist)) {
 					return addReleasesToPlaylistsAndCollectResults(newTracksByTargetPlaylist);
 				}
@@ -220,25 +220,21 @@ public class DiscoveryBotCrawler {
 		List<AlbumSimplified> nonCachedAlbums = filterService.getNonCachedAlbums(allAlbums);
 		List<AlbumSimplified> noFutureAlbums = filterService.filterFutureAlbums(nonCachedAlbums);
 		albumsToCache = List.copyOf(noFutureAlbums);
-		log.debug("Resolving appears-on artists...");
-		List<AlbumSimplified> insertedAppearOnArtistsAlbums = discoveryAlbumService.resolveViaAppearsOnArtistNames(noFutureAlbums);
 		log.debug("Filtering for new albums only...");
-		List<AlbumSimplified> filteredNoDuplicatesAlbums = filterService.filterDuplicatedAlbumsReleasedSimultaneously(insertedAppearOnArtistsAlbums);
+		List<AlbumSimplified> filteredNoDuplicatesAlbums = filterService.filterDuplicatedAlbumsReleasedSimultaneously(noFutureAlbums);
 		return filterService.filterNewAlbumsOnly(filteredNoDuplicatesAlbums);
 	}
 
 	/**
 	 * Phase 2: Get the tracks of the new releases and map them to their respective target playlist store
 	 */
-	private Map<PlaylistStore, List<AlbumTrackPair>> getNewTracksByTargetPlaylist(List<AlbumSimplified> filteredAlbums, List<String> followedArtists) throws SpotifyApiException {
+	private Map<PlaylistStore, List<AlbumTrackPair>> getNewTracksByTargetPlaylist(List<AlbumSimplified> filteredAlbums) throws SpotifyApiException {
 		log.debug("Getting tracks of new albums...");
 		List<AlbumTrackPair> tracksByAlbums = discoveryTrackService.getTracksOfAlbums(filteredAlbums);
-		Map<AlbumGroup, List<AlbumTrackPair>> categorizedFilteredAlbums = filterService.categorizeAlbumsByAlbumGroup(tracksByAlbums);
-		log.debug("Applying intelligent appears-on search...");
-		Map<AlbumGroup, List<AlbumTrackPair>> intelligentAppearsOnFilteredAlbums = filterService.intelligentAppearsOnSearch(categorizedFilteredAlbums, followedArtists);
-		if (!SpotifyUtils.isAllEmptyLists(intelligentAppearsOnFilteredAlbums)) {
+		Map<AlbumType, List<AlbumTrackPair>> categorizedFilteredAlbums = filterService.categorizeAlbumsByAlbumGroup(tracksByAlbums);
+		if (!SpotifyUtils.isAllEmptyLists(categorizedFilteredAlbums)) {
 			log.debug("Remapping to extended playlist types...");
-			Map<PlaylistStore, List<AlbumTrackPair>> songsByMainPlaylist = remappingService.mapToTargetPlaylist(intelligentAppearsOnFilteredAlbums);
+			Map<PlaylistStore, List<AlbumTrackPair>> songsByMainPlaylist = remappingService.mapToTargetPlaylist(categorizedFilteredAlbums);
 			Map<PlaylistStore, List<AlbumTrackPair>> songsByExtendedPlaylist = remappingService.remapIntoExtendedPlaylists(songsByMainPlaylist);
 			Map<PlaylistStore, List<AlbumTrackPair>> songsByExtendedPlaylistFiltered = remappingService.removeDisabledPlaylistStores(songsByExtendedPlaylist);
 			log.debug("Removing blacklisted release types...");

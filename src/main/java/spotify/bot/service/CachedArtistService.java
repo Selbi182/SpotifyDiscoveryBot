@@ -68,7 +68,7 @@ public class CachedArtistService {
         log.info(newFollowedArtists.stream()
           .map(Artist::getName)
           .sorted()
-          .limit(50)
+          .limit(10)
           .collect(Collectors.joining(", ")));
 
         List<AlbumSimplified> allAlbumsOfNewFollowees = discoveryAlbumService.getAllAlbumsOfArtists(newFollowedArtistsIds, true);
@@ -91,7 +91,7 @@ public class CachedArtistService {
   private CachedArtistsContainer repackageIntoContainer(List<String> followedArtist, List<String> oldCachedArtists) {
     Set<String> addedArtists = new HashSet<>(followedArtist);
     oldCachedArtists.forEach(addedArtists::remove); // apparently faster than removeAll()
-    return new CachedArtistsContainer(followedArtist, addedArtists);
+    return new CachedArtistsContainer(oldCachedArtists, addedArtists);
   }
 
   /**

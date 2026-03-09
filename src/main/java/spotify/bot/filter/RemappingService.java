@@ -7,7 +7,7 @@ import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
-import se.michaelthelin.spotify.enums.AlbumGroup;
+import se.michaelthelin.spotify.enums.AlbumType;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import spotify.bot.config.properties.PlaylistStoreConfig;
 import spotify.bot.config.properties.PlaylistStoreConfig.PlaylistStore;
@@ -48,12 +48,12 @@ public class RemappingService {
 	 * Transform the given map of releases by album group to the true destination
 	 * playlist IDs.
 	 */
-	public Map<PlaylistStore, List<AlbumTrackPair>> mapToTargetPlaylist(Map<AlbumGroup, List<AlbumTrackPair>> newSongsByGroup) {
+	public Map<PlaylistStore, List<AlbumTrackPair>> mapToTargetPlaylist(Map<AlbumType, List<AlbumTrackPair>> newSongsByGroup) {
 		Map<PlaylistStore, List<AlbumTrackPair>> resultMap = new HashMap<>();
-		for (Map.Entry<AlbumGroup, List<AlbumTrackPair>> entry : newSongsByGroup.entrySet()) {
+		for (Map.Entry<AlbumType, List<AlbumTrackPair>> entry : newSongsByGroup.entrySet()) {
 			List<AlbumTrackPair> atp = entry.getValue();
 			if (!atp.isEmpty()) {
-				AlbumGroup ag = entry.getKey();
+				AlbumType ag = entry.getKey();
 				PlaylistStore ps = playlistStoreConfig.getPlaylistStore(ag);
 				if (ps != null) {
 					resultMap.put(ps, atp);

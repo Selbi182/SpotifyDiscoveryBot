@@ -10,7 +10,7 @@ Proudly utilizes the [Spotify Web API Java Wrapper](https://github.com/thelinmic
 
 For example, albums get re-uploaded _all_ the time, often without any sensible explanation. Sometimes albums get uploaded _multiple_ times at once. And sometimes albums even get released to the _wrong artist_ altogether, usually because a rather common name got used by multiple bands – enjoy your low-quality hip hop on the main page of your favorite rock band.
 
-All these tiny nitpicks quickly add up and would render the approach of simply crawling through all artists and adding anything new as rather bloated. This is especially true for Appears-On releases, as labels pump out samplers on a daily basis.
+All these tiny nitpicks quickly add up and would render the approach of simply crawling through all artists and adding anything new as rather bloated.
 
 This bot does its best effort to filter out anything you don't care about, to only leave you with the music you actually like!
 
@@ -56,18 +56,17 @@ remix = https://open.spotify.com/playlist/5LA0xQetL5h7RXKjwBol03?si=bd1a2c67ab2e
 live = https://open.spotify.com/playlist/5LA0xQetL5h7RXKjwBol03?si=bd1a2c67ab2e4937
 compilation =
 re_release =
-appears_on = https://open.spotify.com/playlist/5LA0xQetL5h7RXKjwBol03?si=bd1a2c67ab2e4937
 ```
 Explanation of this example:
 * Albums are put into their own playlist
 * Singles and EPs are grouped together in a combined playlist
-* Remixes, live releases, and appears-on tracks are grouped together in another combined playlist
+* Remixes and live releases tracks are grouped together in another combined playlist
 * Compilations and re-releases will be ignored entirely
 
 **Note:** After the first launch, the bot will recreate this file with only the playlist IDs (as in, only the ID after the last / without the *?si* part). This is purely for performance reasons, so that future crawls don't need to parse the entire URLs over and over again.
 
 ### Step 3: Starting the bot for the first time
-To start the bot, make sure you have at least Java 11 installed and run the JAR:
+To start the bot, make sure you have at least Java 17 installed and run the JAR:
 ```shell
 java -jar SpotifyDiscoveryBot.jar
 ```
@@ -99,10 +98,9 @@ spotify.discovery.crawl.auto.purge[3] = REMIX:30
 spotify.discovery.crawl.auto.purge[4] = LIVE:30
 spotify.discovery.crawl.auto.purge[5] = COMPILATION:30
 spotify.discovery.crawl.auto.purge[6] = RE_RELEASE:7
-spotify.discovery.crawl.auto.purge[7] = APPEARS_ON:7
 ```
 
-This example would remove all old tracks older than 30 days, except for re-releases and appears-on releases, which would already get purged after 7 days.
+This example would remove all old tracks older than 30 days, except for re-releases, which would already get purged after 7 days.
 
 You can simply leave out a playlist if you never want to purge it. Just make sure the numeric array doesn't have any gaps.
 
@@ -119,11 +117,8 @@ In this example, the cronjob will restrict the bot to only run once every Friday
 Use this to ban certain followed artists from certain release types. For example, you like a specific artist but dislike how often they appear as a featured artist or how often they release remixes. You can add as many entries as you want (numeric array format, starting at 0). The format is the artist ID, a colon, and a list of release types to ban, separated by comma. For example:
 
 ```properties
-spotify.discovery.crawl.blacklist[0] = 7dGJo4pcD2V6oG8kP0tJRR:APPEARS_ON,RE_RELEASE,REMIX
+spotify.discovery.crawl.blacklist[0] = 7dGJo4pcD2V6oG8kP0tJRR:RE_RELEASE,REMIX
 spotify.discovery.crawl.blacklist[1] = 7rSMEcqv4Ez0OLgJKDjrvq:RE_RELEASE
-spotify.discovery.crawl.blacklist[2] = 30F64wQIHvLiFTGaNZ73nU:APPEARS_ON
-spotify.discovery.crawl.blacklist[3] = 3Gs10XJ4S4OEFrMRqZJcic:APPEARS_ON
-spotify.discovery.crawl.blacklist[4] = 4hljLrM4LIIh85DLjURyS6:APPEARS_ON
 ```
 
 ### Forwarder (relay to webhook)
@@ -151,7 +146,7 @@ Spotify's playlists are limited to 10,000 songs. While plenty for most people to
 
 The bot will automatically rotate the playlists in a circular fashion when the limit is reached, e.g. new goes in, old goes out to make room. If you never want to lose any additions, make sure to create a copy of your playlist once you're about to reach 10,000 songs.
 
-Alternatively, if you don't care about hoarding, you might want to consider enabling [AutoPurge](#autopurge).
+Alternatively, if you don't care about hoarding, you might want to consider enabling [AutoPurge](#AutoPurge).
 
 ## Final Notes
 This project started as a simple script to replace the – in my opinion – feature-lacking [Spotishine](https://www.spotishine.com). It has since evolved into a passion project with lots of tiny features to make discovering new music on Spotify more convenient.

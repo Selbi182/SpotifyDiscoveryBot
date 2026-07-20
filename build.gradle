@@ -26,6 +26,10 @@ springBoot {
     mainClass.set('spotify.SpotifyDiscoveryBot')
 }
 
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += "-parameters"
+}
+
 repositories {
     mavenCentral()
     maven {
@@ -41,7 +45,7 @@ dependencies {
 
     implementation 'se.michaelthelin.spotify:spotify-web-api-java:10.0.0-RC2'
 
-    implementation 'spotify:spotify-dependencies:1.13.0-pre4'
+    implementation 'spotify:spotify-dependencies:1.13.0-pre6'
     implementation "org.springframework.boot:spring-boot-starter-web:$springVersion"
     implementation 'org.xerial:sqlite-jdbc:3.44.1.0'
 

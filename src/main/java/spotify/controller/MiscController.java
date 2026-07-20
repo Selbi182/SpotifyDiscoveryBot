@@ -70,7 +70,7 @@ public class MiscController implements SchedulingConfigurer {
    * @throws SpotifyApiException on an external exception related to the Spotify Web API
    */
   @RequestMapping("/clear")
-  public ResponseEntity<String> manuallyClearNotifiers(@RequestParam(defaultValue = "true") boolean force) throws SpotifyApiException {
+  public ResponseEntity<String> manuallyClearNotifiers(@RequestParam(value = "force", defaultValue = "true") boolean force) throws SpotifyApiException {
     if (!crawler.isReady()) {
       return ResponseEntity.status(HttpStatus.CONFLICT).body("Can't clear notifiers now, as crawler is currently in progress...");
     }

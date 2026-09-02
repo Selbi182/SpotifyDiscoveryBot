@@ -6,6 +6,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import java.time.Duration;
+
+import org.jspecify.annotations.NonNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -46,9 +49,9 @@ public class MiscController implements SchedulingConfigurer {
   // Notifiers
 
   @Override
-  public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
+  public void configureTasks(@NonNull ScheduledTaskRegistrar taskRegistrar) {
     if (featureControl.isAutoClearNotifications() && featureControl.isPlaylistMetaEnabled()) {
-      taskRegistrar.addFixedDelayTask(this::clearNewIndicatorScheduler, CLEAR_NOTIFIERS_INTERVAL);
+      taskRegistrar.addFixedDelayTask(this::clearNewIndicatorScheduler, Duration.ofMillis(CLEAR_NOTIFIERS_INTERVAL));
     }
   }
 
@@ -115,8 +118,8 @@ public class MiscController implements SchedulingConfigurer {
       }
 
       List<List<String>> collect = groupedLog.stream()
-          .filter(l -> !l.isEmpty())
-          .collect(Collectors.toList());
+        .filter(l -> !l.isEmpty())
+        .collect(Collectors.toList());
       Collections.reverse(collect);
       if (limit != null && limit >= 0) {
         collect = collect.subList(0, Math.min(limit, collect.size()));

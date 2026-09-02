@@ -142,7 +142,7 @@ public class RereleaseRemapper implements Remapper {
 		try {
 			this.releaseNamesCache = Set.copyOf(databaseService.getReleaseNamesCache());
 		} catch (SQLException e) {
-			e.printStackTrace();
+			SpotifyUtils.genericException(e);
 		}
 	}
 }

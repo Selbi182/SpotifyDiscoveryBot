@@ -50,7 +50,7 @@ public class PlaylistSongsService {
    */
   public void addAllReleasesToSetPlaylists(Map<PlaylistStore, List<AlbumTrackPair>> songsByPlaylist) throws SpotifyApiException {
     log.info("Adding to playlists:");
-    List<PlaylistStore> sortedPlaylistStores = songsByPlaylist.keySet().stream().sorted().collect(Collectors.toList());
+    List<PlaylistStore> sortedPlaylistStores = songsByPlaylist.keySet().stream().sorted().toList();
     List<Callable<Void>> callables = new ArrayList<>();
     for (PlaylistStore ps : sortedPlaylistStores) {
       List<AlbumTrackPair> albumTrackPairs = songsByPlaylist.get(ps);

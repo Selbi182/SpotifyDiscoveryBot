@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        springVersion = '4.1.0-M2'
+        springVersion = '4.1.1'
     }
 
     repositories {
@@ -43,9 +43,9 @@ repositories {
 dependencies {
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 
-    implementation 'se.michaelthelin.spotify:spotify-web-api-java:10.0.0-RC2'
+    implementation 'se.michaelthelin.spotify:spotify-web-api-java:10.0.0-RC7'
 
-    implementation 'spotify:spotify-dependencies:1.13.0-pre6'
+    implementation 'spotify:spotify-dependencies:1.13.0-pre9c'
     implementation "org.springframework.boot:spring-boot-starter-web:$springVersion"
     implementation 'org.xerial:sqlite-jdbc:3.44.1.0'
 

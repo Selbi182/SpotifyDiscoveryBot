@@ -1,19 +1,18 @@
 package spotify.bot.filter.remapper;
 
+import java.util.List;
+import java.util.regex.Pattern;
+
 import org.springframework.stereotype.Component;
 
+import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.bot.util.data.AlbumGroupExtended;
-import spotify.services.TrackService;
 import spotify.util.SpotifyUtils;
 import spotify.util.data.AlbumTrackPair;
 
 @Component
 public class LiveRemapper implements Remapper {
-
-	private final TrackService trackService;
-
-	public LiveRemapper(TrackService trackService) {
-		this.trackService = trackService;
+	public LiveRemapper() {
 	}
 
 	@Override
@@ -31,6 +30,6 @@ public class LiveRemapper implements Remapper {
 
 	@Override
 	public Action determineRemapAction(AlbumTrackPair atp) {
-		return Action.of(SpotifyUtils.isLiveRelease(atp, trackService));
+		return Action.of(SpotifyUtils.isLiveRelease(atp));
 	}
 }

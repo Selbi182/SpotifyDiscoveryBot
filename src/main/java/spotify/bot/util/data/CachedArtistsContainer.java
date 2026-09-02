@@ -23,6 +23,7 @@ public class CachedArtistsContainer {
 		return allArtists;
 	}
 
+	@SuppressWarnings("unused")
 	public List<String> getNewArtists() {
 		return newArtists;
 	}

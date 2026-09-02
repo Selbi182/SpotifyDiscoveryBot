@@ -6,7 +6,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.neovisionaries.i18n.CountryCode;
+import se.michaelthelin.spotify.enums.CountryCode;
 
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
@@ -14,6 +14,7 @@ import se.michaelthelin.spotify.requests.data.artists.GetArtistsAlbumsRequest;
 import spotify.api.SpotifyCall;
 import spotify.api.events.SpotifyApiException;
 import spotify.bot.util.DiscoveryBotLogger;
+import spotify.services.UserService;
 
 @Service
 public class DiscoveryAlbumService {
@@ -21,10 +22,12 @@ public class DiscoveryAlbumService {
 
   private final SpotifyApi spotifyApi;
   private final DiscoveryBotLogger log;
+  private final UserService userService;
 
-  DiscoveryAlbumService(SpotifyApi spotifyApi, DiscoveryBotLogger log) {
+  DiscoveryAlbumService(SpotifyApi spotifyApi, DiscoveryBotLogger log, UserService userService) {
     this.spotifyApi = spotifyApi;
     this.log = log;
+    this.userService = userService;
   }
 
   /**
@@ -33,8 +36,13 @@ public class DiscoveryAlbumService {
    * Spotify Web API request for EVERY SINGLE ARTIST!)
    */
   public List<AlbumSimplified> getAllAlbumsOfArtists(List<String> followedArtists, boolean showProgress) throws SpotifyApiException {
-    //CountryCode marketOfCurrentUser = userService.getMarketOfCurrentUser();
-    CountryCode marketOfCurrentUser = CountryCode.DE; // TODO placeholder? maybe permanent
+    CountryCode marketOfCurrentUser;
+    try {
+      marketOfCurrentUser = userService.getMarketOfCurrentUser();
+    } catch (Exception e) {
+      // For silly edge cases because the Spotify API is stupid
+      marketOfCurrentUser = CountryCode.DE;
+    }
 
     int done = 0;
     List<AlbumSimplified> results = new ArrayList<>();

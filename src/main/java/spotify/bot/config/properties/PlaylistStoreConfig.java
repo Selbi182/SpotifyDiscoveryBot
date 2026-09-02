@@ -30,6 +30,7 @@ import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.services.PlaylistService;
 import spotify.services.UserService;
+import spotify.util.SpotifyUtils;
 
 @Configuration
 public class PlaylistStoreConfig {
@@ -80,7 +81,7 @@ public class PlaylistStoreConfig {
 			this.playlistStoreMap = createPlaylistStoreMap(properties);
 
 		} catch (Exception e) {
-			e.printStackTrace();
+			SpotifyUtils.genericException(e);
 			System.exit(1);
 			throw new IllegalStateException("Failed to read " + playlistPropertiesFile + ". Terminating!");
 		}

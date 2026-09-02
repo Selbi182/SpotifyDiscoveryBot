@@ -146,7 +146,7 @@ Spotify's playlists are limited to 10,000 songs. While plenty for most people to
 
 The bot will automatically rotate the playlists in a circular fashion when the limit is reached, e.g. new goes in, old goes out to make room. If you never want to lose any additions, make sure to create a copy of your playlist once you're about to reach 10,000 songs.
 
-Alternatively, if you don't care about hoarding, you might want to consider enabling [AutoPurge](#AutoPurge).
+Alternatively, if you don't care about hoarding, you might want to consider enabling AutoPurge (see above).
 
 ## Final Notes
 This project started as a simple script to replace the – in my opinion – feature-lacking [Spotishine](https://www.spotishine.com). It has since evolved into a passion project with lots of tiny features to make discovering new music on Spotify more convenient.

@@ -129,7 +129,7 @@ public class FilterService {
 		if (featureControl.isCacheEnabled()) {
 			List<String> artistsIds = followedArtists.stream()
 				.map(Artist::getId)
-				.collect(Collectors.toList());
+				.toList();
 			List<String> unfollowedArtists = cachedArtists.stream()
 				.filter(artistId -> !artistsIds.contains(artistId))
 				.collect(Collectors.toList());

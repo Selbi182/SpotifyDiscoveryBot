@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.data.AlbumGroupExtended;
+import spotify.util.SpotifyUtils;
 
 @Service
 @EnableConfigurationProperties
@@ -46,7 +47,7 @@ public class BlacklistService {
         blacklistMap.put(artistId, blacklistedTypes);
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      SpotifyUtils.genericException(e);
       return Map.of();
     }
     return blacklistMap;

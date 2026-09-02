@@ -39,6 +39,7 @@ import spotify.bot.properties.FeatureControl;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.config.SpotifyApiConfig;
+import spotify.services.PlaylistService;
 import spotify.services.TrackService;
 import spotify.services.UserService;
 import spotify.spring.SpringPortConfig;
@@ -57,6 +58,7 @@ import spotify.util.data.AlbumTrackPair;
 	UserService.class,
 	DatabaseCreationService.class,
 	PlaylistStoreConfig.class,
+	PlaylistService.class,
 	BlacklistService.class,
 	DatabaseService.class,
 	FeatureControl.class,
@@ -74,13 +76,7 @@ public class RemappingTests {
 	private SpotifyApiManager spotifyApiManager;
 
 	@Autowired
-	private TrackService trackService;
-
-	@Autowired
 	private FilterService filterService;
-
-	@Autowired
-	private UserService userService;
 
 	@Autowired
 	private DatabaseService databaseService;
@@ -96,7 +92,7 @@ public class RemappingTests {
 	public void createRemappers() {
 		if (!initialized) {
 			epRemapper = new EpRemapper();
-			liveRemapper = new LiveRemapper(trackService);
+			liveRemapper = new LiveRemapper();
 			remixRemapper = new RemixRemapper();
 
 			rereleaseRemapper = new RereleaseRemapper(filterService, databaseService);
@@ -111,7 +107,7 @@ public class RemappingTests {
 		try {
 			spotifyApiManager.initialLogin();
 		} catch (SpotifyApiException e) {
-			e.printStackTrace();
+			SpotifyUtils.genericException(e);
 			fail("Couldn't log in to Spotify Web API!");
 		}
 	}
@@ -138,7 +134,7 @@ public class RemappingTests {
 			AlbumTrackPair atp = AlbumTrackPair.of(album, tracks);
 			return remapper.determineRemapAction(atp);
 		} catch (SpotifyApiException e) {
-			e.printStackTrace();
+			SpotifyUtils.genericException(e);
 			fail();
 			return null;
 		}
@@ -151,7 +147,7 @@ public class RemappingTests {
 
 	private List<TrackSimplified> getTracksOfSingleAlbum(AlbumSimplified album) throws SpotifyApiException {
 		return SpotifyCall.executePaging(spotifyApi
-			.getAlbumsTracks(album.getId())
+			.getAlbumTracks(album.getId())
 			.limit(10));
 	}
 
@@ -243,8 +239,9 @@ public class RemappingTests {
 
 	@Test
 	public void rereleaseErase() {
-		assertTrue(willErase(rereleaseRemapper, "1ZzgWH1of1iCoe7RSVyPFG")); // Helloween - 7 Sinners <1 song missing>
-		assertTrue(willErase(rereleaseRemapper, "7hnrUq4SVrRqsnDxBq0QZY")); // 65daysofstatic - We Were Exploding Anyway <5 songs missing>
+		// It appears that these have been fixed on Spotify's end, so I currently can't really test this...
+		// assertTrue(willErase(rereleaseRemapper, "1ZzgWH1of1iCoe7RSVyPFG")); // Helloween - 7 Sinners <1 song missing>
+		// assertTrue(willErase(rereleaseRemapper, "7hnrUq4SVrRqsnDxBq0QZY")); // 65daysofstatic - We Were Exploding Anyway <5 songs missing>
 	}
 
 }

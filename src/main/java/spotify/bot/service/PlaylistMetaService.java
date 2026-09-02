@@ -11,7 +11,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -20,7 +19,7 @@ import se.michaelthelin.spotify.model_objects.IPlaylistItem;
 import se.michaelthelin.spotify.model_objects.miscellaneous.CurrentlyPlaying;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
-import se.michaelthelin.spotify.requests.data.playlists.ChangePlaylistsDetailsRequest;
+import se.michaelthelin.spotify.requests.data.playlists.ChangePlaylistDetailsRequest;
 import spotify.api.SpotifyCall;
 import spotify.api.events.SpotifyApiException;
 import spotify.bot.config.properties.PlaylistStoreConfig;
@@ -95,7 +94,7 @@ public class PlaylistMetaService {
                 LocalDateTime lastUpdateFromDescription = DESCRIPTION_TIMESTAMP_FORMAT.parse(rawDate, LocalDateTime::from);
                 ps.setLastUpdate(lastUpdateFromDescription);
               } catch (DateTimeParseException e) {
-                e.printStackTrace();
+                SpotifyUtils.genericException(e);
               }
             }
           }
@@ -137,12 +136,12 @@ public class PlaylistMetaService {
     // implicitly means the playlist is already marked as read.
     List<PlaylistStore> psRequireDeepCheck = enabledPlaylistStores.parallelStream()
       .filter(playlistStore -> force || playlistStore.getLastUpdate() != null)
-      .collect(Collectors.toList());
+      .toList();
 
     if (!psRequireDeepCheck.isEmpty()) {
       // Once it's been established that at least one playlist needs a deep check for notifier clearance,
       // compare the currently playing song with the recently added songs of the playlists
-      CurrentlyPlaying currentlyPlaying = SpotifyCall.execute(spotifyApi.getUsersCurrentlyPlayingTrack());
+      CurrentlyPlaying currentlyPlaying = SpotifyCall.execute(spotifyApi.getCurrentlyPlayingTrack());
 
       if (currentlyPlaying != null && currentlyPlaying.getItem() != null) {
         List<Callable<Void>> callables = new ArrayList<>();
@@ -182,7 +181,7 @@ public class PlaylistMetaService {
     if (playlist != null && playlist.getItems() != null && playlist.getItems().getItems() != null) {
       List<PlaylistTrack> recentlyAddedPlaylistTracks = Arrays.stream(playlist.getItems().getItems())
         .filter(pt -> SpotifyUtils.isWithinTimeoutWindow(pt.getAddedAt(), NEW_NOTIFICATION_TIMEOUT_DAYS))
-        .collect(Collectors.toList());
+        .toList();
 
       if (!recentlyAddedPlaylistTracks.isEmpty()) {
         String currentlyPlayingItemId = currentlyPlaying.getItem().getId();
@@ -236,7 +235,7 @@ public class PlaylistMetaService {
       }
 
       if (newPlaylistName != null || newDescription != null) {
-        ChangePlaylistsDetailsRequest.Builder playlistDetailsBuilder = spotifyApi.changePlaylistsDetails(playlistId);
+        ChangePlaylistDetailsRequest.Builder playlistDetailsBuilder = spotifyApi.changePlaylistDetails(playlistId);
         if (newPlaylistName != null) {
           playlistDetailsBuilder = playlistDetailsBuilder.name(newPlaylistName);
         }

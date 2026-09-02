@@ -3,6 +3,7 @@ package spotify.controller;
 import java.sql.SQLException;
 import java.util.Map;
 
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ import spotify.bot.properties.FeatureControl;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.bot.util.DiscoveryBotUtils;
 import spotify.bot.util.data.AlbumGroupExtended;
+import spotify.util.SpotifyUtils;
 
 @RestController
 @Component
@@ -38,7 +40,7 @@ public class CrawlSchedulerController implements SchedulingConfigurer {
 	}
 
 	@Override
-	public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
+	public void configureTasks(@NonNull ScheduledTaskRegistrar taskRegistrar) {
 		if (featureControl.isScheduledCrawlsEnabled()) {
 			taskRegistrar.addCronTask(this::scheduledCrawl, crawlCron);
 			log.info("Scheduled crawls are enabled with the following cronjob: " + crawlCron, false);
@@ -52,7 +54,7 @@ public class CrawlSchedulerController implements SchedulingConfigurer {
 		try {
 			runCrawler();
 		} catch (SQLException | SpotifyApiException e) {
-			e.printStackTrace();
+			SpotifyUtils.genericException(e);
 		}
 	}
 

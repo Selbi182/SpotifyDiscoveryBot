@@ -63,7 +63,7 @@ public class AutoPurgerService {
         autoPurgeConfigMap.put(albumGroupExtended, expirationDateForType);
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      SpotifyUtils.genericException(e);
       return Map.of();
     }
     return autoPurgeConfigMap;

@@ -10,10 +10,9 @@ import java.sql.Statement;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
-import jakarta.annotation.PreDestroy;
-
 import org.springframework.stereotype.Repository;
 
+import jakarta.annotation.PreDestroy;
 import spotify.api.SpotifyDependenciesSettings;
 import spotify.bot.util.DiscoveryBotLogger;
 import spotify.util.SpotifyUtils;
@@ -101,6 +100,7 @@ public class DiscoveryDatabase {
 	/**
 	 * Fetch an entire table result set
 	 */
+	@SuppressWarnings("SqlSourceToSinkFlow")
 	ResultSet selectAll(String tableName) throws SQLException {
 		Statement statement = createStatement();
 		ResultSet resultSet = statement.executeQuery(String.format(FULL_SELECT_QUERY_MASK, tableName));
@@ -111,6 +111,7 @@ public class DiscoveryDatabase {
 	/**
 	 * Adds all given strings to the specified table's specified column
 	 */
+	@SuppressWarnings("SqlSourceToSinkFlow")
 	synchronized void insertAll(Collection<String> strings, String table, String column) throws SQLException {
 		if (strings != null && !strings.isEmpty()) {
 			Statement statement = createStatement();
@@ -124,6 +125,7 @@ public class DiscoveryDatabase {
 	/**
 	 * Removes all given strings from the specified table's specified column
 	 */
+	@SuppressWarnings({ "SqlSourceToSinkFlow", "SameParameterValue" })
 	synchronized void removeAll(Collection<String> strings, String table, String column) throws SQLException {
 		if (strings != null && !strings.isEmpty()) {
 			Statement statement = createStatement();

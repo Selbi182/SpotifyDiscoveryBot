@@ -4,7 +4,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -75,7 +74,7 @@ public class DatabaseService {
 	public void cacheAlbumIds(List<AlbumSimplified> albumsSimplified) {
 		List<String> albumIds = albumsSimplified.stream()
 			.map(AlbumSimplified::getId)
-			.collect(Collectors.toList());
+			.toList();
 
 		List<List<String>> albumChunks = SpotifyUtils.partitionList(albumIds, INSERTION_CHUNK_SIZE);
 		for (List<String> chunk : albumChunks) {
@@ -96,7 +95,7 @@ public class DatabaseService {
 	public void cacheAlbumNames(List<AlbumSimplified> albumsSimplified) {
 		List<String> albumIds = albumsSimplified.stream()
 			.map(SpotifyUtils::albumIdentifierString)
-			.collect(Collectors.toList());
+			.toList();
 
 		List<List<String>> albumChunks = SpotifyUtils.partitionList(albumIds, INSERTION_CHUNK_SIZE);
 		for (List<String> chunk : albumChunks) {

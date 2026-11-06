@@ -61,7 +61,7 @@ public class CachedArtistService {
         .toList();
       List<String> newFollowedArtistsIds = newFollowedArtists.stream()
         .map(Artist::getId)
-        .collect(Collectors.toList());
+        .toList();
 
       if (!newFollowedArtists.isEmpty()) {
         log.info("Initializing album cache for " + newFollowedArtists.size() + " newly followed artist[s]:");
@@ -101,7 +101,7 @@ public class CachedArtistService {
     List<Artist> followedArtists = artistService.getFollowedArtists();
     return followedArtists.stream()
         .filter(artist -> artist != null && !SpotifyUtils.isNullString(artist.getId()))
-        .collect(Collectors.toList());
+        .toList();
   }
 
   /**

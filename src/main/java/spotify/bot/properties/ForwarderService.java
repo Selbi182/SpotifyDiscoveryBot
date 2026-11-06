@@ -5,8 +5,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.annotation.PostConstruct;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -15,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import jakarta.annotation.PostConstruct;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.ArtistSimplified;
 import se.michaelthelin.spotify.model_objects.specification.ExternalUrl;
@@ -55,10 +54,10 @@ public class ForwarderService {
       this.active = true;
       log.info("Forwarder: Enabled! New releases will be forwarded to: " + forwarderUrl, false);
       if (hasRestrictedArtists()) {
-        log.info("Forwarder: Artists restricted to these IDS: " + String.join(", ", Arrays.asList(forwarderWhitelistedArtists)));
+        log.info("Forwarder: Artists restricted to these IDS: " + String.join(", ", Arrays.asList(forwarderWhitelistedArtists)), false);
       }
       if (hasRestrictedTypes()) {
-        log.info("Forwarder: Types restricted to: " + String.join(", ", Arrays.asList(forwarderWhitelistedTypes)).toUpperCase());
+        log.info("Forwarder: Types restricted to: " + String.join(", ", Arrays.asList(forwarderWhitelistedTypes)).toUpperCase(), false);
       }
     }
   }
@@ -86,6 +85,7 @@ public class ForwarderService {
       ? externalUrls.get("spotify")
       : album.getHref();
 
+    // TODO improve mask to also include extra artists and release name and song count
     String message = forwarderMessageMask != null
       ? String.format(forwarderMessageMask, SpotifyUtils.getFirstArtistName(album), albumLink)
       : albumLink;

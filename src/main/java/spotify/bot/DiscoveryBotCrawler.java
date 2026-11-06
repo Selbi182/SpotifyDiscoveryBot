@@ -121,7 +121,7 @@ public class DiscoveryBotCrawler {
 	public void firstCrawlAndEnableReadyState() throws SpotifyApiException, SQLException {
 		log.printLine();
 		long time = System.currentTimeMillis();
-		log.info("Initializing playlist stores...");
+		log.info("Initializing playlist stores...", false);
 		playlistStoreConfig.setupPlaylistStores();
 		playlistMetaService.initLastUpdatedFromPlaylistDescriptions();
 		log.info("Executing initial crawl...", false);
@@ -134,7 +134,7 @@ public class DiscoveryBotCrawler {
 		} else {
 			log.info(">>> SKIPPED <<<", false);
 		}
-		log.info("Initial crawl successfully finished in: " + (System.currentTimeMillis() - time) + "ms", false);
+		log.info("Initial crawl successfully finished in: " + (System.currentTimeMillis() - time) + "ms"); // write to log to quickly see when bot has been restarted
 		log.resetAndPrintLine();
 		lock = new ReentrantLock();
 	}

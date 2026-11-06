@@ -1,11 +1,7 @@
 package spotify.bot.filter.remapper;
 
-import java.util.List;
-import java.util.regex.Pattern;
-
 import org.springframework.stereotype.Component;
 
-import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.util.SpotifyUtils;
 import spotify.util.data.AlbumTrackPair;

@@ -7,10 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
 
 import se.michaelthelin.spotify.model_objects.IPlaylistItem;
@@ -24,7 +23,6 @@ import spotify.util.SpotifyOptimizedExecutorService;
 import spotify.util.SpotifyUtils;
 
 @Service
-@EnableConfigurationProperties
 @ConfigurationProperties(prefix = "spotify.discovery.crawl.auto")
 public class AutoPurgerService {
   private final PlaylistService playlistService;
@@ -36,6 +34,7 @@ public class AutoPurgerService {
 
   private Map<AlbumGroupExtended, Integer> autoPurgeConfigMap = Map.of();
 
+  @Autowired
   AutoPurgerService(PlaylistService playlistService, PlaylistStoreConfig playlistStoreConfig, PlaylistMetaService playlistMetaService, SpotifyOptimizedExecutorService executorService, FeatureControl featureControl, DiscoveryBotLogger log) {
     this.playlistService = playlistService;
     this.playlistStoreConfig = playlistStoreConfig;
@@ -86,7 +85,7 @@ public class AutoPurgerService {
           List<IPlaylistItem> expiredTracks = playlistTracks.stream()
             .filter(pt -> isExpiredTrack(pt, expirationDays))
             .map(PlaylistTrack::getItem)
-            .collect(Collectors.toList());
+            .toList();
           if (!expiredTracks.isEmpty()) {
             playlistService.removeItemsFromPlaylist(playlistId, expiredTracks);
             purgedTracksCount.addAndGet(expiredTracks.size());

@@ -7,7 +7,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -77,12 +76,12 @@ public class PlaylistSongsService {
       List<TrackSimplified> allTracksForPlaylist = albumTrackPairs.stream()
         .map(AlbumTrackPair::getTracks)
         .flatMap(Collection::stream)
-        .collect(Collectors.toList());
+        .toList();
 
-      Iterator<List<TrackSimplified>> partitionsIterator = SpotifyUtils.partitionList(allTracksForPlaylist, PLAYLIST_ADD_LIMIT).iterator();
+      Iterator<List<TrackSimplified>> partitionsIterator = SpotifyUtils.partitionList(allTracksForPlaylist, PLAYLIST_ADD_LIMIT / 2).iterator(); // TODO fix this, it's currently limited to 50 because underlying method is busted (URI too long)
       while (partitionsIterator.hasNext()) {
         List<TrackSimplified> partition = partitionsIterator.next();
-        List<String> ids = partition.stream().map(TrackSimplified::getId).collect(Collectors.toList());
+        List<String> ids = partition.stream().map(TrackSimplified::getId).toList();
         playlistService.addSongsToPlaylistByIdTop(playlist, ids);
 
         if (partitionsIterator.hasNext()) {
@@ -115,7 +114,7 @@ public class PlaylistSongsService {
 
     List<IPlaylistItem> tracksToDelete = playlistService.getPlaylistTracks(playlistId, offset).stream()
       .map(PlaylistTrack::getItem)
-      .collect(Collectors.toList());
+      .toList();
     playlistService.removeItemsFromPlaylist(playlistId, tracksToDelete);
   }
 }

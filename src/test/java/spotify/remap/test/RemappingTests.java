@@ -1,19 +1,18 @@
 package spotify.remap.test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.List;
 import java.util.Objects;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.model_objects.specification.Album;
@@ -46,7 +45,6 @@ import spotify.spring.SpringPortConfig;
 import spotify.util.SpotifyUtils;
 import spotify.util.data.AlbumTrackPair;
 
-@RunWith(SpringRunner.class)
 @SpringBootTest(classes = {
 	DiscoveryBotLogger.class,
 	DiscoveryDatabase.class,
@@ -67,7 +65,7 @@ import spotify.util.data.AlbumTrackPair;
 
 })
 @EnableConfigurationProperties
-public class RemappingTests {
+class RemappingTests {
 
 	@Autowired
 	private SpotifyApi spotifyApi;
@@ -88,7 +86,7 @@ public class RemappingTests {
 
 	private static boolean initialized = false;
 
-	@Before
+	@BeforeEach
 	public void createRemappers() {
 		if (!initialized) {
 			epRemapper = new EpRemapper();
@@ -237,11 +235,10 @@ public class RemappingTests {
 		assertTrue(willRemap(rereleaseRemapper, "6kE2yDdOredVYctzaK0PVu")); // Boehse Onkelz - Kneipenterroristen (30 Jahre)
 	}
 
+	@Disabled("It appears that these have been fixed on Spotify's end, so I currently can't really test this...")
 	@Test
 	public void rereleaseErase() {
-		// It appears that these have been fixed on Spotify's end, so I currently can't really test this...
-		// assertTrue(willErase(rereleaseRemapper, "1ZzgWH1of1iCoe7RSVyPFG")); // Helloween - 7 Sinners <1 song missing>
-		// assertTrue(willErase(rereleaseRemapper, "7hnrUq4SVrRqsnDxBq0QZY")); // 65daysofstatic - We Were Exploding Anyway <5 songs missing>
+		assertTrue(willErase(rereleaseRemapper, "1ZzgWH1of1iCoe7RSVyPFG")); // Helloween - 7 Sinners <1 song missing>
+		assertTrue(willErase(rereleaseRemapper, "7hnrUq4SVrRqsnDxBq0QZY")); // 65daysofstatic - We Were Exploding Anyway <5 songs missing>
 	}
-
 }

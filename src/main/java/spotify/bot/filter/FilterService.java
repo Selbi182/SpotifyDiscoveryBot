@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -95,7 +94,7 @@ public class FilterService {
 		Set<String> albumCache = new HashSet<>(databaseService.getReleasesIdsCache());
 		return filteredAlbums.values().stream()
 			.filter(a -> !albumCache.contains(a.getId()))
-			.collect(Collectors.toList());
+			.toList();
 	}
 
 	////////////
@@ -119,7 +118,7 @@ public class FilterService {
 			if (!artists.isEmpty()) {
 				List<String> artistIds = artists.stream()
 					.map(Artist::getId)
-					.collect(Collectors.toList());
+					.toList();
 				databaseService.cacheArtistIds(artistIds);
 			}
 		}
@@ -132,7 +131,7 @@ public class FilterService {
 				.toList();
 			List<String> unfollowedArtists = cachedArtists.stream()
 				.filter(artistId -> !artistsIds.contains(artistId))
-				.collect(Collectors.toList());
+				.toList();
 			if (!unfollowedArtists.isEmpty()) {
 				log.info("Uncaching " + unfollowedArtists.size() + " unfollowed artists...");
 				databaseService.uncacheArtistIds(unfollowedArtists);
@@ -180,7 +179,7 @@ public class FilterService {
 	public List<AlbumSimplified> filterFutureAlbums(List<AlbumSimplified> albums) {
 		return albums.stream()
 			.filter(this::isNotInTheFuture)
-			.collect(Collectors.toList());
+			.toList();
 	}
 	
 	/**
@@ -258,7 +257,7 @@ public class FilterService {
 		List<AlbumSimplified> filteredReleases = unfilteredReleases.stream()
 			.filter(release -> (AlbumType.ALBUM.equals(release.getAlbumType()))
 				|| isValidDate(release))
-			.collect(Collectors.toList());
+			.toList();
 		log.printDroppedAlbumDifference(unfilteredReleases, filteredReleases,
 			String.format("Dropped %d non-cached but too-old release[s]:", unfilteredReleases.size() - filteredReleases.size()));
 		return filteredReleases;

@@ -31,6 +31,7 @@ import spotify.util.SpotifyUtils;
 import spotify.util.data.AlbumTrackPair;
 
 @Service
+@SuppressWarnings("UnnecessaryUnicodeEscape")
 public class PlaylistMetaService {
   /**
    * The amount of days after which an unread notification will automatically be set to read

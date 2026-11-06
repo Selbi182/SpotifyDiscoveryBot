@@ -6,9 +6,8 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import se.michaelthelin.spotify.enums.CountryCode;
-
 import se.michaelthelin.spotify.SpotifyApi;
+import se.michaelthelin.spotify.enums.CountryCode;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.requests.data.artists.GetArtistsAlbumsRequest;
 import spotify.api.SpotifyCall;

@@ -4,10 +4,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
 
 import spotify.bot.util.DiscoveryBotLogger;
@@ -15,13 +14,13 @@ import spotify.bot.util.data.AlbumGroupExtended;
 import spotify.util.SpotifyUtils;
 
 @Service
-@EnableConfigurationProperties
 @ConfigurationProperties(prefix = "spotify.discovery.crawl")
 public class BlacklistService {
   private Map<String, List<AlbumGroupExtended>> blacklistMap = Map.of();
 
   private final DiscoveryBotLogger log;
 
+  @Autowired
   BlacklistService(DiscoveryBotLogger log) {
     this.log = log;
   }
@@ -30,7 +29,7 @@ public class BlacklistService {
   void setBlacklist(List<String> blacklistRaw) {
     this.blacklistMap = parseBlacklist(blacklistRaw);
     if (!this.blacklistMap.isEmpty()) {
-      log.warning("Blacklisting has been enabled! " + this.blacklistMap);
+      log.warning("Blacklisting has been enabled! " + this.blacklistMap, false);
     }
   }
 
@@ -43,7 +42,7 @@ public class BlacklistService {
         List<AlbumGroupExtended> blacklistedTypes = Arrays.stream(split[1].split(","))
           .map(String::toUpperCase)
           .map(AlbumGroupExtended::valueOf)
-          .collect(Collectors.toList());
+          .toList();
         blacklistMap.put(artistId, blacklistedTypes);
       }
     } catch (Exception e) {

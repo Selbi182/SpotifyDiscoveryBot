@@ -1,12 +1,10 @@
 package spotify.controller;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
-
-import java.time.Duration;
 
 import org.jspecify.annotations.NonNull;
 import org.springframework.http.HttpStatus;
@@ -86,7 +84,7 @@ public class MiscController implements SchedulingConfigurer {
 
   @GetMapping("/")
   public ModelAndView showLogView() {
-    return new ModelAndView("/log.html");
+    return new ModelAndView("redirect:/log.html");
   }
 
   /**
@@ -117,10 +115,11 @@ public class MiscController implements SchedulingConfigurer {
         groupedLog.add(currentBlock);
       }
 
+      Collections.reverse(groupedLog);
       List<List<String>> collect = groupedLog.stream()
         .filter(l -> !l.isEmpty())
-        .collect(Collectors.toList());
-      Collections.reverse(collect);
+        .toList();
+
       if (limit != null && limit >= 0) {
         collect = collect.subList(0, Math.min(limit, collect.size()));
       }

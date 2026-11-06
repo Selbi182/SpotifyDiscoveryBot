@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 import org.springframework.context.annotation.Configuration;
 
@@ -180,7 +179,7 @@ public class PlaylistStoreConfig {
 	public Collection<PlaylistStore> getEnabledPlaylistStores() {
 		return getAllPlaylistStores().stream()
 			.filter(ps -> getEnabledAlbumGroups().contains(ps.getAlbumGroupExtended()))
-			.collect(Collectors.toList());
+			.toList();
 	}
 
 	/**

@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
@@ -171,7 +170,7 @@ public class DiscoveryBotLogger extends SpotifyLogger {
    * Log the dropped album track pairs
    */
   public void printDroppedAlbumTrackPairs(Collection<AlbumTrackPair> droppedAlbums, String logDescription) {
-    List<AlbumSimplified> collect = droppedAlbums.stream().map(AlbumTrackPair::getAlbum).collect(Collectors.toList());
+    List<AlbumSimplified> collect = droppedAlbums.stream().map(AlbumTrackPair::getAlbum).toList();
     printDroppedAlbums(collect, logDescription);
   }
 
@@ -183,7 +182,7 @@ public class DiscoveryBotLogger extends SpotifyLogger {
       if (logDescription != null) {
         info(DROPPED_PREFIX + logDescription);
       }
-      List<AlbumSimplified> sortedDroppedAlbums = droppedAlbums.stream().sorted(ALBUM_SIMPLIFIED_COMPARATOR).collect(Collectors.toList());
+      List<AlbumSimplified> sortedDroppedAlbums = droppedAlbums.stream().sorted(ALBUM_SIMPLIFIED_COMPARATOR).toList();
       printDroppedAlbumSimplified(sortedDroppedAlbums);
     }
   }
